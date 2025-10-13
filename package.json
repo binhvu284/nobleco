@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "preview": "vite preview"
+  "preview": "vite preview",
+  "seed:admin": "node ./scripts/seed-admin.mjs admin 123Aa@456"
   },
   "dependencies": {
     "bcryptjs": "^3.0.2",
