@@ -1,13 +1,16 @@
-import { getDb } from './_db.js';
+import { getSupabase } from './_db.js';
 
 export default async function handler(req, res) {
   try {
-    const db = await getDb();
-    const col = db.collection('users');
+    const supabase = getSupabase();
 
     if (req.method === 'GET') {
-      const users = await col.find({}, { projection: { password: 0, passwordHash: 0 } }).limit(50).toArray();
-      return res.status(200).json(users);
+      const { data, error } = await supabase
+        .from('users')
+        .select('id, username, role, created_at')
+        .limit(50);
+      if (error) return res.status(500).json({ error: error.message });
+      return res.status(200).json(data);
     }
 
     if (req.method === 'POST') {
@@ -15,9 +18,14 @@ export default async function handler(req, res) {
       if (!body || !body.username) {
         return res.status(400).json({ error: 'username is required' });
       }
-      const payload = { username: body.username, createdAt: new Date() };
-      const { insertedId } = await col.insertOne(payload);
-      return res.status(201).json({ _id: insertedId, ...payload });
+      const payload = { username: body.username };
+      const { data, error } = await supabase
+        .from('users')
+        .insert(payload)
+        .select('id, username, role, created_at')
+        .single();
+      if (error) return res.status(500).json({ error: error.message });
+      return res.status(201).json(data);
     }
 
     res.setHeader('Allow', 'GET, POST');

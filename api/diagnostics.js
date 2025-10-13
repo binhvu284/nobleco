@@ -1,35 +1,33 @@
-import { getDb } from './_db.js';
+import { getSupabase } from './_db.js';
 
-function redact(uri) {
-  if (!uri) return null;
-  try {
-    const u = new URL(uri);
-    if (u.password) u.password = '***';
-    if (u.username) u.username = '***';
-    return `${u.protocol}//${u.username}:${u.password}@${u.host}${u.pathname}${u.search}`;
-  } catch {
-    return 'unparseable';
-  }
+function redact(value) {
+  if (!value) return null;
+  if (typeof value !== 'string') return null;
+  if (value.length <= 8) return '***';
+  return `${value.slice(0, 4)}***${value.slice(-4)}`;
 }
 
 export default async function handler(req, res) {
   try {
-    const hasUri = Boolean(process.env.MONGODB_URI);
-    const dbName = process.env.DB_NAME || null;
-    const sanitized = redact(process.env.MONGODB_URI || '');
+    const hasUrl = Boolean(process.env.SUPABASE_URL);
+    const hasKey = Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY);
+    const sanitizedUrl = redact(process.env.SUPABASE_URL || '');
+    const sanitizedKey = redact(process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || '');
 
     let ping = null;
     let error = null;
     try {
-      const db = await getDb();
-      await db.command({ ping: 1 });
-      ping = { ok: true, db: db.databaseName };
+      const supabase = getSupabase();
+      // Minimal check: query a trivial expression from any table; prefer rpc if available
+      const { error: testError } = await supabase.from('users').select('id').limit(1);
+      if (testError) throw testError;
+      ping = { ok: true };
     } catch (e) {
       error = e?.message || String(e);
     }
 
     return res.status(error ? 500 : 200).json({
-      env: { hasUri, dbName, uri: sanitized },
+      env: { hasUrl, hasKey, url: sanitizedUrl, key: sanitizedKey },
       ping,
       error,
     });
