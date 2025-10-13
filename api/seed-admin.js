@@ -8,24 +8,24 @@ export default async function handler(req, res) {
       return res.status(405).end('Method Not Allowed');
     }
     const body = await readBody(req);
-    const { account, password } = body || {};
-    if (!account || !password) {
-      return res.status(400).json({ error: 'account and password required' });
+    const { account, email, password } = body || {};
+    if (!account || !email || !password) {
+      return res.status(400).json({ error: 'account, email and password required' });
     }
     const supabase = getSupabase();
     const { data: existing, error: findErr } = await supabase
       .from('users')
       .select('id')
-      .eq('username', account)
+      .or(`username.eq.${account},email.eq.${email}`)
       .maybeSingle();
     if (findErr) return res.status(500).json({ error: findErr.message });
     if (existing) {
       return res.status(200).json({ ok: true, message: 'User already exists' });
     }
-    const password_hash = await bcrypt.hash(password, 10);
+    const pw = await bcrypt.hash(password, 10);
     const { error: insertErr } = await supabase
       .from('users')
-      .insert({ username: account, password_hash, role: 'admin' });
+      .insert({ email, username: account, password: pw, role: 'admin' });
     if (insertErr) return res.status(500).json({ error: insertErr.message });
     return res.status(201).json({ ok: true });
   } catch (e) {

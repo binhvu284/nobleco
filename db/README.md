@@ -23,23 +23,23 @@ Set these in `.env.local` (local) and Vercel Project Settings → Environment Va
 
 #### public.users
 - `id uuid` PK default `gen_random_uuid()`
+- `email text` unique not null
 - `username text` unique not null
-- `password_hash text` nullable (only for password-based login)
-- `role text` default `user`
-- `created_at timestamptz` default `now()`
+- `password text` (bcrypt hash)
+- `role text` default `user` (allowed: `admin`, `user`)
 
 Indexes:
+- `users_email_idx (email)`
 - `users_username_idx (username)`
 
 ## API ↔ DB mapping
-- `POST /api/auth/login` → select users by `username`, compare `password_hash` using bcrypt
-- `GET /api/users` → select `id, username, role, created_at`
-- `POST /api/users` → insert `{ username }` → returns `id, username, role, created_at`
-- `POST /api/seed-admin` → upsert admin with `password_hash`, `role = 'admin'`
+- `POST /api/auth/login` → select users by `username`, compare `password` (hashed) using bcrypt
+- `GET /api/users` → select `id, email, username, role`
+- `POST /api/users` → insert `{ email, username, password?, role? }` → returns `id, email, username, role`
+- `POST /api/seed-admin` → create admin with `{ account, email, password }`
 
 ## Conventions
-- Server code never exposes `password_hash`
-- Timestamps in UTC (`timestamptz`)
+- Server code never exposes `password`
 - Use service role key on the server only; never ship it to the client
 
 ## Future evolution
