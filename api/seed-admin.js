@@ -23,9 +23,15 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true, message: 'User already exists' });
     }
     const pw = await bcrypt.hash(password, 10);
-    const { error: insertErr } = await supabase
+    let { error: insertErr } = await supabase
       .from('users')
       .insert({ email, username: account, password: pw, role: 'admin' });
+    if (insertErr && /column\s+"?role"?\s+does not exist/i.test(insertErr.message)) {
+      const resp = await supabase
+        .from('users')
+        .insert({ email, username: account, password: pw });
+      insertErr = resp.error || null;
+    }
     if (insertErr) return res.status(500).json({ error: insertErr.message });
     return res.status(201).json({ ok: true });
   } catch (e) {
