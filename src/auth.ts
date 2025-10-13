@@ -1,4 +1,4 @@
-const AUTH_KEY = 'fairiche_auth_token';
+const AUTH_KEY = 'nobleco_auth_token';
 
 export function isAuthenticated(): boolean {
     return Boolean(localStorage.getItem(AUTH_KEY));

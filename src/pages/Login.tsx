@@ -26,7 +26,7 @@ export default function Login() {
     return (
         <div className="container">
             <div className="card">
-                <h1 className="brand">Fairiche</h1>
+            <h1 className="brand">Nobleco</h1>
                 <p className="subtitle">Sign in to continue</p>
                 <form onSubmit={onSubmit} className="form">
                     <label>
