@@ -1,19 +1,20 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Nobleco Supabase Schema",
-  "version": 1,
+  "version": 2,
   "tables": [
     {
       "name": "users",
       "schema": "public",
       "columns": [
         { "name": "id", "type": "uuid", "nullable": false, "default": "gen_random_uuid()", "pk": true },
+        { "name": "email", "type": "text", "nullable": false, "unique": true },
         { "name": "username", "type": "text", "nullable": false, "unique": true },
-        { "name": "password_hash", "type": "text", "nullable": true },
-        { "name": "role", "type": "text", "nullable": false, "default": "'user'" },
-        { "name": "created_at", "type": "timestamptz", "nullable": false, "default": "now()" }
+        { "name": "password", "type": "text", "nullable": true },
+        { "name": "role", "type": "text", "nullable": false, "default": "'user'", "enum": ["admin","user"] }
       ],
       "indexes": [
+        { "name": "users_email_idx", "columns": ["email"], "unique": false },
         { "name": "users_username_idx", "columns": ["username"], "unique": false }
       ],
       "policies": []

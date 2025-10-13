@@ -1,4 +1,5 @@
 import { getSupabase } from './_db.js';
+import bcrypt from 'bcryptjs';
 
 export default async function handler(req, res) {
   try {
@@ -7,7 +8,7 @@ export default async function handler(req, res) {
     if (req.method === 'GET') {
       const { data, error } = await supabase
         .from('users')
-        .select('id, username, role, created_at')
+        .select('id, email, username, role')
         .limit(50);
       if (error) return res.status(500).json({ error: error.message });
       return res.status(200).json(data);
@@ -15,14 +16,16 @@ export default async function handler(req, res) {
 
     if (req.method === 'POST') {
       const body = await readBody(req);
-      if (!body || !body.username) {
-        return res.status(400).json({ error: 'username is required' });
+      const { email, username, password, role } = body || {};
+      if (!email || !username) {
+        return res.status(400).json({ error: 'email and username are required' });
       }
-      const payload = { username: body.username };
+      const hashed = password ? await bcrypt.hash(password, 10) : null;
+      const payload = { email, username, password: hashed, role: role === 'admin' ? 'admin' : 'user' };
       const { data, error } = await supabase
         .from('users')
         .insert(payload)
-        .select('id, username, role, created_at')
+        .select('id, email, username, role')
         .single();
       if (error) return res.status(500).json({ error: error.message });
       return res.status(201).json(data);

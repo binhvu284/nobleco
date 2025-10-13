@@ -18,7 +18,7 @@ export default async function handler(req, res) {
     const supabase = getSupabase();
     const { data: user, error } = await supabase
       .from('users')
-      .select('id, username, password_hash')
+      .select('id, email, username, password, role')
       .eq('username', username)
       .maybeSingle();
 
@@ -26,16 +26,16 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: error.message });
     }
 
-    if (!user || !user.password_hash) {
+    if (!user || !user.password) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    const valid = await bcrypt.compare(password, user.password_hash);
+    const valid = await bcrypt.compare(password, user.password);
     if (!valid) return res.status(401).json({ error: 'Invalid credentials' });
 
     // Simple session token: not a JWT, just a placeholder for demo
     const token = `ok.${user.id}`;
-    return res.status(200).json({ ok: true, token, user: { username: user.username } });
+  return res.status(200).json({ ok: true, token, user: { id: user.id, email: user.email, username: user.username, role: user.role } });
   } catch (e) {
     return res.status(500).json({ error: e.message });
   }

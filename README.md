@@ -95,13 +95,14 @@ Run this SQL in Supabase SQL Editor:
 ```
 create table if not exists public.users (
 	id uuid primary key default gen_random_uuid(),
+	email text unique not null,
 	username text unique not null,
-	password_hash text,
-	role text default 'user',
-	created_at timestamptz not null default now()
+	password text,
+	role text not null default 'user' check (role in ('admin','user'))
 );
 
 -- Optional indexes
+create index if not exists users_email_idx on public.users (email);
 create index if not exists users_username_idx on public.users (username);
 ```
 
@@ -111,8 +112,8 @@ Note: If you don’t have pgcrypto enabled for gen_random_uuid, use: `uuid defau
 
 - `GET /api/health` → connectivity check
 - `GET /api/users` → list users (first 50)
-- `POST /api/users` → create a user: `{ "username": "alice" }`
+- `POST /api/users` → create a user: `{ "email": "a@b.com", "username": "alice", "password": "...", "role": "user" }`
 - `POST /api/auth/login` → login with `{ "username": "admin", "password": "..." }`
-- `POST /api/seed-admin` → one-off create admin user
+- `POST /api/seed-admin` → one-off create admin user: `{ "account": "admin", "email": "admin@example.com", "password": "..." }`
 
 Client-side routes are still handled by `/index.html`, while `/api/*` is excluded from SPA rewrites.
