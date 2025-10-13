@@ -1,7 +1,7 @@
-const { getDb } = require('./_db');
-const bcrypt = require('bcryptjs');
+import { getDb } from './_db.js';
+import bcrypt from 'bcryptjs';
 
-module.exports = async (req, res) => {
+export default async function handler(req, res) {
   try {
     if (req.method !== 'POST') {
       res.setHeader('Allow', 'POST');
@@ -24,7 +24,7 @@ module.exports = async (req, res) => {
   } catch (e) {
     return res.status(500).json({ error: e.message });
   }
-};
+}
 
 function readBody(req) {
   return new Promise((resolve) => {
