@@ -1,6 +1,6 @@
-const { getDb } = require('./_db');
+import { getDb } from './_db.js';
 
-module.exports = async (req, res) => {
+export default async function handler(req, res) {
   try {
     const db = await getDb();
     await db.command({ ping: 1 });
@@ -8,4 +8,4 @@ module.exports = async (req, res) => {
   } catch (e) {
     res.status(500).json({ ok: false, error: e.message });
   }
-};
+}

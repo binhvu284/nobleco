@@ -1,9 +1,9 @@
-const { MongoClient } = require('mongodb');
+import { MongoClient } from 'mongodb';
 
 let client = null;
 let db = null;
 
-async function getDb() {
+export async function getDb() {
   if (db) return db;
   const uri = process.env.MONGODB_URI;
   const dbName = process.env.DB_NAME || 'nobleco';
@@ -13,5 +13,3 @@ async function getDb() {
   db = client.db(dbName);
   return db;
 }
-
-module.exports = { getDb };

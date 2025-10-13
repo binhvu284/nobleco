@@ -1,6 +1,6 @@
-const { getDb } = require('./_db');
+import { getDb } from './_db.js';
 
-module.exports = async (req, res) => {
+export default async function handler(req, res) {
   try {
     const db = await getDb();
     const col = db.collection('users');
@@ -25,7 +25,7 @@ module.exports = async (req, res) => {
   } catch (e) {
     return res.status(500).json({ error: e.message });
   }
-};
+}
 
 function readBody(req) {
   return new Promise((resolve) => {
