@@ -1,6 +1,6 @@
 import { FormEvent, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { isAuthenticated, login } from '../auth';
+import { login } from '../auth';
 
 export default function Login() {
     const navigate = useNavigate();
@@ -8,16 +8,14 @@ export default function Login() {
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
 
-    if (isAuthenticated()) {
-        navigate('/dashboard', { replace: true });
-    }
+        // Dashboard is public now, so no pre-redirect if already "authenticated"
 
-        const onSubmit = async (e: FormEvent) => {
+    const onSubmit = async (e: FormEvent) => {
         e.preventDefault();
         setError('');
-            const ok = await login(username, password);
-            if (ok) navigate('/', { replace: true });
-            else setError('Invalid credentials');
+        const ok = await login(username, password);
+        if (ok) navigate('/', { replace: true });
+        else setError('Invalid credentials');
     };
 
     return (
