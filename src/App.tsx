@@ -1,23 +1,19 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
-import ProtectedRoute from './components/ProtectedRoute';
-import { isAuthenticated } from './auth';
-
-function Home() {
-    return isAuthenticated() ? <Dashboard /> : <Login />;
-}
 
 export default function App() {
     return (
         <Routes>
-            <Route path="/" element={<Home />} />
-            <Route element={<ProtectedRoute />}>
-                <Route path="/dashboard" element={<Dashboard />} />
-            </Route>
+            {/* Public dashboard at root */}
+            <Route path="/" element={<Dashboard />} />
+            {/* Public login page */}
+            <Route path="/login" element={<Login />} />
+            {/* Redirect legacy /dashboard to root */}
+            <Route path="/dashboard" element={<Navigate to="/" replace />} />
             <Route
                 path="*"
-                element={<Navigate to={isAuthenticated() ? '/' : '/'} replace />}
+                element={<Navigate to="/" replace />}
             />
         </Routes>
     );
