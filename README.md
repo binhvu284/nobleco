@@ -61,3 +61,30 @@ Option B: Vercel dashboard
 - Output directory: `dist`
 
 The included `vercel.json` ensures client-side routing works.
+
+## Connect to MongoDB
+
+This project includes serverless API routes for MongoDB on Vercel.
+
+1. Create a MongoDB Atlas free cluster and a database user.
+2. Copy the connection string (SRV) and set the following env vars:
+
+Locally (create `.env.local`):
+
+```
+MONGODB_URI=mongodb+srv://<user>:<password>@<cluster>.mongodb.net/?retryWrites=true&w=majority
+DB_NAME=fairiche
+```
+
+On Vercel (Project Settings → Environment Variables):
+
+- MONGODB_URI = your connection string
+- DB_NAME = fairiche
+
+### API endpoints
+
+- `GET /api/health` → ping the database
+- `GET /api/users` → list users (first 50)
+- `POST /api/users` → create a user: `{ "username": "alice" }`
+
+Note: Client-side routes are still handled by `/index.html`, while `/api/*` is excluded from SPA rewrites.
