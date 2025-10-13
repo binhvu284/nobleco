@@ -6,10 +6,19 @@ export default async function handler(req, res) {
     const supabase = getSupabase();
 
     if (req.method === 'GET') {
-      const { data, error } = await supabase
+      let { data, error } = await supabase
         .from('users')
         .select('id, email, username, role')
         .limit(50);
+      if (error && /column\s+"?role"?\s+does not exist/i.test(error.message)) {
+        const resp = await supabase
+          .from('users')
+          .select('id, email, username')
+          .limit(50);
+        if (resp.error) return res.status(500).json({ error: resp.error.message });
+        data = (resp.data || []).map((u) => ({ ...u, role: 'user' }));
+        return res.status(200).json(data);
+      }
       if (error) return res.status(500).json({ error: error.message });
       return res.status(200).json(data);
     }
@@ -22,11 +31,20 @@ export default async function handler(req, res) {
       }
       const hashed = password ? await bcrypt.hash(password, 10) : null;
       const payload = { email, username, password: hashed, role: role === 'admin' ? 'admin' : 'user' };
-      const { data, error } = await supabase
+      let { data, error } = await supabase
         .from('users')
         .insert(payload)
         .select('id, email, username, role')
         .single();
+      if (error && /column\s+"?role"?\s+does not exist/i.test(error.message)) {
+        const resp = await supabase
+          .from('users')
+          .insert({ email, username, password: hashed })
+          .select('id, email, username')
+          .single();
+        if (resp.error) return res.status(500).json({ error: resp.error.message });
+        return res.status(201).json({ ...resp.data, role: 'user' });
+      }
       if (error) return res.status(500).json({ error: error.message });
       return res.status(201).json(data);
     }
