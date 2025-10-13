@@ -2,7 +2,7 @@
 
 A simple React + Vite + TypeScript app with Login and Dashboard pages. Ready for GitHub and Vercel deployment.
 
-Note: This repository is for Fairiche software development.
+Note: This repository is for Nobleco software development.
 
 ## Features
 
@@ -32,13 +32,13 @@ npm run preview
 
 ## Push to GitHub
 
-1. Create a new GitHub repository named `Fairiche` (or any name you prefer).
+1. Create a new GitHub repository named `Nobleco` (or any name you prefer).
 2. Initialize git, add files, set the remote, and push:
 
 ```
 git init
 git add .
-git commit -m "feat: bootstrap Fairiche app"
+git commit -m "feat: bootstrap Nobleco app"
 git branch -M main
 git remote add origin <YOUR_GITHUB_REMOTE_URL>
 git push -u origin main
@@ -73,13 +73,13 @@ Locally (create `.env.local`):
 
 ```
 MONGODB_URI=mongodb+srv://<user>:<password>@<cluster>.mongodb.net/?retryWrites=true&w=majority
-DB_NAME=fairiche
+DB_NAME=nobleco
 ```
 
 On Vercel (Project Settings → Environment Variables):
 
 - MONGODB_URI = your connection string
-- DB_NAME = fairiche
+- DB_NAME = nobleco
 
 ### API endpoints
 
