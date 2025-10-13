@@ -1,4 +1,4 @@
-# Fairiche
+# Nobleco
 
 A simple React + Vite + TypeScript app with Login and Dashboard pages. Ready for GitHub and Vercel deployment.
 
