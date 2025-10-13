@@ -6,7 +6,7 @@ module.exports = async (req, res) => {
     const col = db.collection('users');
 
     if (req.method === 'GET') {
-      const users = await col.find({}, { projection: { password: 0 } }).limit(50).toArray();
+      const users = await col.find({}, { projection: { password: 0, passwordHash: 0 } }).limit(50).toArray();
       return res.status(200).json(users);
     }
 
