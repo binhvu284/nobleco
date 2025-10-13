@@ -12,7 +12,7 @@ export default function Dashboard() {
     return (
         <div className="container">
             <div className="navbar">
-            <div className="brand">Nobleco</div>
+                <div className="brand">Nobleco</div>
                 <button className="secondary" onClick={handleLogout}>Log out</button>
             </div>
             <div className="content">
