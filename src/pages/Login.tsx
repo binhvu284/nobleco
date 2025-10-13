@@ -12,15 +12,12 @@ export default function Login() {
         navigate('/dashboard', { replace: true });
     }
 
-    const onSubmit = (e: FormEvent) => {
+        const onSubmit = async (e: FormEvent) => {
         e.preventDefault();
         setError('');
-        const ok = login(username, password);
-        if (ok) {
-            navigate('/dashboard', { replace: true });
-        } else {
-            setError('Invalid credentials');
-        }
+            const ok = await login(username, password);
+            if (ok) navigate('/', { replace: true });
+            else setError('Invalid credentials');
     };
 
     return (
