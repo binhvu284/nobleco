@@ -2,6 +2,8 @@
 
 A simple React + Vite + TypeScript app with Login and Dashboard pages. Ready for GitHub and Vercel deployment.
 
+Note: This repository is for Fairiche software development.
+
 ## Features
 
 - React 18 + TypeScript + Vite
