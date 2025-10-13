@@ -1,34 +1,38 @@
-import { MongoClient } from 'mongodb';
+import { createClient } from '@supabase/supabase-js';
 import bcrypt from 'bcryptjs';
 
 async function main() {
-  const uri = process.env.MONGODB_URI;
-  const dbName = process.env.DB_NAME || 'nobleco';
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
   const [, , argUser, argPass] = process.argv;
   const username = argUser || process.env.SEED_USERNAME || 'admin';
   const password = argPass || process.env.SEED_PASSWORD || '';
 
-  if (!uri) throw new Error('Missing MONGODB_URI');
-  if (!dbName) throw new Error('Missing DB_NAME');
+  if (!url) throw new Error('Missing SUPABASE_URL');
+  if (!key) throw new Error('Missing SUPABASE_SERVICE_ROLE_KEY (or SUPABASE_ANON_KEY)');
   if (!username || !password) throw new Error('Missing username/password (args or SEED_USERNAME/SEED_PASSWORD)');
 
-  const client = new MongoClient(uri, { serverSelectionTimeoutMS: 10000 });
-  await client.connect();
-  const db = client.db(dbName);
-  const users = db.collection('users');
+  const supabase = createClient(url, key, { auth: { persistSession: false } });
 
-  const existing = await users.findOne({ username });
+  const { data: existing, error: findErr } = await supabase
+    .from('users')
+    .select('id')
+    .eq('username', username)
+    .maybeSingle();
+  if (findErr) throw new Error(findErr.message);
   if (existing) {
     console.log(`[seed-admin] User '${username}' already exists. Skipping.`);
-    await client.close();
     return;
   }
 
-  const passwordHash = await bcrypt.hash(password, 10);
-  const doc = { username, passwordHash, role: 'admin', createdAt: new Date() };
-  const { insertedId } = await users.insertOne(doc);
-  await client.close();
-  console.log(`[seed-admin] Created user '${username}' with _id=${insertedId.toString()}`);
+  const password_hash = await bcrypt.hash(password, 10);
+  const { data, error: insertErr } = await supabase
+    .from('users')
+    .insert({ username, password_hash, role: 'admin' })
+    .select('id')
+    .single();
+  if (insertErr) throw new Error(insertErr.message);
+  console.log(`[seed-admin] Created user '${username}' with id=${data.id}`);
 }
 
 main().catch((e) => {

@@ -8,7 +8,7 @@ export default function Login() {
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
 
-        // Dashboard is public now, so no pre-redirect if already "authenticated"
+    // Dashboard is public now, so no pre-redirect if already "authenticated"
 
     const onSubmit = async (e: FormEvent) => {
         e.preventDefault();

@@ -1,4 +1,4 @@
-import { getDb } from '../_db.js';
+import { getSupabase } from '../_db.js';
 import bcrypt from 'bcryptjs';
 
 export default async function handler(req, res) {
@@ -15,19 +15,26 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'username and password are required' });
     }
 
-    const db = await getDb();
-    const users = db.collection('users');
-    const user = await users.findOne({ username });
+    const supabase = getSupabase();
+    const { data: user, error } = await supabase
+      .from('users')
+      .select('id, username, password_hash')
+      .eq('username', username)
+      .maybeSingle();
 
-    if (!user || !user.passwordHash) {
+    if (error) {
+      return res.status(500).json({ error: error.message });
+    }
+
+    if (!user || !user.password_hash) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    const valid = await bcrypt.compare(password, user.passwordHash);
+    const valid = await bcrypt.compare(password, user.password_hash);
     if (!valid) return res.status(401).json({ error: 'Invalid credentials' });
 
     // Simple session token: not a JWT, just a placeholder for demo
-    const token = `ok.${user._id.toString()}`;
+    const token = `ok.${user.id}`;
     return res.status(200).json({ ok: true, token, user: { username: user.username } });
   } catch (e) {
     return res.status(500).json({ error: e.message });
