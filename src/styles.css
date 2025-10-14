@@ -149,12 +149,15 @@ input:focus {
 }
 
 .admin-sidebar {
+    grid-column: 1;
     border-right: 1px solid var(--border);
     padding: 20px 12px;
     border-radius: 0 16px 16px 0;
     transition: width 0.2s ease;
     width: 240px;
     background: var(--panel);
+    position: relative;
+    z-index: 2; /* stay above header/content */
 }
 
 .admin-sidebar.collapsed {
@@ -204,8 +207,11 @@ input:focus {
 }
 
 .admin-main {
+    grid-column: 2;
     display: grid;
     grid-template-rows: auto 1fr;
+    position: relative;
+    z-index: 1;
 }
 
 .admin-header {

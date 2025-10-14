@@ -1,9 +1,11 @@
 import { useState, useRef, useEffect } from 'react';
-import { IconSettings, IconUser } from './icons';
+import { useLocation } from 'react-router-dom';
+import { IconDashboard, IconUsers, IconSettings, IconUser } from './icons';
 
 export default function AdminHeader({ title }: { title: string }) {
     const [open, setOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement | null>(null);
+    const location = useLocation();
     useEffect(() => {
         const onDocClick = (e: MouseEvent) => {
             if (!menuRef.current) return;
@@ -15,10 +17,16 @@ export default function AdminHeader({ title }: { title: string }) {
 
     const user = { name: 'Admin User', avatar: '/images/logo.png' };
 
+    const iconForRoute = () => {
+        if (location.pathname.startsWith('/admin-users')) return <IconUsers style={{ marginRight: 8 }} />;
+        if (location.pathname.startsWith('/admin-dashboard')) return <IconDashboard style={{ marginRight: 8 }} />;
+        return <IconSettings style={{ marginRight: 8 }} />;
+    };
+
     return (
         <header className="admin-header">
             <div className="admin-page-title">
-                <IconSettings style={{ marginRight: 8 }} />
+                {iconForRoute()}
                 <span>{title}</span>
             </div>
             <div className="admin-actions" ref={menuRef}>
