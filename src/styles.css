@@ -148,6 +148,10 @@ input:focus {
     min-height: 100vh;
 }
 
+.admin-root.collapsed {
+    grid-template-columns: 84px 1fr;
+}
+
 .admin-sidebar {
     grid-column: 1;
     border-right: 1px solid var(--border);
@@ -157,7 +161,8 @@ input:focus {
     width: 240px;
     background: var(--panel);
     position: relative;
-    z-index: 2; /* stay above header/content */
+    z-index: 2;
+    /* stay above header/content */
 }
 
 .admin-sidebar.collapsed {

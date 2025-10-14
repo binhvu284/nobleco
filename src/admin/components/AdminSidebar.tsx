@@ -1,15 +1,13 @@
 import { NavLink } from 'react-router-dom';
-import { useState } from 'react';
 import { IconDashboard, IconUsers, IconChevronLeft, IconChevronRight } from './icons';
 
-export default function AdminSidebar() {
-    const [collapsed, setCollapsed] = useState(false);
+export default function AdminSidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => void }) {
     return (
         <aside className={`admin-sidebar ${collapsed ? 'collapsed' : ''}`}>
             <div className="admin-logo">
                 <img src="/images/logo.png" alt="Nobleco" width={28} height={28} />
                 {!collapsed && <span>Nobleco Admin</span>}
-                <button className="icon-btn" aria-label={collapsed ? 'Expand' : 'Collapse'} onClick={() => setCollapsed(v => !v)}>
+                <button className="icon-btn" aria-label={collapsed ? 'Expand' : 'Collapse'} onClick={onToggle}>
                     {collapsed ? <IconChevronRight /> : <IconChevronLeft />}
                 </button>
             </div>
