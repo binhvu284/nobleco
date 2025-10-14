@@ -1,11 +1,15 @@
 export default function AdminHeader() {
     return (
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
-            <div style={{ fontWeight: 700 }}>Admin Area</div>
-            <nav style={{ display: 'flex', gap: 8 }}>
-                <a href="/admin-dashboard" className="secondary">Dashboard</a>
-                {/* Future admin links here, e.g., /admin-users, /admin-settings */}
-            </nav>
-        </div>
+        <header className="admin-header">
+            <div className="admin-page-title">Admin</div>
+            <div className="admin-actions">
+                <button className="secondary" onClick={() => (window.location.href = '/admin-dashboard')}>Dashboard</button>
+                <div className="admin-account">
+                    <button className="secondary">Profile</button>
+                    <button className="secondary">Settings</button>
+                    <button className="secondary" onClick={() => (window.location.href = '/')}>Logout</button>
+                </div>
+            </div>
+        </header>
     );
 }
