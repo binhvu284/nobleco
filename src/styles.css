@@ -14,6 +14,8 @@ html,
 body,
 #root {
     height: 100%;
+    overflow: hidden;
+    /* prevent window scroll; we'll scroll inside admin-content */
 }
 
 body {
@@ -145,10 +147,13 @@ input:focus {
 .admin-root {
     display: grid;
     grid-template-columns: 240px 1fr;
-    min-height: 100vh;
+    height: 100vh;
     gap: 16px;
     padding: 16px;
     /* breathing room from viewport edges */
+    box-sizing: border-box;
+    overflow: hidden;
+    /* no outer scroll */
 }
 
 .admin-root.collapsed {
@@ -161,19 +166,17 @@ input:focus {
     padding: 16px 12px;
     border-radius: 16px;
     transition: width 0.2s ease;
-    width: 220px;
-    height: 90vh;
+    width: 240px;
+    height: 100%;
     background: var(--panel);
     position: relative;
     z-index: 1;
     box-shadow: 0 8px 24px rgba(2, 8, 23, 0.06);
-    align-self: start;
-    position: sticky;
-    top: 10px;
+    align-self: stretch;
 }
 
 .admin-sidebar.collapsed {
-    width: 70px;
+    width: 84px;
 }
 
 .admin-sidebar .icon-btn {
@@ -225,6 +228,10 @@ input:focus {
     position: relative;
     z-index: 2;
     row-gap: 16px;
+    height: 100%;
+    min-height: 0;
+    /* allow inner panel to become scroll container */
+    overflow: hidden;
 }
 
 .admin-header {
@@ -245,6 +252,9 @@ input:focus {
     border: 1px solid var(--border);
     border-radius: 16px;
     box-shadow: 0 8px 24px rgba(2, 8, 23, 0.06);
+    overflow: auto;
+    /* only this area scrolls */
+    min-height: 0;
 }
 
 .admin-page-title {
