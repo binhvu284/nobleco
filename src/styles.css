@@ -147,6 +147,7 @@ input:focus {
     grid-template-columns: 240px 1fr;
     min-height: 100vh;
     gap: 16px;
+    padding: 16px; /* breathing room from viewport edges */
 }
 
 .admin-root.collapsed {
@@ -155,14 +156,18 @@ input:focus {
 
 .admin-sidebar {
     grid-column: 1;
-    border-right: 1px solid var(--border);
-    padding: 20px 12px;
-    border-radius: 0 16px 16px 0;
+    border: 1px solid var(--border);
+    padding: 16px 12px;
+    border-radius: 16px;
     transition: width 0.2s ease;
     width: 240px;
     background: var(--panel);
     position: relative;
     z-index: 1;
+    box-shadow: 0 8px 24px rgba(2, 8, 23, 0.06);
+    align-self: start;
+    position: sticky;
+    top: 16px;
 }
 
 .admin-sidebar.collapsed {
@@ -217,6 +222,7 @@ input:focus {
     grid-template-rows: auto 1fr;
     position: relative;
     z-index: 2;
+    row-gap: 16px;
 }
 
 .admin-header {
@@ -224,13 +230,19 @@ input:focus {
     justify-content: space-between;
     align-items: center;
     padding: 10px 16px;
-    border-bottom: 1px solid var(--border);
     height: fit-content;
     background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    box-shadow: 0 8px 24px rgba(2, 8, 23, 0.06);
 }
 
 .admin-content {
     padding: 20px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    box-shadow: 0 8px 24px rgba(2, 8, 23, 0.06);
 }
 
 .admin-page-title {
