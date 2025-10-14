@@ -147,7 +147,8 @@ input:focus {
     grid-template-columns: 240px 1fr;
     min-height: 100vh;
     gap: 16px;
-    padding: 16px; /* breathing room from viewport edges */
+    padding: 16px;
+    /* breathing room from viewport edges */
 }
 
 .admin-root.collapsed {
@@ -160,18 +161,19 @@ input:focus {
     padding: 16px 12px;
     border-radius: 16px;
     transition: width 0.2s ease;
-    width: 240px;
+    width: 220px;
+    height: 90vh;
     background: var(--panel);
     position: relative;
     z-index: 1;
     box-shadow: 0 8px 24px rgba(2, 8, 23, 0.06);
     align-self: start;
     position: sticky;
-    top: 16px;
+    top: 10px;
 }
 
 .admin-sidebar.collapsed {
-    width: 84px;
+    width: 70px;
 }
 
 .admin-sidebar .icon-btn {
