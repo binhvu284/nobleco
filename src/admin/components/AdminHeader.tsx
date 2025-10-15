@@ -1,11 +1,12 @@
 import { useState, useRef, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
-import { IconDashboard, IconUsers, IconSettings, IconUser } from './icons';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { IconDashboard, IconUsers, IconSettings, IconUser, IconLogout } from './icons';
 
 export default function AdminHeader({ title }: { title: string }) {
     const [open, setOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement | null>(null);
     const location = useLocation();
+    const navigate = useNavigate();
     useEffect(() => {
         const onDocClick = (e: MouseEvent) => {
             if (!menuRef.current) return;
@@ -36,9 +37,15 @@ export default function AdminHeader({ title }: { title: string }) {
                 </button>
                 {open && (
                     <div className="dropdown">
-                        <a href="#profile"><IconUser style={{ marginRight: 8 }} /> Profile</a>
-                        <a href="#settings"><IconSettings style={{ marginRight: 8 }} /> Settings</a>
-                        <a href="/" onClick={(e) => { e.preventDefault(); window.location.href = '/'; }}>Logout</a>
+                        <a href="/admin-profile" onClick={(e) => { e.preventDefault(); setOpen(false); navigate('/admin-profile'); }}>
+                            <IconUser style={{ marginRight: 8 }} /> Profile
+                        </a>
+                        <a href="/admin-setting" onClick={(e) => { e.preventDefault(); setOpen(false); navigate('/admin-setting'); }}>
+                            <IconSettings style={{ marginRight: 8 }} /> Settings
+                        </a>
+                        <a href="/" onClick={(e) => { e.preventDefault(); setOpen(false); window.location.href = '/'; }}>
+                            <IconLogout style={{ marginRight: 8 }} /> Logout
+                        </a>
                     </div>
                 )}
             </div>

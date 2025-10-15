@@ -631,6 +631,76 @@ input:focus {
     background: rgba(0, 0, 0, 0.06);
 }
 
+/* Modal (popup) */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(16, 24, 40, 0.38);
+    backdrop-filter: blur(2px);
+    z-index: 80;
+}
+
+.modal-card {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    box-shadow: 0 24px 80px rgba(2, 8, 23, 0.16);
+    width: min(560px, calc(100vw - 48px));
+    padding: 20px;
+    z-index: 90;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    font-weight: 700;
+}
+
+.modal-close {
+    border: 1px solid var(--border);
+    background: var(--panel);
+    border-radius: 8px;
+    width: 32px;
+    height: 32px;
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+}
+
+.profile-grid {
+    display: grid;
+    grid-template-columns: 100px 1fr;
+    gap: 16px;
+    align-items: start;
+}
+
+.profile-avatar {
+    width: 96px;
+    height: 96px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    box-shadow: 0 8px 24px rgba(2,8,23,0.08);
+}
+
+.field {
+    margin: 8px 0;
+}
+
+.label {
+    font-size: 12px;
+    color: var(--muted);
+}
+
+.value {
+    font-weight: 600;
+}
+
 /* Responsive: mobile sidebar popup */
 @media (max-width: 768px) {
     .admin-root {
