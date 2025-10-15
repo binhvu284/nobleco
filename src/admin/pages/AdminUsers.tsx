@@ -34,6 +34,16 @@ export default function AdminUsers() {
     const [filterDate, setFilterDate] = useState<string>('');
     const [viewMode, setViewMode] = useState<'table' | 'list'>('table');
 
+    // Modal states
+    const [deleteModal, setDeleteModal] = useState<{ show: boolean; userId: string | number | null; userEmail: string }>({ 
+        show: false, 
+        userId: null, 
+        userEmail: '' 
+    });
+    const [successMessage, setSuccessMessage] = useState<string | null>(null);
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
+
     const fetchUsers = async () => {
         try {
             const res = await fetch('/api/users');
@@ -55,16 +65,24 @@ export default function AdminUsers() {
         return () => { cancelled = true; };
     }, []);
 
-    const handleDeleteUser = async (userId: string | number, userEmail: string) => {
-        if (!confirm(`Are you sure you want to delete ${userEmail}? This action cannot be undone.`)) {
-            return;
-        }
+    const openDeleteModal = (userId: string | number, userEmail: string) => {
+        setDeleteModal({ show: true, userId, userEmail });
+        setMenuOpenId(null);
+    };
 
+    const closeDeleteModal = () => {
+        setDeleteModal({ show: false, userId: null, userEmail: '' });
+    };
+
+    const confirmDelete = async () => {
+        if (!deleteModal.userId) return;
+
+        setIsDeleting(true);
         try {
             const res = await fetch('/api/users', {
                 method: 'DELETE',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id: userId }),
+                body: JSON.stringify({ id: deleteModal.userId }),
             });
 
             if (!res.ok) {
@@ -72,12 +90,21 @@ export default function AdminUsers() {
                 throw new Error(errorData.error || 'Failed to delete user');
             }
 
+            // Close modal and show success message
+            closeDeleteModal();
+            setSuccessMessage(`User ${deleteModal.userEmail} has been deleted successfully`);
+            
+            // Auto-hide success message after 3 seconds
+            setTimeout(() => setSuccessMessage(null), 3000);
+
             // Refresh the user list
             await fetchUsers();
-            setMenuOpenId(null);
-            alert('User deleted successfully');
         } catch (e: any) {
-            alert(`Error deleting user: ${e.message}`);
+            closeDeleteModal();
+            setErrorMessage(`Error deleting user: ${e.message}`);
+            setTimeout(() => setErrorMessage(null), 4000);
+        } finally {
+            setIsDeleting(false);
         }
     };
 
@@ -275,7 +302,7 @@ export default function AdminUsers() {
                                                         </svg>
                                                         {r.status === 'active' ? 'Disable' : 'Activate'}
                                                     </button>
-                                                    <button className="menu-item danger" onClick={() => handleDeleteUser(r.id, r.email)}>
+                                                    <button className="menu-item danger" onClick={() => openDeleteModal(r.id, r.email)}>
                                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                                             <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6" />
                                                         </svg>
@@ -359,7 +386,7 @@ export default function AdminUsers() {
                                                             </svg>
                                                             {r.status === 'active' ? 'Disable' : 'Activate'}
                                                         </button>
-                                                        <button className="menu-item danger" onClick={() => handleDeleteUser(r.id, r.email)}>
+                                                        <button className="menu-item danger" onClick={() => openDeleteModal(r.id, r.email)}>
                                                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                                                 <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6" />
                                                             </svg>
@@ -396,6 +423,64 @@ export default function AdminUsers() {
                     </div>
                 )}
             </div>
+
+            {/* Delete Confirmation Modal */}
+            {deleteModal.show && (
+                <div className="modal-overlay" onClick={closeDeleteModal}>
+                    <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <h3 className="modal-title">Confirm Delete</h3>
+                            <button className="modal-close" onClick={closeDeleteModal}>×</button>
+                        </div>
+                        <div className="modal-body">
+                            <div className="modal-icon-warning">
+                                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                                    <line x1="12" y1="9" x2="12" y2="13" />
+                                    <line x1="12" y1="17" x2="12.01" y2="17" />
+                                </svg>
+                            </div>
+                            <p className="modal-message">
+                                Are you sure you want to delete <strong>{deleteModal.userEmail}</strong>?
+                            </p>
+                            <p className="modal-submessage">This action cannot be undone.</p>
+                        </div>
+                        <div className="modal-footer">
+                            <button className="btn-secondary" onClick={closeDeleteModal} disabled={isDeleting}>
+                                Cancel
+                            </button>
+                            <button className="btn-danger" onClick={confirmDelete} disabled={isDeleting}>
+                                {isDeleting ? 'Deleting...' : 'Delete User'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Success Notification */}
+            {successMessage && (
+                <div className="notification notification-success">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                        <polyline points="22 4 12 14.01 9 11.01" />
+                    </svg>
+                    <span>{successMessage}</span>
+                    <button className="notification-close" onClick={() => setSuccessMessage(null)}>×</button>
+                </div>
+            )}
+
+            {/* Error Notification */}
+            {errorMessage && (
+                <div className="notification notification-error">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="8" x2="12" y2="12" />
+                        <line x1="12" y1="16" x2="12.01" y2="16" />
+                    </svg>
+                    <span>{errorMessage}</span>
+                    <button className="notification-close" onClick={() => setErrorMessage(null)}>×</button>
+                </div>
+            )}
         </AdminLayout>
     );
 }

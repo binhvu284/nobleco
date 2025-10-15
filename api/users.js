@@ -14,7 +14,7 @@ export default async function handler(req, res) {
     }
 
     if (req.method === 'POST') {
-      const body = await readBody(req);
+      const body = req.body || await readBody(req);
       const { email, username, password, role } = body || {};
       if (!email || !username) {
         return res.status(400).json({ error: 'email and username are required' });
@@ -29,7 +29,7 @@ export default async function handler(req, res) {
     }
 
     if (req.method === 'DELETE') {
-      const body = await readBody(req);
+      const body = req.body || await readBody(req);
       const { id } = body || {};
       if (!id) {
         return res.status(400).json({ error: 'user id is required' });
