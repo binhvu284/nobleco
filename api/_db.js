@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { getSupabaseEnv } from './_config.js';
 
 let supabase;
 
@@ -10,9 +11,8 @@ let supabase;
  */
 export function getSupabase() {
   if (supabase) return supabase;
-  const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
-  if (!url) throw new Error('Missing SUPABASE_URL env var');
+  const { url, key } = getSupabaseEnv();
+  if (!url) throw new Error('Missing SUPABASE_URL (or NEXT_PUBLIC_/VITE_ fallback) env var');
   if (!key) throw new Error('Missing SUPABASE_SERVICE_ROLE_KEY (or SUPABASE_ANON_KEY) env var');
   supabase = createClient(url, key, {
     auth: { persistSession: false },

@@ -1,5 +1,5 @@
-import { getSupabase } from '../_db.js';
 import bcrypt from 'bcryptjs';
+import { findUserByUsername, updateUserPasswordHashed } from '../_repo/users.js';
 
 export default async function handler(req, res) {
   try {
@@ -15,17 +15,7 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'username and password are required' });
     }
 
-    const supabase = getSupabase();
-    const { data: user, error } = await supabase
-      .from('users')
-      .select('id, email, username, password, role')
-      .eq('username', username)
-      .maybeSingle();
-
-    if (error) {
-      return res.status(500).json({ error: error.message });
-    }
-
+    const user = await findUserByUsername(username);
     if (!user || !user.password) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
@@ -45,9 +35,7 @@ export default async function handler(req, res) {
         valid = true;
         // Opportunistically upgrade to bcrypt hash
         try {
-          const hashed = await bcrypt.hash(password, 10);
-          const supabase2 = getSupabase();
-          await supabase2.from('users').update({ password: hashed }).eq('id', user.id);
+          await updateUserPasswordHashed(user.id, password);
         } catch {
           // ignore hashing failures; user can still log in this time
         }
