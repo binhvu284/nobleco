@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { logout } from '../../auth';
-import { IconUser, IconSettings } from '../../admin/components/icons';
+import { IconUser, IconSettings, IconLogout } from '../../admin/components/icons';
 
 export default function UserHeader({ title }: { title: string }) {
     const [open, setOpen] = useState(false);
@@ -16,10 +16,10 @@ export default function UserHeader({ title }: { title: string }) {
                 </button>
                 {open && (
                     <div className="dropdown" onMouseLeave={() => setOpen(false)}>
-                        <a href="#" onClick={(e) => e.preventDefault()}>
+                        <a href="/profile" onClick={(e) => { e.preventDefault(); setOpen(false); navigate('/profile'); }}>
                             <IconUser /> Profile
                         </a>
-                        <a href="#" onClick={(e) => e.preventDefault()}>
+                        <a href="/setting" onClick={(e) => { e.preventDefault(); setOpen(false); navigate('/setting'); }}>
                             <IconSettings /> Settings
                         </a>
                         <a
@@ -31,7 +31,7 @@ export default function UserHeader({ title }: { title: string }) {
                                 navigate('/login', { replace: true });
                             }}
                         >
-                            Logout
+                            <IconLogout /> Logout
                         </a>
                     </div>
                 )}
