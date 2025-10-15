@@ -239,6 +239,34 @@ input:focus {
     font-size: 13px;
 }
 
+/* Tables */
+.table-wrap {
+    width: 100%;
+    overflow: auto;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+
+.table th,
+.table td {
+    text-align: left;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+}
+
+.table thead th {
+    background: rgba(0, 0, 0, 0.03);
+    font-weight: 700;
+}
+
+.muted {
+    color: var(--muted);
+}
+
 /* Admin layout */
 .admin-root {
     display: grid;
