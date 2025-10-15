@@ -1,19 +1,17 @@
--- Supabase database schema for Nobleco
--- Run these statements in Supabase SQL Editor
+-- WARNING: This schema is for context only and is not meant to be run.
+-- Table order and constraints may not be valid for execution.
 
--- Extensions (choose one uuid generator that exists in your project)
-create extension if not exists pgcrypto; -- for gen_random_uuid()
--- create extension if not exists "uuid-ossp"; -- alternatively for uuid_generate_v4()
-
--- Users table
--- Columns: id, email, username, password, role
-create table if not exists public.users (
-  id uuid primary key default gen_random_uuid(),
-  email text unique not null,
-  username text unique not null,
+CREATE TABLE public.users (
+  id int8 NOT NULL,
+  email text UNIQUE,
+  name text UNIQUE,
   password text,
-  role text not null default 'user' check (role in ('admin','user'))
+  role text NOT NULL DEFAULT 'user'::text,
+  points integer DEFAULT 0,
+  status text DEFAULT 'active'::text CHECK (status = ANY (ARRAY['active'::text, 'inactive'::text])),
+  created_at timestamp with time zone DEFAULT now(),
+  level text DEFAULT 'guest'::text CHECK (level = ANY (ARRAY['guest'::text, 'member'::text, 'unit manager'::text, 'brand manager'::text])),
+  refer_code text DEFAULT upper(SUBSTRING(md5((random())::text) FROM 1 FOR 6)) UNIQUE,
+  commission integer NOT NULL DEFAULT 0,
+  CONSTRAINT users_pkey PRIMARY KEY (id)
 );
-
-create index if not exists users_email_idx on public.users (email);
-create index if not exists users_username_idx on public.users (username);

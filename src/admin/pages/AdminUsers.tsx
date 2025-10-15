@@ -4,13 +4,16 @@ import AdminLayout from '../components/AdminLayout';
 type User = {
     id: string | number;
     email: string;
-    username?: string;
+    name?: string;
     role?: string;
+    points?: number;
+    level?: string;
+    status?: string;
     created_at?: string;
 };
 
-type Level = 'guest' | 'member' | 'unit' | 'brand';
-type Status = 'active' | 'disable';
+type Level = 'guest' | 'member' | 'unit manager' | 'brand manager';
+type Status = 'active' | 'inactive';
 type Row = {
     id: string | number;
     name: string;
@@ -43,6 +46,7 @@ export default function AdminUsers() {
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
+    const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
 
     const fetchUsers = async () => {
         try {
@@ -72,6 +76,32 @@ export default function AdminUsers() {
 
     const closeDeleteModal = () => {
         setDeleteModal({ show: false, userId: null, userEmail: '' });
+    };
+
+    const updateUserStatus = async (userId: string | number, newStatus: Status) => {
+        setIsUpdatingStatus(true);
+        setMenuOpenId(null);
+        try {
+            const res = await fetch('/api/users', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: userId, status: newStatus }),
+            });
+
+            if (!res.ok) {
+                const errorData = await res.json();
+                throw new Error(errorData.error || 'Failed to update user status');
+            }
+
+            setSuccessMessage(`User status updated to ${newStatus} successfully`);
+            setTimeout(() => setSuccessMessage(null), 3000);
+            await fetchUsers();
+        } catch (e: any) {
+            setErrorMessage(`Error updating status: ${e.message}`);
+            setTimeout(() => setErrorMessage(null), 4000);
+        } finally {
+            setIsUpdatingStatus(false);
+        }
     };
 
     const confirmDelete = async () => {
@@ -113,11 +143,11 @@ export default function AdminUsers() {
         // Build display rows from API data
         const rows: Row[] = users.map((u) => ({
             id: u.id,
-            name: u.username || (u.email ? u.email.split('@')[0] : ''),
+            name: u.name || (u.email ? u.email.split('@')[0] : ''),
             email: u.email,
-            level: ((u as any).level as Level) || 'guest',
-            points: Number((u as any).points ?? 0),
-            status: 'active',
+            level: (u.level as Level) || 'guest',
+            points: u.points ?? 0,
+            status: (u.status as Status) || 'active',
             createdAt: u.created_at ? new Date(u.created_at).toLocaleString() : '',
         }));
 
@@ -164,8 +194,8 @@ export default function AdminUsers() {
                             <option value="all">All Levels</option>
                             <option value="guest">Guest</option>
                             <option value="member">Member</option>
-                            <option value="unit">Unit Manager</option>
-                            <option value="brand">Brand Manager</option>
+                            <option value="unit manager">Unit Manager</option>
+                            <option value="brand manager">Brand Manager</option>
                         </select>
                         <select
                             value={filterStatus}
@@ -174,7 +204,7 @@ export default function AdminUsers() {
                         >
                             <option value="all">All Status</option>
                             <option value="active">Active</option>
-                            <option value="disable">Disabled</option>
+                            <option value="inactive">Inactive</option>
                         </select>
                         <input
                             type="date"
@@ -235,7 +265,7 @@ export default function AdminUsers() {
                                 <th style={{ width: 120 }}>ID</th>
                                 <th style={{ width: 180 }}>Name</th>
                                 <th style={{ width: 220 }}>Email</th>
-                                <th style={{ width: 150 }}>Account level</th>
+                                <th style={{ width: 150 }}>Level</th>
                                 <th style={{ width: 90 }}>Points</th>
                                 <th style={{ width: 110 }}>Status</th>
                                 <th style={{ width: 160 }}>Created at</th>
@@ -250,8 +280,8 @@ export default function AdminUsers() {
                                         <td><code>{r.id}</code></td>
                                         <td>{r.name}</td>
                                         <td>{r.email}</td>
-                                        <td><span className={`badge ${`badge-level-${r.level}`}`}>{
-                                            r.level === 'unit' ? 'Unit Manager' : r.level === 'brand' ? 'Brand Manager' : r.level === 'member' ? 'Member' : 'Guest'
+                                        <td><span className={`badge ${`badge-level-${r.level.replace(/\s+/g, '-')}`}`}>{
+                                            r.level === 'unit manager' ? 'Unit Manager' : r.level === 'brand manager' ? 'Brand Manager' : r.level === 'member' ? 'Member' : 'Guest'
                                         }</span></td>
                                         <td>{r.points}</td>
                                         <td><span className={`badge ${r.status === 'active' ? 'badge-success' : 'badge-muted'}`}>{r.status}</span></td>
@@ -270,8 +300,8 @@ export default function AdminUsers() {
                                         <td>{r.name}</td>
                                         <td>{r.email}</td>
                                         <td>
-                                            <span className={`badge ${`badge-level-${r.level}`}`}>{
-                                                r.level === 'unit' ? 'Unit Manager' : r.level === 'brand' ? 'Brand Manager' : r.level === 'member' ? 'Member' : 'Guest'
+                                            <span className={`badge ${`badge-level-${r.level.replace(/\s+/g, '-')}`}`}>{
+                                                r.level === 'unit manager' ? 'Unit Manager' : r.level === 'brand manager' ? 'Brand Manager' : r.level === 'member' ? 'Member' : 'Guest'
                                             }</span>
                                         </td>
                                         <td>{r.points}</td>
@@ -292,7 +322,11 @@ export default function AdminUsers() {
                                             </button>
                                             {menuOpenId === r.id && (
                                                 <div className="menu">
-                                                    <button className="menu-item" onClick={() => { alert(`${r.status === 'active' ? 'Disable' : 'Activate'} ${r.email} - Coming soon!`); setMenuOpenId(null); }}>
+                                                    <button 
+                                                        className="menu-item" 
+                                                        onClick={() => updateUserStatus(r.id, r.status === 'active' ? 'inactive' : 'active')}
+                                                        disabled={isUpdatingStatus}
+                                                    >
                                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                                             {r.status === 'active' ? (
                                                                 <path d="M18 6L6 18M6 6l12 12" />
@@ -300,7 +334,7 @@ export default function AdminUsers() {
                                                                 <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14M22 4L12 14.01l-3-3" />
                                                             )}
                                                         </svg>
-                                                        {r.status === 'active' ? 'Disable' : 'Activate'}
+                                                        {r.status === 'active' ? 'Deactivate' : 'Activate'}
                                                     </button>
                                                     <button className="menu-item danger" onClick={() => openDeleteModal(r.id, r.email)}>
                                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -335,9 +369,9 @@ export default function AdminUsers() {
                                             <span className="field-value">{r.email}</span>
                                         </div>
                                         <div className="list-item-field">
-                                            <span className="field-label">Account level:</span>
-                                            <span className={`badge ${`badge-level-${r.level}`}`}>{
-                                                r.level === 'unit' ? 'Unit Manager' : r.level === 'brand' ? 'Brand Manager' : r.level === 'member' ? 'Member' : 'Guest'
+                                            <span className="field-label">Level:</span>
+                                            <span className={`badge ${`badge-level-${r.level.replace(/\s+/g, '-')}`}`}>{
+                                                r.level === 'unit manager' ? 'Unit Manager' : r.level === 'brand manager' ? 'Brand Manager' : r.level === 'member' ? 'Member' : 'Guest'
                                             }</span>
                                         </div>
                                         <div className="list-item-field">
@@ -376,7 +410,11 @@ export default function AdminUsers() {
                                                 </button>
                                                 {menuOpenId === r.id && (
                                                     <div className="menu">
-                                                        <button className="menu-item" onClick={() => { alert(`${r.status === 'active' ? 'Disable' : 'Activate'} ${r.email} - Coming soon!`); setMenuOpenId(null); }}>
+                                                        <button 
+                                                            className="menu-item" 
+                                                            onClick={() => updateUserStatus(r.id, r.status === 'active' ? 'inactive' : 'active')}
+                                                            disabled={isUpdatingStatus}
+                                                        >
                                                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                                                 {r.status === 'active' ? (
                                                                     <path d="M18 6L6 18M6 6l12 12" />
@@ -384,7 +422,7 @@ export default function AdminUsers() {
                                                                     <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14M22 4L12 14.01l-3-3" />
                                                                 )}
                                                             </svg>
-                                                            {r.status === 'active' ? 'Disable' : 'Activate'}
+                                                            {r.status === 'active' ? 'Deactivate' : 'Activate'}
                                                         </button>
                                                         <button className="menu-item danger" onClick={() => openDeleteModal(r.id, r.email)}>
                                                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -403,9 +441,9 @@ export default function AdminUsers() {
                                             <span className="field-value">{r.email}</span>
                                         </div>
                                         <div className="list-item-field">
-                                            <span className="field-label">Account level:</span>
-                                            <span className={`badge ${`badge-level-${r.level}`}`}>{
-                                                r.level === 'unit' ? 'Unit Manager' : r.level === 'brand' ? 'Brand Manager' : r.level === 'member' ? 'Member' : 'Guest'
+                                            <span className="field-label">Level:</span>
+                                            <span className={`badge ${`badge-level-${r.level.replace(/\s+/g, '-')}`}`}>{
+                                                r.level === 'unit manager' ? 'Unit Manager' : r.level === 'brand manager' ? 'Brand Manager' : r.level === 'member' ? 'Member' : 'Guest'
                                             }</span>
                                         </div>
                                         <div className="list-item-field">

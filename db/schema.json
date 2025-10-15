@@ -1,20 +1,43 @@
 {
   "title": "Nobleco Supabase Schema",
-  "version": 2,
+  "version": 3,
   "tables": [
     {
       "name": "users",
       "schema": "public",
       "columns": [
-        { "name": "id", "type": "uuid", "nullable": false, "default": "gen_random_uuid()", "pk": true },
+        { "name": "id", "type": "bigint", "nullable": false, "default": "generated always as identity", "pk": true },
         { "name": "email", "type": "text", "nullable": false, "unique": true },
-        { "name": "username", "type": "text", "nullable": false, "unique": true },
+        { "name": "name", "type": "text", "nullable": false, "unique": true },
         { "name": "password", "type": "text", "nullable": true },
-        { "name": "role", "type": "text", "nullable": false, "default": "'user'", "enum": ["admin","user"] }
+        { "name": "role", "type": "text", "nullable": false, "default": "'user'", "enum": ["admin","user"] },
+        { "name": "points", "type": "integer", "nullable": false, "default": "0" },
+        { "name": "level", "type": "text", "nullable": false, "default": "'guest'", "enum": ["guest","member","unit manager","brand manager"] },
+        { "name": "status", "type": "text", "nullable": false, "default": "'active'", "enum": ["active","inactive"] },
+        { "name": "refer_code", "type": "text", "nullable": false, "unique": true, "default": "upper(substring(md5(random()::text) from 1 for 6))" },
+        { "name": "commission", "type": "integer", "nullable": false, "default": "0" },
+        { "name": "created_at", "type": "timestamp with time zone", "nullable": false, "default": "now()" }
       ],
       "indexes": [
         { "name": "users_email_idx", "columns": ["email"], "unique": false },
-        { "name": "users_username_idx", "columns": ["username"], "unique": false }
+        { "name": "users_name_idx", "columns": ["name"], "unique": false },
+        { "name": "users_refer_code_idx", "columns": ["refer_code"], "unique": false }
+      ],
+      "policies": []
+    },
+    {
+      "name": "users_info",
+      "schema": "public",
+      "columns": [
+        { "name": "id", "type": "uuid", "nullable": false, "default": "gen_random_uuid()", "pk": true },
+        { "name": "user_id", "type": "bigint", "nullable": false, "fk": "users.id" },
+        { "name": "name", "type": "text", "nullable": false },
+        { "name": "phone", "type": "text", "nullable": true },
+        { "name": "address", "type": "text", "nullable": true }
+      ],
+      "indexes": [
+        { "name": "users_info_user_id_idx", "columns": ["user_id"], "unique": false },
+        { "name": "users_info_user_id_unique_idx", "columns": ["user_id"], "unique": true }
       ],
       "policies": []
     }
