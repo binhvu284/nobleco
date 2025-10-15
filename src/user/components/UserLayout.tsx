@@ -1,6 +1,5 @@
 import { ReactNode, useEffect, useRef, useState } from 'react';
-import UserSidebar from './UserSidebar';
-import UserHeader from './UserHeader';
+import { UserSidebar, UserHeader } from './index';
 import { IconMenu } from '../../admin/components/icons';
 
 export default function UserLayout({ title, children }: { title: string; children: ReactNode }) {
