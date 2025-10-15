@@ -10,6 +10,15 @@
     --border: #e5e7eb;
 }
 
+/* Default: hide mobile-only controls on desktop */
+.admin-mobile-toggle {
+    display: none;
+}
+
+.admin-overlay {
+    display: none;
+}
+
 html,
 body,
 #root {
@@ -26,6 +35,93 @@ body {
     font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial,
         "Apple Color Emoji", "Segoe UI Emoji";
     margin: 0;
+}
+
+/* Auth pages */
+.auth-root {
+    min-height: 100vh;
+    display: grid;
+    place-items: center;
+    position: relative;
+    padding: 24px;
+    box-sizing: border-box;
+}
+
+.auth-gradient {
+    position: absolute;
+    inset: 0;
+    background:
+        radial-gradient(900px 600px at 15% -10%, rgba(59, 130, 246, 0.25), transparent 55%),
+        radial-gradient(700px 500px at 100% 10%, rgba(147, 197, 253, 0.3), transparent 40%),
+        radial-gradient(600px 400px at 50% 120%, rgba(59, 130, 246, 0.18), transparent 45%);
+    filter: blur(6px);
+    pointer-events: none;
+}
+
+.auth-card {
+    position: relative;
+    width: 100%;
+    max-width: 440px;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0.9));
+    border: 1px solid rgba(229, 231, 235, 0.9);
+    border-radius: 18px;
+    padding: 28px;
+    box-shadow: 0 24px 80px rgba(2, 8, 23, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+    backdrop-filter: saturate(150%) blur(8px);
+}
+
+.auth-logo {
+    display: grid;
+    place-items: center;
+    margin-bottom: 8px;
+}
+
+.auth-logo img {
+    width: 64px;
+    height: 64px;
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(37, 99, 235, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+.auth-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.remember {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 500;
+}
+
+.auth-footer {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    margin-top: 12px;
+    color: var(--muted);
+}
+
+.auth-link {
+    color: var(--primary);
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.auth-link:hover {
+    text-decoration: underline;
+}
+
+.success {
+    color: #027a48;
+    background: #ecfdf3;
+    border: 1px solid #abefc6;
+    padding: 10px 12px;
+    border-radius: 10px;
+    font-size: 14px;
 }
 
 /* Common UI */
@@ -148,7 +244,6 @@ input:focus {
     display: grid;
     grid-template-columns: 240px 1fr;
     height: 100vh;
-    gap: 16px;
     padding: 16px;
     /* breathing room from viewport edges */
     box-sizing: border-box;
@@ -166,7 +261,7 @@ input:focus {
     padding: 16px 12px;
     border-radius: 16px;
     transition: width 0.2s ease;
-    width: 240px;
+    width: 200px;
     height: 100%;
     background: var(--panel);
     position: relative;
@@ -176,11 +271,10 @@ input:focus {
 }
 
 .admin-sidebar.collapsed {
-    width: 84px;
+    width: 40px;
 }
 
 .admin-sidebar .icon-btn {
-    margin-left: auto;
     background: transparent;
     border: 1px solid var(--border);
     color: var(--text);
@@ -199,6 +293,17 @@ input:focus {
     gap: 8px;
     font-weight: 800;
     margin-bottom: 16px;
+}
+
+.admin-sidebar.collapsed .admin-logo {
+    justify-content: center;
+    /* center toggle button */
+}
+
+.admin-sidebar.collapsed .admin-logo img,
+.admin-sidebar.collapsed .admin-logo span {
+    display: none;
+    /* hide logo and text when collapsed */
 }
 
 .admin-nav {
@@ -318,4 +423,60 @@ input:focus {
 
 .dropdown a:hover {
     background: rgba(0, 0, 0, 0.06);
+}
+
+/* Responsive: mobile sidebar popup */
+@media (max-width: 768px) {
+    .admin-root {
+        grid-template-columns: 1fr;
+        /* single column layout */
+    }
+
+    .admin-sidebar {
+        position: fixed;
+        top: 16px;
+        left: 16px;
+        height: calc(100vh - 32px);
+        width: 280px;
+        transform: translateX(-110%);
+        transition: transform 0.2s ease;
+        z-index: 50;
+    }
+
+    .admin-root.mobile-open .admin-sidebar {
+        transform: translateX(0);
+    }
+
+    .admin-main {
+        grid-column: 1;
+    }
+
+    .admin-mobile-toggle {
+        position: fixed;
+        top: 24px;
+        left: 24px;
+        z-index: 60;
+        width: 40px;
+        height: 40px;
+        display: grid;
+        place-items: center;
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        background: var(--panel);
+        box-shadow: 0 8px 24px rgba(2, 8, 23, 0.08);
+        cursor: pointer;
+    }
+
+    .admin-root.mobile-open .admin-mobile-toggle {
+        display: none;
+        /* hide button when sidebar is open */
+    }
+
+    .admin-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(16, 24, 40, 0.38);
+        backdrop-filter: blur(2px);
+        z-index: 40;
+    }
 }

@@ -1,6 +1,7 @@
 import AdminSidebar from './AdminSidebar';
 import AdminHeader from './AdminHeader';
-import { ReactNode, useState } from 'react';
+import { ReactNode, useEffect, useRef, useState } from 'react';
+import { IconMenu } from './icons';
 
 export default function AdminLayout({ title, children }: { title: string; children: ReactNode }) {
     const [collapsed, setCollapsed] = useState<boolean>(() => {
@@ -9,11 +10,27 @@ export default function AdminLayout({ title, children }: { title: string; childr
                 const stored = window.localStorage.getItem('adminSidebarCollapsed');
                 return stored === '1';
             }
-        } catch {}
+        } catch { }
         return false;
     });
+    const [mobileOpen, setMobileOpen] = useState(false);
+    const rootRef = useRef<HTMLDivElement | null>(null);
+
+    useEffect(() => {
+        if (!mobileOpen) return;
+        const onClick = (e: MouseEvent) => {
+            if (!rootRef.current) return;
+            const sidebar = rootRef.current.querySelector('.admin-sidebar');
+            if (sidebar && !sidebar.contains(e.target as Node)) setMobileOpen(false);
+        };
+        document.addEventListener('click', onClick);
+        return () => document.removeEventListener('click', onClick);
+    }, [mobileOpen]);
     return (
-        <div className={`admin-root ${collapsed ? 'collapsed' : ''}`}>
+        <div ref={rootRef} className={`admin-root ${collapsed ? 'collapsed' : ''} ${mobileOpen ? 'mobile-open' : ''}`}>
+            <button className="admin-mobile-toggle" aria-label="Open menu" onClick={() => setMobileOpen(true)}>
+                <IconMenu />
+            </button>
             <AdminSidebar
                 collapsed={collapsed}
                 onToggle={() =>
@@ -23,11 +40,13 @@ export default function AdminLayout({ title, children }: { title: string; childr
                             if (typeof window !== 'undefined') {
                                 window.localStorage.setItem('adminSidebarCollapsed', next ? '1' : '0');
                             }
-                        } catch {}
+                        } catch { }
                         return next;
                     })
                 }
+                onNavigate={() => setMobileOpen(false)}
             />
+            {mobileOpen && <div className="admin-overlay" />}
             <div className="admin-main">
                 <AdminHeader title={title} />
                 <main className="admin-content">
