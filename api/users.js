@@ -8,13 +8,11 @@ export default async function handler(req, res) {
     if (req.method === 'GET') {
       let { data, error } = await supabase
         .from('users')
-        .select('id, email, username, role')
-        .limit(50);
+        .select('id, email, username, role');
       if (error && /column\s+"?role"?\s+does not exist/i.test(error.message)) {
         const resp = await supabase
           .from('users')
-          .select('id, email, username')
-          .limit(50);
+          .select('id, email, username');
         if (resp.error) return res.status(500).json({ error: resp.error.message });
         data = (resp.data || []).map((u) => ({ ...u, role: 'user' }));
         return res.status(200).json(data);
