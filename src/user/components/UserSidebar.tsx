@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { IconDashboard, IconBox, IconWallet, IconCreditCard, IconBook, IconChevronLeft, IconChevronRight } from '../../admin/components/icons';
+import { IconDashboard, IconBox, IconWallet, IconCreditCard, IconBook, IconUsers, IconChevronLeft, IconChevronRight } from '../../admin/components/icons';
 
 export default function UserSidebar({ collapsed, onToggle, onNavigate }: { collapsed: boolean; onToggle: () => void; onNavigate?: () => void }) {
     return (
@@ -19,6 +19,10 @@ export default function UserSidebar({ collapsed, onToggle, onNavigate }: { colla
                 <NavLink to="/dashboard" onClick={onNavigate} className={({ isActive }) => (isActive ? 'active' : '')}>
                     <IconDashboard />
                     {!collapsed && <span>Dashboard</span>}
+                </NavLink>
+                <NavLink to="/member" onClick={onNavigate} className={({ isActive }) => (isActive ? 'active' : '')}>
+                    <IconUsers />
+                    {!collapsed && <span>My member</span>}
                 </NavLink>
                 <NavLink to="/product" onClick={onNavigate} className={({ isActive }) => (isActive ? 'active' : '')}>
                     <IconBox />

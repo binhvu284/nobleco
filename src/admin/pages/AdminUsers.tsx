@@ -32,14 +32,7 @@ export default function AdminUsers() {
     const [filterLevel, setFilterLevel] = useState<Level | 'all'>('all');
     const [filterStatus, setFilterStatus] = useState<Status | 'all'>('all');
     const [filterDate, setFilterDate] = useState<string>('');
-
-    // Sample rows for initial UI preview
-    const sampleRows: Row[] = useMemo(() => ([
-        { id: 'usr_001', name: 'Alice Nguyen', email: 'alice@example.com', level: 'member', points: 1200, status: 'active', createdAt: '2025-10-10 09:24' },
-        { id: 'usr_002', name: 'Binh Vu', email: 'binh@example.com', level: 'unit', points: 340, status: 'disable', createdAt: '2025-10-11 14:03' },
-        { id: 'usr_003', name: 'Chris Lee', email: 'chris@example.com', level: 'guest', points: 0, status: 'active', createdAt: '2025-10-12 08:41' },
-        { id: 'usr_004', name: 'Dana Tran', email: 'dana@example.com', level: 'brand', points: 785, status: 'active', createdAt: '2025-10-13 16:20' },
-    ]), []);
+    const [viewMode, setViewMode] = useState<'table' | 'list'>('table');
 
     useEffect(() => {
         let cancelled = false;
@@ -60,18 +53,16 @@ export default function AdminUsers() {
 
     // Filter and search logic
     const filteredRows = useMemo(() => {
-        // Build display rows: use API data when available, otherwise sample rows
-        const rows: Row[] = !loading && users.length > 0
-            ? users.map((u) => ({
-                id: u.id,
-                name: u.username || (u.email ? u.email.split('@')[0] : ''),
-                email: u.email,
-                level: ((u as any).level as Level) || 'guest',
-                points: Number((u as any).points ?? 0),
-                status: 'active',
-                createdAt: u.created_at ? new Date(u.created_at).toLocaleString() : '',
-            }))
-            : sampleRows;
+        // Build display rows from API data
+        const rows: Row[] = users.map((u) => ({
+            id: u.id,
+            name: u.username || (u.email ? u.email.split('@')[0] : ''),
+            email: u.email,
+            level: ((u as any).level as Level) || 'guest',
+            points: Number((u as any).points ?? 0),
+            status: 'active',
+            createdAt: u.created_at ? new Date(u.created_at).toLocaleString() : '',
+        }));
 
         return rows.filter((row) => {
             // Search filter (id, name, or email)
@@ -91,7 +82,7 @@ export default function AdminUsers() {
 
             return matchesSearch && matchesLevel && matchesStatus && matchesDate;
         });
-    }, [users, loading, sampleRows, searchQuery, filterLevel, filterStatus, filterDate]);
+    }, [users, searchQuery, filterLevel, filterStatus, filterDate]);
 
     return (
         <AdminLayout title="User Management">
@@ -148,11 +139,40 @@ export default function AdminUsers() {
                                 Clear Filters
                             </button>
                         )}
+                        <div className="view-toggle">
+                            <button
+                                onClick={() => setViewMode('table')}
+                                className={`view-btn ${viewMode === 'table' ? 'active' : ''}`}
+                                aria-label="Table view"
+                            >
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <rect x="3" y="3" width="18" height="18" rx="2"/>
+                                    <line x1="3" y1="9" x2="21" y2="9"/>
+                                    <line x1="3" y1="15" x2="21" y2="15"/>
+                                    <line x1="9" y1="9" x2="9" y2="21"/>
+                                </svg>
+                            </button>
+                            <button
+                                onClick={() => setViewMode('list')}
+                                className={`view-btn ${viewMode === 'list' ? 'active' : ''}`}
+                                aria-label="List view"
+                            >
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <line x1="8" y1="6" x2="21" y2="6"/>
+                                    <line x1="8" y1="12" x2="21" y2="12"/>
+                                    <line x1="8" y1="18" x2="21" y2="18"/>
+                                    <line x1="3" y1="6" x2="3.01" y2="6"/>
+                                    <line x1="3" y1="12" x2="3.01" y2="12"/>
+                                    <line x1="3" y1="18" x2="3.01" y2="18"/>
+                                </svg>
+                            </button>
+                        </div>
                     </div>
                 </div>
 
-                <div className="table-wrap">
-                    <table className="table">
+                {viewMode === 'table' ? (
+                    <div className="table-wrap">
+                        <table className="table">
                         <thead>
                             <tr>
                                 <th style={{ width: 120 }}>ID</th>
@@ -230,6 +250,101 @@ export default function AdminUsers() {
                         </tbody>
                     </table>
                 </div>
+                ) : (
+                    <div className="list-view">
+                        {loading ? (
+                            filteredRows.map((r) => (
+                                <div key={`loading-${r.id}`} className="list-item row-loading">
+                                    <div className="list-item-header">
+                                        <div className="list-item-title">
+                                            <strong>{r.name}</strong>
+                                            <code className="list-item-id">{r.id}</code>
+                                        </div>
+                                        <span className={`badge ${r.status === 'active' ? 'badge-success' : 'badge-muted'}`}>{r.status}</span>
+                                    </div>
+                                    <div className="list-item-body">
+                                        <div className="list-item-field">
+                                            <span className="field-label">Email:</span>
+                                            <span className="field-value">{r.email}</span>
+                                        </div>
+                                        <div className="list-item-field">
+                                            <span className="field-label">Account level:</span>
+                                            <span className={`badge ${`badge-level-${r.level}`}`}>{
+                                                r.level === 'unit' ? 'Unit Manager' : r.level === 'brand' ? 'Brand Manager' : r.level === 'member' ? 'Member' : 'Guest'
+                                            }</span>
+                                        </div>
+                                        <div className="list-item-field">
+                                            <span className="field-label">Points:</span>
+                                            <span className="field-value">{r.points}</span>
+                                        </div>
+                                        <div className="list-item-field">
+                                            <span className="field-label">Created at:</span>
+                                            <span className="field-value">{r.createdAt}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))
+                        ) : filteredRows.length === 0 ? (
+                            <div className="empty-state">No users found</div>
+                        ) : (
+                            filteredRows.map((r) => (
+                                <div key={String(r.id)} className="list-item">
+                                    <div className="list-item-header">
+                                        <div className="list-item-title">
+                                            <strong>{r.name}</strong>
+                                            <code className="list-item-id">{r.id}</code>
+                                        </div>
+                                        <div className="list-item-actions">
+                                            <span className={`badge ${r.status === 'active' ? 'badge-success' : 'badge-muted'}`}>{r.status}</span>
+                                            <div className="row-actions">
+                                                <button
+                                                    className="more-btn"
+                                                    aria-label="More actions"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setMenuOpenId((prev) => prev === r.id ? null : r.id);
+                                                    }}
+                                                >
+                                                    ⋯
+                                                </button>
+                                                {menuOpenId === r.id && (
+                                                    <div className="menu">
+                                                        <button className="menu-item" onClick={() => { alert(`${r.status === 'active' ? 'Disable' : 'Activate'} ${r.email}`); setMenuOpenId(null); }}>
+                                                            {r.status === 'active' ? 'Disable' : 'Activate'}
+                                                        </button>
+                                                        <button className="menu-item danger" onClick={() => { if (confirm(`Delete ${r.email}?`)) alert('Deleted (demo)'); setMenuOpenId(null); }}>
+                                                            Delete
+                                                        </button>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="list-item-body">
+                                        <div className="list-item-field">
+                                            <span className="field-label">Email:</span>
+                                            <span className="field-value">{r.email}</span>
+                                        </div>
+                                        <div className="list-item-field">
+                                            <span className="field-label">Account level:</span>
+                                            <span className={`badge ${`badge-level-${r.level}`}`}>{
+                                                r.level === 'unit' ? 'Unit Manager' : r.level === 'brand' ? 'Brand Manager' : r.level === 'member' ? 'Member' : 'Guest'
+                                            }</span>
+                                        </div>
+                                        <div className="list-item-field">
+                                            <span className="field-label">Points:</span>
+                                            <span className="field-value">{r.points}</span>
+                                        </div>
+                                        <div className="list-item-field">
+                                            <span className="field-label">Created at:</span>
+                                            <span className="field-value">{r.createdAt}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))
+                        )}
+                    </div>
+                )}
             </div>
         </AdminLayout>
     );

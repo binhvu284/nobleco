@@ -4,6 +4,7 @@ import SignUp from './user/pages/SignUp';
 import ForgotPassword from './user/pages/ForgotPassword';
 import Home from './user/pages/Home';
 import UserDashboard from './user/pages/UserDashboard';
+import UserMember from './user/pages/UserMember';
 import UserProduct from './user/pages/UserProduct';
 import UserWallet from './user/pages/UserWallet';
 import UserPayment from './user/pages/UserPayment';
@@ -26,6 +27,7 @@ export default function App() {
             <Route path="/forgot-password" element={<ForgotPassword />} />
             {/* User routes (sidebar/header layout) */}
             <Route path="/dashboard" element={<UserDashboard />} />
+            <Route path="/member" element={<UserMember />} />
             <Route path="/product" element={<UserProduct />} />
             <Route path="/wallet" element={<UserWallet />} />
             <Route path="/payment" element={<UserPayment />} />
