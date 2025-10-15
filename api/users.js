@@ -1,5 +1,5 @@
 import bcrypt from 'bcryptjs';
-import { listUsers, createUser } from './_repo/users.js';
+import { listUsers, createUser, deleteUser } from './_repo/users.js';
 
 export default async function handler(req, res) {
   try {
@@ -28,7 +28,21 @@ export default async function handler(req, res) {
       }
     }
 
-    res.setHeader('Allow', 'GET, POST');
+    if (req.method === 'DELETE') {
+      const body = await readBody(req);
+      const { id } = body || {};
+      if (!id) {
+        return res.status(400).json({ error: 'user id is required' });
+      }
+      try {
+        await deleteUser(id);
+        return res.status(200).json({ success: true, message: 'User deleted successfully' });
+      } catch (e) {
+        return res.status(500).json({ error: e.message });
+      }
+    }
+
+    res.setHeader('Allow', 'GET, POST, DELETE');
     return res.status(405).end('Method Not Allowed');
   } catch (e) {
     return res.status(500).json({ error: e.message });
