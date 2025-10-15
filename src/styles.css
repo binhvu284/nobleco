@@ -649,7 +649,10 @@ input:focus {
     border: 1px solid var(--border);
     border-radius: 16px;
     box-shadow: 0 24px 80px rgba(2, 8, 23, 0.16);
-    width: min(560px, calc(100vw - 48px));
+    width: min(860px, calc(100vw - 64px));
+    max-height: min(85vh, calc(100vh - 96px));
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
     padding: 20px;
     z-index: 90;
 }
@@ -685,7 +688,7 @@ input:focus {
     height: 96px;
     border-radius: 999px;
     border: 1px solid var(--border);
-    box-shadow: 0 8px 24px rgba(2,8,23,0.08);
+    box-shadow: 0 8px 24px rgba(2, 8, 23, 0.08);
 }
 
 .field {
@@ -754,5 +757,11 @@ input:focus {
         background: rgba(16, 24, 40, 0.38);
         backdrop-filter: blur(2px);
         z-index: 40;
+    }
+
+    /* Make modal friendlier on small screens */
+    .modal-card {
+        width: calc(100vw - 32px);
+        max-height: calc(100vh - 48px);
     }
 }

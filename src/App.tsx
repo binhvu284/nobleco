@@ -8,6 +8,8 @@ import UserProduct from './user/pages/UserProduct';
 import UserWallet from './user/pages/UserWallet';
 import UserPayment from './user/pages/UserPayment';
 import UserTraining from './user/pages/UserTraining';
+import UserProfile from './user/pages/UserProfile';
+import UserSetting from './user/pages/UserSetting';
 import AdminDashboard from './admin/pages/AdminDashboard';
 import AdminUsers from './admin/pages/AdminUsers';
 import AdminProduct from './admin/pages/AdminProduct';
@@ -31,6 +33,8 @@ export default function App() {
             <Route path="/wallet" element={<UserWallet />} />
             <Route path="/payment" element={<UserPayment />} />
             <Route path="/training" element={<UserTraining />} />
+            <Route path="/profile" element={<UserProfile />} />
+            <Route path="/setting" element={<UserSetting />} />
             {/* Admin routes */}
             <Route path="/admin-dashboard" element={<AdminDashboard />} />
             <Route path="/admin-users" element={<AdminUsers />} />
