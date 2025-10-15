@@ -74,3 +74,13 @@ export async function createUser({ email, username, password, role }) {
   if (error) throw new Error(error.message);
   return normalize(data);
 }
+
+export async function deleteUser(id) {
+  const supabase = getSupabase();
+  const { error } = await supabase
+    .from('users')
+    .delete()
+    .eq('id', id);
+  if (error) throw new Error(error.message);
+  return true;
+}

@@ -34,22 +34,52 @@ export default function AdminUsers() {
     const [filterDate, setFilterDate] = useState<string>('');
     const [viewMode, setViewMode] = useState<'table' | 'list'>('table');
 
+    const fetchUsers = async () => {
+        try {
+            const res = await fetch('/api/users');
+            if (!res.ok) throw new Error(`Request failed: ${res.status}`);
+            const data = await res.json();
+            setUsers(Array.isArray(data) ? data : []);
+        } catch (e: any) {
+            setError(e?.message || 'Failed to load users');
+        } finally {
+            setLoading(false);
+        }
+    };
+
     useEffect(() => {
         let cancelled = false;
         (async () => {
-            try {
-                const res = await fetch('/api/users');
-                if (!res.ok) throw new Error(`Request failed: ${res.status}`);
-                const data = await res.json();
-                if (!cancelled) setUsers(Array.isArray(data) ? data : []);
-            } catch (e: any) {
-                if (!cancelled) setError(e?.message || 'Failed to load users');
-            } finally {
-                if (!cancelled) setLoading(false);
-            }
+            await fetchUsers();
         })();
         return () => { cancelled = true; };
     }, []);
+
+    const handleDeleteUser = async (userId: string | number, userEmail: string) => {
+        if (!confirm(`Are you sure you want to delete ${userEmail}? This action cannot be undone.`)) {
+            return;
+        }
+
+        try {
+            const res = await fetch('/api/users', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: userId }),
+            });
+
+            if (!res.ok) {
+                const errorData = await res.json();
+                throw new Error(errorData.error || 'Failed to delete user');
+            }
+
+            // Refresh the user list
+            await fetchUsers();
+            setMenuOpenId(null);
+            alert('User deleted successfully');
+        } catch (e: any) {
+            alert(`Error deleting user: ${e.message}`);
+        }
+    };
 
     // Filter and search logic
     const filteredRows = useMemo(() => {
@@ -235,10 +265,20 @@ export default function AdminUsers() {
                                             </button>
                                             {menuOpenId === r.id && (
                                                 <div className="menu">
-                                                    <button className="menu-item" onClick={() => { alert(`${r.status === 'active' ? 'Disable' : 'Activate'} ${r.email}`); setMenuOpenId(null); }}>
+                                                    <button className="menu-item" onClick={() => { alert(`${r.status === 'active' ? 'Disable' : 'Activate'} ${r.email} - Coming soon!`); setMenuOpenId(null); }}>
+                                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                            {r.status === 'active' ? (
+                                                                <path d="M18 6L6 18M6 6l12 12" />
+                                                            ) : (
+                                                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14M22 4L12 14.01l-3-3" />
+                                                            )}
+                                                        </svg>
                                                         {r.status === 'active' ? 'Disable' : 'Activate'}
                                                     </button>
-                                                    <button className="menu-item danger" onClick={() => { if (confirm(`Delete ${r.email}?`)) alert('Deleted (demo)'); setMenuOpenId(null); }}>
+                                                    <button className="menu-item danger" onClick={() => handleDeleteUser(r.id, r.email)}>
+                                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                            <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6" />
+                                                        </svg>
                                                         Delete
                                                     </button>
                                                 </div>
@@ -309,10 +349,20 @@ export default function AdminUsers() {
                                                 </button>
                                                 {menuOpenId === r.id && (
                                                     <div className="menu">
-                                                        <button className="menu-item" onClick={() => { alert(`${r.status === 'active' ? 'Disable' : 'Activate'} ${r.email}`); setMenuOpenId(null); }}>
+                                                        <button className="menu-item" onClick={() => { alert(`${r.status === 'active' ? 'Disable' : 'Activate'} ${r.email} - Coming soon!`); setMenuOpenId(null); }}>
+                                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                                {r.status === 'active' ? (
+                                                                    <path d="M18 6L6 18M6 6l12 12" />
+                                                                ) : (
+                                                                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14M22 4L12 14.01l-3-3" />
+                                                                )}
+                                                            </svg>
                                                             {r.status === 'active' ? 'Disable' : 'Activate'}
                                                         </button>
-                                                        <button className="menu-item danger" onClick={() => { if (confirm(`Delete ${r.email}?`)) alert('Deleted (demo)'); setMenuOpenId(null); }}>
+                                                        <button className="menu-item danger" onClick={() => handleDeleteUser(r.id, r.email)}>
+                                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                                <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6" />
+                                                            </svg>
                                                             Delete
                                                         </button>
                                                     </div>
