@@ -7,8 +7,12 @@ function normalize(u) {
   return {
     id: u.id,
     email: u.email,
-    username: u.username,
+    name: u.name,
     role: u.role ?? 'user',
+    points: u.points ?? 0,
+    level: u.level ?? 'guest',
+    status: u.status ?? 'active',
+    created_at: u.created_at,
     password: u.password, // keep internal for auth only; strip before returning to clients
   };
 }
@@ -17,11 +21,11 @@ export async function listUsers() {
   const supabase = getSupabase();
   let { data, error } = await supabase
     .from('users')
-    .select('id, email, username, role');
+    .select('id, email, name, role, points, level, status, created_at');
   if (error && /column\s+"?role"?\s+does not exist/i.test(error.message)) {
     const resp = await supabase
       .from('users')
-      .select('id, email, username');
+      .select('id, email, name, points, level, status, created_at');
     if (resp.error) throw new Error(resp.error.message);
     return (resp.data || []).map((u) => normalize({ ...u, role: 'user' }));
   }
@@ -33,8 +37,8 @@ export async function findUserByUsername(username) {
   const supabase = getSupabase();
   const { data, error } = await supabase
     .from('users')
-    .select('id, email, username, password, role')
-    .eq('username', username)
+    .select('id, email, name, password, role')
+    .eq('name', username)
     .maybeSingle();
   if (error) throw new Error(error.message);
   return normalize(data);
@@ -49,28 +53,43 @@ export async function updateUserPasswordHashed(id, password) {
   return true;
 }
 
-export async function createUser({ email, username, password, role }) {
+export async function createUser({ email, name, password, role, points, level, status }) {
   const supabase = getSupabase();
   const payload = {
     email,
-    username,
+    name,
     password: password ? await bcrypt.hash(password, 10) : null,
     role: role === 'admin' ? 'admin' : 'user',
+    points: points ?? 0,
+    level: level ?? 'guest',
+    status: status ?? 'active',
   };
   let { data, error } = await supabase
     .from('users')
     .insert(payload)
-    .select('id, email, username, role')
+    .select('id, email, name, role, points, level, status, created_at')
     .single();
   if (error && /column\s+"?role"?\s+does not exist/i.test(error.message)) {
     const resp = await supabase
       .from('users')
-      .insert({ email, username, password: payload.password })
-      .select('id, email, username')
+      .insert({ email, name, password: payload.password, points: payload.points, level: payload.level, status: payload.status })
+      .select('id, email, name, points, level, status, created_at')
       .single();
     if (resp.error) throw new Error(resp.error.message);
     return normalize({ ...resp.data, role: 'user' });
   }
+  if (error) throw new Error(error.message);
+  return normalize(data);
+}
+
+export async function updateUserStatus(id, status) {
+  const supabase = getSupabase();
+  const { data, error } = await supabase
+    .from('users')
+    .update({ status })
+    .eq('id', id)
+    .select('id, email, name, role, points, level, status, created_at')
+    .single();
   if (error) throw new Error(error.message);
   return normalize(data);
 }

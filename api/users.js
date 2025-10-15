@@ -1,5 +1,5 @@
 import bcrypt from 'bcryptjs';
-import { listUsers, createUser, deleteUser } from './_repo/users.js';
+import { listUsers, createUser, deleteUser, updateUserStatus } from './_repo/users.js';
 
 export default async function handler(req, res) {
   try {
@@ -28,6 +28,24 @@ export default async function handler(req, res) {
       }
     }
 
+    if (req.method === 'PATCH') {
+      const body = req.body || await readBody(req);
+      const { id, status } = body || {};
+      if (!id || !status) {
+        return res.status(400).json({ error: 'user id and status are required' });
+      }
+      if (!['active', 'inactive'].includes(status)) {
+        return res.status(400).json({ error: 'status must be either "active" or "inactive"' });
+      }
+      try {
+        const updatedUser = await updateUserStatus(id, status);
+        const { password: _pw, ...safe } = updatedUser;
+        return res.status(200).json(safe);
+      } catch (e) {
+        return res.status(500).json({ error: e.message });
+      }
+    }
+
     if (req.method === 'DELETE') {
       const body = req.body || await readBody(req);
       const { id } = body || {};
@@ -42,7 +60,7 @@ export default async function handler(req, res) {
       }
     }
 
-    res.setHeader('Allow', 'GET, POST, DELETE');
+    res.setHeader('Allow', 'GET, POST, PATCH, DELETE');
     return res.status(405).end('Method Not Allowed');
   } catch (e) {
     return res.status(500).json({ error: e.message });

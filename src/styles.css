@@ -895,7 +895,7 @@ input:focus {
     padding: 8px;
     min-width: 160px;
     box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
-    z-index: 10;
+    z-index: 150;
 }
 
 .dropdown a {
@@ -918,7 +918,7 @@ input:focus {
     inset: 0;
     background: rgba(16, 24, 40, 0.38);
     backdrop-filter: blur(2px);
-    z-index: 80;
+    z-index: 1000;
 }
 
 .modal-card {
@@ -935,7 +935,7 @@ input:focus {
     overflow: auto;
     -webkit-overflow-scrolling: touch;
     padding: 20px;
-    z-index: 90;
+    z-index: 1000;
 }
 
 .modal-header {
