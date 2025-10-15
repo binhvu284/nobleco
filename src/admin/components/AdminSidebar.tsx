@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { IconDashboard, IconUsers, IconChevronLeft, IconChevronRight } from './icons';
+import { IconDashboard, IconUsers, IconChevronLeft, IconChevronRight, IconBox, IconPercent, IconWallet } from './icons';
 
 export default function AdminSidebar({ collapsed, onToggle, onNavigate }: { collapsed: boolean; onToggle: () => void; onNavigate?: () => void }) {
     return (
@@ -23,6 +23,18 @@ export default function AdminSidebar({ collapsed, onToggle, onNavigate }: { coll
                 <NavLink to="/admin-users" onClick={onNavigate} className={({ isActive }) => isActive ? 'active' : ''}>
                     <IconUsers />
                     {!collapsed && <span>Users</span>}
+                </NavLink>
+                <NavLink to="/admin-product" onClick={onNavigate} className={({ isActive }) => isActive ? 'active' : ''}>
+                    <IconBox />
+                    {!collapsed && <span>Product</span>}
+                </NavLink>
+                <NavLink to="/admin-commission" onClick={onNavigate} className={({ isActive }) => isActive ? 'active' : ''}>
+                    <IconPercent />
+                    {!collapsed && <span>Commission</span>}
+                </NavLink>
+                <NavLink to="/admin-request" onClick={onNavigate} className={({ isActive }) => isActive ? 'active' : ''}>
+                    <IconWallet />
+                    {!collapsed && <span>Withdraw request</span>}
                 </NavLink>
             </nav>
         </aside>

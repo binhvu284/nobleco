@@ -239,6 +239,19 @@ input:focus {
     font-size: 13px;
 }
 
+.alert {
+    border-radius: 10px;
+    padding: 10px 12px;
+    margin-bottom: 12px;
+    border: 1px solid var(--border);
+}
+
+.alert-error {
+    background: #fef3f2;
+    border-color: #fda29b;
+    color: #b42318;
+}
+
 /* Tables */
 .table-wrap {
     width: 100%;
@@ -249,6 +262,15 @@ input:focus {
     width: 100%;
     border-collapse: collapse;
     font-size: 14px;
+}
+
+/* rounded header corners */
+.table thead tr th:first-child {
+    border-top-left-radius: 10px;
+}
+
+.table thead tr th:last-child {
+    border-top-right-radius: 10px;
 }
 
 .table th,
@@ -265,6 +287,106 @@ input:focus {
 
 .muted {
     color: var(--muted);
+}
+
+/* Badges */
+.badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px;
+    font-size: 12px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+}
+
+.badge-success {
+    background: #ecfdf3;
+    color: #027a48;
+    border-color: #abefc6;
+}
+
+.badge-muted {
+    background: #f8fafc;
+    color: #475467;
+}
+
+/* Account level badges */
+.badge-level-guest {
+    background: #f1f5f9;
+    color: #475569;
+}
+
+.badge-level-member {
+    background: #eef2ff;
+    color: #3730a3;
+}
+
+.badge-level-unit {
+    background: #ecfeff;
+    color: #0e7490;
+}
+
+.badge-level-brand {
+    background: #fff7ed;
+    color: #9a3412;
+}
+
+/* Row actions menu */
+.row-actions {
+    position: relative;
+}
+
+.more-btn {
+    width: 28px;
+    height: 28px;
+    display: grid;
+    place-items: center;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--panel);
+    cursor: pointer;
+}
+
+.more-btn:hover {
+    background: rgba(0, 0, 0, 0.06);
+}
+
+.menu {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 6px);
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 6px;
+    min-width: 150px;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
+    z-index: 10;
+}
+
+.menu-item {
+    width: 100%;
+    text-align: left;
+    padding: 8px 10px;
+    border-radius: 8px;
+    border: none;
+    background: transparent;
+    color: var(--text);
+    cursor: pointer;
+}
+
+.menu-item:hover {
+    background: rgba(0, 0, 0, 0.06);
+}
+
+.menu-item.danger {
+    color: #b42318;
+}
+
+/* Loading row */
+.row-loading td {
+    opacity: 0.6;
 }
 
 /* Admin layout */
