@@ -26,6 +26,12 @@ export default function AdminUsers() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [menuOpenId, setMenuOpenId] = useState<string | number | null>(null);
+    
+    // Search and filter states
+    const [searchQuery, setSearchQuery] = useState('');
+    const [filterLevel, setFilterLevel] = useState<Level | 'all'>('all');
+    const [filterStatus, setFilterStatus] = useState<Status | 'all'>('all');
+    const [filterDate, setFilterDate] = useState<string>('');
 
     // Sample rows for initial UI preview
     const sampleRows: Row[] = useMemo(() => ([
@@ -52,88 +58,136 @@ export default function AdminUsers() {
         return () => { cancelled = true; };
     }, []);
 
+    // Filter and search logic
+    const filteredRows = useMemo(() => {
+        // Build display rows: use API data when available, otherwise sample rows
+        const rows: Row[] = !loading && users.length > 0
+            ? users.map((u) => ({
+                id: u.id,
+                name: u.username || (u.email ? u.email.split('@')[0] : ''),
+                email: u.email,
+                level: ((u as any).level as Level) || 'guest',
+                points: Number((u as any).points ?? 0),
+                status: 'active',
+                createdAt: u.created_at ? new Date(u.created_at).toLocaleString() : '',
+            }))
+            : sampleRows;
+
+        return rows.filter((row) => {
+            // Search filter (id, name, or email)
+            const matchesSearch = searchQuery === '' ||
+                String(row.id).toLowerCase().includes(searchQuery.toLowerCase()) ||
+                row.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                row.email.toLowerCase().includes(searchQuery.toLowerCase());
+
+            // Level filter
+            const matchesLevel = filterLevel === 'all' || row.level === filterLevel;
+
+            // Status filter
+            const matchesStatus = filterStatus === 'all' || row.status === filterStatus;
+
+            // Date filter
+            const matchesDate = filterDate === '' || row.createdAt.startsWith(filterDate);
+
+            return matchesSearch && matchesLevel && matchesStatus && matchesDate;
+        });
+    }, [users, loading, sampleRows, searchQuery, filterLevel, filterStatus, filterDate]);
+
     return (
         <AdminLayout title="User Management">
             <div className="admin-users">
-                {error && (
-                    <div className="alert alert-error" role="alert">
-                        {error}
+                {/* Search and Filter Controls */}
+                <div className="filters-bar">
+                    <div className="search-box">
+                        <input
+                            type="text"
+                            placeholder="Search by ID, name or email..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="search-input"
+                        />
                     </div>
-                )}
+                    <div className="filter-controls">
+                        <select
+                            value={filterLevel}
+                            onChange={(e) => setFilterLevel(e.target.value as Level | 'all')}
+                            className="filter-select"
+                        >
+                            <option value="all">All Levels</option>
+                            <option value="guest">Guest</option>
+                            <option value="member">Member</option>
+                            <option value="unit">Unit Manager</option>
+                            <option value="brand">Brand Manager</option>
+                        </select>
+                        <select
+                            value={filterStatus}
+                            onChange={(e) => setFilterStatus(e.target.value as Status | 'all')}
+                            className="filter-select"
+                        >
+                            <option value="all">All Status</option>
+                            <option value="active">Active</option>
+                            <option value="disable">Disabled</option>
+                        </select>
+                        <input
+                            type="date"
+                            value={filterDate}
+                            onChange={(e) => setFilterDate(e.target.value)}
+                            className="filter-date"
+                            placeholder="Filter by date"
+                        />
+                        {(searchQuery || filterLevel !== 'all' || filterStatus !== 'all' || filterDate) && (
+                            <button
+                                onClick={() => {
+                                    setSearchQuery('');
+                                    setFilterLevel('all');
+                                    setFilterStatus('all');
+                                    setFilterDate('');
+                                }}
+                                className="clear-filters-btn"
+                            >
+                                Clear Filters
+                            </button>
+                        )}
+                    </div>
+                </div>
+
                 <div className="table-wrap">
                     <table className="table">
                         <thead>
                             <tr>
-                                <th style={{ width: '220px' }}>ID</th>
-                                <th>Name</th>
-                                <th>Email</th>
-                                <th style={{ width: 160 }}>Account level</th>
-                                <th style={{ width: 100 }}>Points</th>
-                                <th style={{ width: 140 }}>Status</th>
-                                <th style={{ width: 180 }}>Created at</th>
-                                <th style={{ width: 64 }}></th>
+                                <th style={{ width: 120 }}>ID</th>
+                                <th style={{ width: 180 }}>Name</th>
+                                <th style={{ width: 220 }}>Email</th>
+                                <th style={{ width: 150 }}>Account level</th>
+                                <th style={{ width: 90 }}>Points</th>
+                                <th style={{ width: 110 }}>Status</th>
+                                <th style={{ width: 160 }}>Created at</th>
+                                <th style={{ width: 60 }}></th>
                             </tr>
                         </thead>
                         <tbody>
-                            {(() => {
-                                // Build display rows: use API data when available, otherwise sample rows
-                                const rows: Row[] = !loading && users.length > 0
-                                    ? users.map((u) => ({
-                                        id: u.id,
-                                        name: u.username || (u.email ? u.email.split('@')[0] : ''),
-                                        email: u.email,
-                                        level: ((u as any).level as Level) || 'guest',
-                                        points: Number((u as any).points ?? 0),
-                                        status: 'active',
-                                        createdAt: u.created_at ? new Date(u.created_at).toLocaleString() : '',
-                                    }))
-                                    : sampleRows;
-
-                                if (loading) {
-                                    // Show sample rows while loading
-                                    return rows.map((r) => (
-                                        <tr key={`loading-${r.id}`} className="row-loading">
-                                            <td><code>{r.id}</code></td>
-                                            <td>{r.name}</td>
-                                            <td>{r.email}</td>
-                                            <td><span className={`badge ${`badge-level-${r.level}`}`}>{
-                                                r.level === 'unit' ? 'Unit Manager' : r.level === 'brand' ? 'Brand Manager' : r.level === 'member' ? 'Member' : 'Guest'
-                                            }</span></td>
-                                            <td>{r.points}</td>
-                                            <td><span className={`badge ${r.status === 'active' ? 'badge-success' : 'badge-muted'}`}>{r.status}</span></td>
-                                            <td>{r.createdAt}</td>
-                                            <td></td>
-                                        </tr>
-                                    ));
-                                }
-
-                                if (error && users.length === 0) {
-                                    // On error, still show sample rows so UI remains visible
-                                    return sampleRows.map((r) => (
-                                        <tr key={`error-${r.id}`}>
-                                            <td><code>{r.id}</code></td>
-                                            <td>{r.name}</td>
-                                            <td>{r.email}</td>
-                                            <td><span className={`badge ${`badge-level-${r.level}`}`}>{
-                                                r.level === 'unit' ? 'Unit Manager' : r.level === 'brand' ? 'Brand Manager' : r.level === 'member' ? 'Member' : 'Guest'
-                                            }</span></td>
-                                            <td>{r.points}</td>
-                                            <td><span className={`badge ${r.status === 'active' ? 'badge-success' : 'badge-muted'}`}>{r.status}</span></td>
-                                            <td>{r.createdAt}</td>
-                                            <td></td>
-                                        </tr>
-                                    ));
-                                }
-
-                                if (!loading && users.length === 0) {
-                                    return (
-                                        <tr>
-                                            <td colSpan={8} className="muted">No users found</td>
-                                        </tr>
-                                    );
-                                }
-
-                                return rows.map((r) => (
+                            {loading ? (
+                                // Show sample rows while loading
+                                filteredRows.map((r) => (
+                                    <tr key={`loading-${r.id}`} className="row-loading">
+                                        <td><code>{r.id}</code></td>
+                                        <td>{r.name}</td>
+                                        <td>{r.email}</td>
+                                        <td><span className={`badge ${`badge-level-${r.level}`}`}>{
+                                            r.level === 'unit' ? 'Unit Manager' : r.level === 'brand' ? 'Brand Manager' : r.level === 'member' ? 'Member' : 'Guest'
+                                        }</span></td>
+                                        <td>{r.points}</td>
+                                        <td><span className={`badge ${r.status === 'active' ? 'badge-success' : 'badge-muted'}`}>{r.status}</span></td>
+                                        <td>{r.createdAt}</td>
+                                        <td></td>
+                                    </tr>
+                                ))
+                            ) : filteredRows.length === 0 ? (
+                                <tr>
+                                    <td colSpan={8} className="muted">No users found</td>
+                                </tr>
+                            ) : (
+                                filteredRows.map((r) => (
                                     <tr key={String(r.id)}>
                                         <td><code>{r.id}</code></td>
                                         <td>{r.name}</td>
@@ -171,8 +225,8 @@ export default function AdminUsers() {
                                             )}
                                         </td>
                                     </tr>
-                                ));
-                            })()}
+                                ))
+                            )}
                         </tbody>
                     </table>
                 </div>
