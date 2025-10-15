@@ -1,8 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 
-export default function Dashboard() {
+export default function Home() {
     const navigate = useNavigate();
-
     return (
         <div className="home-root">
             <div className="navbar">
@@ -12,7 +11,6 @@ export default function Dashboard() {
                     <button className="primary" onClick={() => navigate('/signup')}>Sign up</button>
                 </div>
             </div>
-
             <section className="home-hero">
                 <h1 className="home-title">Elevate your brand</h1>
                 <p className="home-subtitle">A modern platform with a refined, luxury aesthetic. Simple. Fast. Delightful.</p>
@@ -21,7 +19,6 @@ export default function Dashboard() {
                     <button className="secondary" onClick={() => navigate('/login')}>I already have an account</button>
                 </div>
             </section>
-
             <section className="home-panels">
                 <div className="home-panel">
                     <h3>Beautiful by default</h3>

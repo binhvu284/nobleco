@@ -2,7 +2,7 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import Login from './user/pages/Login';
 import SignUp from './user/pages/SignUp';
 import ForgotPassword from './user/pages/ForgotPassword';
-import Dashboard from './user/pages/Dashboard';
+import Home from './user/pages/Home';
 import UserDashboard from './user/pages/UserDashboard';
 import UserProduct from './user/pages/UserProduct';
 import UserWallet from './user/pages/UserWallet';
@@ -18,7 +18,7 @@ export default function App() {
     return (
         <Routes>
             {/* Public landing at root */}
-            <Route path="/" element={<Dashboard />} />
+            <Route path="/" element={<Home />} />
             {/* Public auth pages */}
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<SignUp />} />
