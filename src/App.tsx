@@ -8,15 +8,12 @@ import UserProduct from './user/pages/UserProduct';
 import UserWallet from './user/pages/UserWallet';
 import UserPayment from './user/pages/UserPayment';
 import UserTraining from './user/pages/UserTraining';
-import UserProfile from './user/pages/UserProfile';
-import UserSetting from './user/pages/UserSetting';
 import AdminDashboard from './admin/pages/AdminDashboard';
 import AdminUsers from './admin/pages/AdminUsers';
 import AdminProduct from './admin/pages/AdminProduct';
 import AdminCommission from './admin/pages/AdminCommission';
 import AdminRequest from './admin/pages/AdminRequest';
-import AdminProfile from './admin/pages/AdminProfile';
-import AdminSetting from './admin/pages/AdminSetting';
+// Profile/Setting modals are launched from headers; no route imports
 
 export default function App() {
     return (
@@ -33,16 +30,14 @@ export default function App() {
             <Route path="/wallet" element={<UserWallet />} />
             <Route path="/payment" element={<UserPayment />} />
             <Route path="/training" element={<UserTraining />} />
-            <Route path="/profile" element={<UserProfile />} />
-            <Route path="/setting" element={<UserSetting />} />
+            {/* User profile/setting appear as modals (no routes) */}
             {/* Admin routes */}
             <Route path="/admin-dashboard" element={<AdminDashboard />} />
             <Route path="/admin-users" element={<AdminUsers />} />
             <Route path="/admin-product" element={<AdminProduct />} />
             <Route path="/admin-commission" element={<AdminCommission />} />
             <Route path="/admin-request" element={<AdminRequest />} />
-            <Route path="/admin-profile" element={<AdminProfile />} />
-            <Route path="/admin-setting" element={<AdminSetting />} />
+            {/* Admin profile/setting appear as modals (no routes) */}
 
             {/* Catchall: go home */}
             <Route

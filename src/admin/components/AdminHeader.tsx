@@ -1,12 +1,16 @@
 import { useState, useRef, useEffect } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { IconDashboard, IconUsers, IconSettings, IconUser, IconLogout } from './icons';
+import { useState as useModalState } from 'react';
+import AdminProfileModal from './AdminProfileModal';
+import AdminSettingModal from './AdminSettingModal';
 
 export default function AdminHeader({ title }: { title: string }) {
     const [open, setOpen] = useState(false);
+    const [profileOpen, setProfileOpen] = useModalState(false);
+    const [settingOpen, setSettingOpen] = useModalState(false);
     const menuRef = useRef<HTMLDivElement | null>(null);
     const location = useLocation();
-    const navigate = useNavigate();
     useEffect(() => {
         const onDocClick = (e: MouseEvent) => {
             if (!menuRef.current) return;
@@ -37,10 +41,10 @@ export default function AdminHeader({ title }: { title: string }) {
                 </button>
                 {open && (
                     <div className="dropdown">
-                        <a href="/admin-profile" onClick={(e) => { e.preventDefault(); setOpen(false); navigate('/admin-profile'); }}>
+                        <a href="#profile" onClick={(e) => { e.preventDefault(); setOpen(false); setProfileOpen(true); }}>
                             <IconUser style={{ marginRight: 8 }} /> Profile
                         </a>
-                        <a href="/admin-setting" onClick={(e) => { e.preventDefault(); setOpen(false); navigate('/admin-setting'); }}>
+                        <a href="#settings" onClick={(e) => { e.preventDefault(); setOpen(false); setSettingOpen(true); }}>
                             <IconSettings style={{ marginRight: 8 }} /> Settings
                         </a>
                         <a href="/" onClick={(e) => { e.preventDefault(); setOpen(false); window.location.href = '/'; }}>
@@ -48,6 +52,8 @@ export default function AdminHeader({ title }: { title: string }) {
                         </a>
                     </div>
                 )}
+                <AdminProfileModal open={profileOpen} onClose={() => setProfileOpen(false)} />
+                <AdminSettingModal open={settingOpen} onClose={() => setSettingOpen(false)} />
             </div>
         </header>
     );
