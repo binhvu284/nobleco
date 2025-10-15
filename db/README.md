@@ -1,3 +1,34 @@
+# Database integration and flexibility
+
+This project uses a small repository layer under `api/_repo` to decouple API handlers from the underlying database specifics. Today it uses Supabase, but the API handlers call repository functions that can be re-implemented to support other backends (or multiple Supabase projects) without changing the route handlers.
+
+## Where to look
+
+- `api/_db.js` – creates a Supabase client using server-side credentials.
+- `api/_repo/users.js` – repository for user-related operations (`listUsers`, `findUserByUsername`, `createUser`, `updateUserPasswordHashed`).
+- `api/users.js` – API route using the repository instead of talking to Supabase directly.
+- `api/auth/login.js` – login flow using repository for user lookup and password upgrade.
+
+## Environment variables
+
+Provide either server-side Supabase vars or their `VITE_` dev equivalents:
+
+- `SUPABASE_URL` (or `VITE_SUPABASE_URL` in dev)
+- `SUPABASE_SERVICE_ROLE_KEY` (preferred on server) or `SUPABASE_ANON_KEY` (or `VITE_SUPABASE_ANON_KEY` in dev)
+
+On Vercel, connect Storage > Supabase and expose these to your deployment. Locally, create a `.env` with:
+
+```
+SUPABASE_URL=...
+SUPABASE_SERVICE_ROLE_KEY=...
+# or fallback dev keys
+VITE_SUPABASE_URL=...
+VITE_SUPABASE_ANON_KEY=...
+```
+
+## Switching projects / databases
+
+To point to a different Supabase project, just change the environment variables above. If your table schema has fewer columns (e.g., missing `role`), the repository includes graceful fallbacks to keep the app working. If you later add new sources (e.g., a REST service), replace the repository functions with that implementation while keeping the same function signatures.
 # Database: Supabase (Postgres)
 
 This folder tracks the database structure and key details for Nobleco.

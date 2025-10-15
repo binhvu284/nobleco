@@ -1,24 +1,16 @@
-import { getSupabase } from './_db.js';
 import bcrypt from 'bcryptjs';
+import { listUsers, createUser } from './_repo/users.js';
 
 export default async function handler(req, res) {
   try {
-    const supabase = getSupabase();
-
     if (req.method === 'GET') {
-      let { data, error } = await supabase
-        .from('users')
-        .select('id, email, username, role');
-      if (error && /column\s+"?role"?\s+does not exist/i.test(error.message)) {
-        const resp = await supabase
-          .from('users')
-          .select('id, email, username');
-        if (resp.error) return res.status(500).json({ error: resp.error.message });
-        data = (resp.data || []).map((u) => ({ ...u, role: 'user' }));
-        return res.status(200).json(data);
+      try {
+        const users = await listUsers();
+        // public response without password
+        return res.status(200).json(users.map(({ password, ...rest }) => rest));
+      } catch (e) {
+        return res.status(500).json({ error: e.message });
       }
-      if (error) return res.status(500).json({ error: error.message });
-      return res.status(200).json(data);
     }
 
     if (req.method === 'POST') {
@@ -27,24 +19,13 @@ export default async function handler(req, res) {
       if (!email || !username) {
         return res.status(400).json({ error: 'email and username are required' });
       }
-      const hashed = password ? await bcrypt.hash(password, 10) : null;
-      const payload = { email, username, password: hashed, role: role === 'admin' ? 'admin' : 'user' };
-      let { data, error } = await supabase
-        .from('users')
-        .insert(payload)
-        .select('id, email, username, role')
-        .single();
-      if (error && /column\s+"?role"?\s+does not exist/i.test(error.message)) {
-        const resp = await supabase
-          .from('users')
-          .insert({ email, username, password: hashed })
-          .select('id, email, username')
-          .single();
-        if (resp.error) return res.status(500).json({ error: resp.error.message });
-        return res.status(201).json({ ...resp.data, role: 'user' });
+      try {
+        const created = await createUser({ email, username, password, role });
+        const { password: _pw, ...safe } = created;
+        return res.status(201).json(safe);
+      } catch (e) {
+        return res.status(500).json({ error: e.message });
       }
-      if (error) return res.status(500).json({ error: error.message });
-      return res.status(201).json(data);
     }
 
     res.setHeader('Allow', 'GET, POST');
