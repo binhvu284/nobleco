@@ -13,6 +13,8 @@ import AdminUsers from './admin/pages/AdminUsers';
 import AdminProduct from './admin/pages/AdminProduct';
 import AdminCommission from './admin/pages/AdminCommission';
 import AdminRequest from './admin/pages/AdminRequest';
+import AdminProfile from './admin/pages/AdminProfile';
+import AdminSetting from './admin/pages/AdminSetting';
 
 export default function App() {
     return (
@@ -35,6 +37,8 @@ export default function App() {
             <Route path="/admin-product" element={<AdminProduct />} />
             <Route path="/admin-commission" element={<AdminCommission />} />
             <Route path="/admin-request" element={<AdminRequest />} />
+            <Route path="/admin-profile" element={<AdminProfile />} />
+            <Route path="/admin-setting" element={<AdminSetting />} />
 
             {/* Catchall: go home */}
             <Route
