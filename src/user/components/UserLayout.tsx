@@ -28,9 +28,6 @@ export default function UserLayout({ title, children }: { title: string; childre
 
     return (
         <div ref={rootRef} className={`admin-root ${collapsed ? 'collapsed' : ''} ${mobileOpen ? 'mobile-open' : ''}`}>
-            <button className="admin-mobile-toggle" aria-label="Open menu" onClick={() => setMobileOpen(true)}>
-                <IconMenu />
-            </button>
             <UserSidebar
                 collapsed={collapsed}
                 onToggle={() =>
@@ -45,10 +42,23 @@ export default function UserLayout({ title, children }: { title: string; childre
                     })
                 }
                 onNavigate={() => setMobileOpen(false)}
+                onMobileClose={() => setMobileOpen(false)}
             />
-            {mobileOpen && <div className="admin-overlay" />}
+            {mobileOpen && <div className="admin-overlay" onClick={() => setMobileOpen(false)} />}
             <div className="admin-main">
-                <UserHeader title={title} />
+                <UserHeader 
+                    title={title} 
+                    mobileMenuOpen={mobileOpen}
+                    onMobileMenuToggle={(e) => {
+                        e.stopPropagation();
+                        const isOpening = !mobileOpen;
+                        setMobileOpen(isOpening);
+                        // When opening on mobile, always expand the sidebar
+                        if (isOpening && window.innerWidth <= 768) {
+                            setCollapsed(false);
+                        }
+                    }}
+                />
                 <main className="admin-content">{children}</main>
             </div>
         </div>

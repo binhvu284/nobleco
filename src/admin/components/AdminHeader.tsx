@@ -1,12 +1,18 @@
 import { useState, useRef, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { IconDashboard, IconUsers, IconSettings, IconUser, IconLogout } from './icons';
+import { IconDashboard, IconUsers, IconSettings, IconUser, IconLogout, IconMenu } from './icons';
 import { useState as useModalState } from 'react';
 import { logout, getCurrentUser } from '../../auth';
 import AdminProfileModal from './AdminProfileModal';
 import AdminSettingModal from './AdminSettingModal';
 
-export default function AdminHeader({ title }: { title: string }) {
+interface AdminHeaderProps {
+    title: string;
+    mobileMenuOpen?: boolean;
+    onMobileMenuToggle?: (e: React.MouseEvent) => void;
+}
+
+export default function AdminHeader({ title, mobileMenuOpen, onMobileMenuToggle }: AdminHeaderProps) {
     const [open, setOpen] = useState(false);
     const [profileOpen, setProfileOpen] = useModalState(false);
     const [settingOpen, setSettingOpen] = useModalState(false);
@@ -54,6 +60,15 @@ export default function AdminHeader({ title }: { title: string }) {
 
     return (
         <header className="admin-header">
+            {onMobileMenuToggle && (
+                <button 
+                    className="admin-mobile-toggle" 
+                    aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'} 
+                    onClick={onMobileMenuToggle}
+                >
+                    <IconMenu />
+                </button>
+            )}
             <div className="admin-page-title">
                 {iconForRoute()}
                 <span>{title}</span>

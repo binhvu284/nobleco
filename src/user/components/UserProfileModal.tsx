@@ -238,6 +238,9 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
                                 </div>
                                 <div className="profile-field refer-code-field">
                                     <label>Refer Code</label>
+                                    <p className="field-description">
+                                        Share your unique refer code to invite others to become your inferior.
+                                    </p>
                                     <div className="refer-code-container">
                                         <div className={user.refer_code ? "refer-code-value" : "profile-field-value non-editable"}>
                                             <span>{user.refer_code || 'N/A'}</span>
@@ -257,32 +260,35 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
                                             )}
                                         </div>
                                         {qrCodeUrl && (
-                                            <div className="qr-code-preview">
-                                                <img src={qrCodeUrl} alt="QR Code" />
-                                                <div className="qr-actions">
-                                                    <button 
-                                                        className="qr-action-btn" 
-                                                        title="Expand QR Code"
-                                                        onClick={expandQRCode}
-                                                    >
-                                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                            <polyline points="15 3 21 3 21 9" />
-                                                            <polyline points="9 21 3 21 3 15" />
-                                                            <line x1="21" y1="3" x2="14" y2="10" />
-                                                            <line x1="3" y1="21" x2="10" y2="14" />
-                                                        </svg>
-                                                    </button>
-                                                    <button 
-                                                        className="qr-action-btn" 
-                                                        title="Download QR Code"
-                                                        onClick={downloadQRCode}
-                                                    >
-                                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                                                            <polyline points="7 10 12 15 17 10" />
-                                                            <line x1="12" y1="15" x2="12" y2="3" />
-                                                        </svg>
-                                                    </button>
+                                            <div className="qr-code-section">
+                                                
+                                                <div className="qr-code-preview">
+                                                    <img src={qrCodeUrl} alt="QR Code" />
+                                                    <div className="qr-actions">
+                                                        <button 
+                                                            className="qr-action-btn" 
+                                                            title="Expand QR Code"
+                                                            onClick={expandQRCode}
+                                                        >
+                                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                                <polyline points="15 3 21 3 21 9" />
+                                                                <polyline points="9 21 3 21 3 15" />
+                                                                <line x1="21" y1="3" x2="14" y2="10" />
+                                                                <line x1="3" y1="21" x2="10" y2="14" />
+                                                            </svg>
+                                                        </button>
+                                                        <button 
+                                                            className="qr-action-btn" 
+                                                            title="Download QR Code"
+                                                            onClick={downloadQRCode}
+                                                        >
+                                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                                                <polyline points="7 10 12 15 17 10" />
+                                                                <line x1="12" y1="15" x2="12" y2="3" />
+                                                            </svg>
+                                                        </button>
+                                                    </div>
                                                 </div>
                                             </div>
                                         )}

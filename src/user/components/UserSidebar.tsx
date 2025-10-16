@@ -1,7 +1,17 @@
 import { NavLink } from 'react-router-dom';
 import { IconDashboard, IconBox, IconWallet, IconCreditCard, IconBook, IconUsers, IconChevronLeft, IconChevronRight } from '../../admin/components/icons';
 
-export default function UserSidebar({ collapsed, onToggle, onNavigate }: { collapsed: boolean; onToggle: () => void; onNavigate?: () => void }) {
+export default function UserSidebar({ collapsed, onToggle, onNavigate, onMobileClose }: { collapsed: boolean; onToggle: () => void; onNavigate?: () => void; onMobileClose?: () => void }) {
+    const handleToggleClick = () => {
+        // On mobile, close the sidebar
+        if (onMobileClose && window.innerWidth <= 768) {
+            onMobileClose();
+        } else {
+            // On desktop, toggle collapsed state
+            onToggle();
+        }
+    };
+
     return (
         <aside className={`admin-sidebar ${collapsed ? 'collapsed' : ''}`}>
             <div className="admin-logo">
@@ -11,7 +21,7 @@ export default function UserSidebar({ collapsed, onToggle, onNavigate }: { colla
                         <span>Nobleco</span>
                     </>
                 )}
-                <button className="icon-btn" aria-label={collapsed ? 'Expand' : 'Collapse'} onClick={onToggle}>
+                <button className="icon-btn" aria-label={collapsed ? 'Expand' : 'Collapse'} onClick={handleToggleClick}>
                     {collapsed ? <IconChevronRight /> : <IconChevronLeft />}
                 </button>
             </div>
