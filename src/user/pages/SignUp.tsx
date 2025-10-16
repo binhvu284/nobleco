@@ -1,8 +1,9 @@
-import { FormEvent, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { FormEvent, useState, useEffect } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 
 export default function SignUp() {
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -12,6 +13,14 @@ export default function SignUp() {
     const [isLoading, setIsLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirm, setShowConfirm] = useState(false);
+
+    // Auto-fill refer code from URL parameter
+    useEffect(() => {
+        const refParam = searchParams.get('ref');
+        if (refParam) {
+            setReferCode(refParam.toUpperCase());
+        }
+    }, [searchParams]);
 
     const onSubmit = async (e: FormEvent) => {
         e.preventDefault();
