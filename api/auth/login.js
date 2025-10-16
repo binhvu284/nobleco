@@ -1,5 +1,5 @@
 import bcrypt from 'bcryptjs';
-import { findUserByUsername, updateUserPasswordHashed } from '../_repo/users.js';
+import { findUserByEmail, updateUserPasswordHashed } from '../_repo/users.js';
 
 export default async function handler(req, res) {
   try {
@@ -8,16 +8,22 @@ export default async function handler(req, res) {
       return res.status(405).end('Method Not Allowed');
     }
 
-    const body = await readBody(req);
-    const username = body?.username?.trim();
+    // Check if body is already parsed (Express) or needs to be read
+    const body = req.body || await readBody(req);
+    const email = body?.username?.trim() || body?.email?.trim();
     const password = body?.password ?? '';
-    if (!username || !password) {
-      return res.status(400).json({ error: 'username and password are required' });
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password are required' });
     }
 
-    const user = await findUserByUsername(username);
+    const user = await findUserByEmail(email);
     if (!user || !user.password) {
       return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    // Check if user is inactive
+    if (user.status === 'inactive') {
+      return res.status(403).json({ error: 'Account is inactive. Please contact support.' });
     }
 
     let valid = false;
@@ -46,7 +52,21 @@ export default async function handler(req, res) {
 
     // Simple session token: not a JWT, just a placeholder for demo
     const token = `ok.${user.id}`;
-  return res.status(200).json({ ok: true, token, user: { id: user.id, email: user.email, username: user.username, role: user.role ?? 'user' } });
+  return res.status(200).json({ 
+    ok: true, 
+    token, 
+    user: { 
+      id: user.id, 
+      email: user.email, 
+      name: user.name, 
+      role: user.role ?? 'user',
+      points: user.points ?? 0,
+      level: user.level ?? 'guest',
+      status: user.status ?? 'active',
+      refer_code: user.refer_code,
+      commission: user.commission ?? 0
+    } 
+  });
   } catch (e) {
     return res.status(500).json({ error: e.message });
   }

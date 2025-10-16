@@ -146,3 +146,40 @@ SELECT ui.id, ui.user_id, ui.name, ui.phone, ui.address
 FROM public.users_info ui
 JOIN public.users u ON ui.user_id = u.id
 ORDER BY ui.id DESC;
+
+-- ========================================
+-- TEST ACCOUNTS FOR LOGIN
+-- ========================================
+-- Insert test admin and user accounts for testing login functionality
+-- Password for all accounts: "password123"
+-- Bcrypt hash generated with salt rounds 10
+
+-- First, ensure the sequence exists and is set correctly
+DO $$
+BEGIN
+  -- Create sequence if it doesn't exist
+  IF NOT EXISTS (SELECT 1 FROM pg_sequences WHERE schemaname = 'public' AND sequencename = 'users_id_seq') THEN
+    CREATE SEQUENCE public.users_id_seq;
+  END IF;
+  
+  -- Set the id column to use the sequence as default
+  ALTER TABLE public.users ALTER COLUMN id SET DEFAULT nextval('users_id_seq'::regclass);
+  
+  -- Sync the sequence with the current max id
+  PERFORM setval('users_id_seq', COALESCE((SELECT MAX(id) FROM public.users), 0) + 1, false);
+END $$;
+
+-- Now insert test accounts (id will auto-increment)
+INSERT INTO public.users (email, name, password, role, points, level, status, refer_code, commission)
+VALUES 
+  -- Test Admin Account
+  ('admin@nobleco.com', 'admin', '$2a$10$rHj6K9P9Yv1lQ8B5pBH8QuEZLYYXxXQPZ.CvVPf3KM5Gf5PfY5LWW', 'admin', 5000, 'brand manager', 'active', 'ADMIN1', 500),
+  -- Test User Account
+  ('user@nobleco.com', 'testuser', '$2a$10$rHj6K9P9Yv1lQ8B5pBH8QuEZLYYXxXQPZ.CvVPf3KM5Gf5PfY5LWW', 'user', 1200, 'member', 'active', 'USER01', 100)
+ON CONFLICT (email) DO NOTHING;
+
+-- Display test accounts
+SELECT '========== TEST ACCOUNTS ==========' as info;
+SELECT id, email, name, role, points, level, status 
+FROM public.users 
+WHERE email IN ('admin@nobleco.com', 'user@nobleco.com');

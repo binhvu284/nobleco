@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { IconDashboard, IconUsers, IconSettings, IconUser, IconLogout } from './icons';
 import { useState as useModalState } from 'react';
+import { logout } from '../../auth';
 import AdminProfileModal from './AdminProfileModal';
 import AdminSettingModal from './AdminSettingModal';
 
@@ -11,6 +12,7 @@ export default function AdminHeader({ title }: { title: string }) {
     const [settingOpen, setSettingOpen] = useModalState(false);
     const menuRef = useRef<HTMLDivElement | null>(null);
     const location = useLocation();
+    const navigate = useNavigate();
     useEffect(() => {
         const onDocClick = (e: MouseEvent) => {
             if (!menuRef.current) return;
@@ -47,7 +49,7 @@ export default function AdminHeader({ title }: { title: string }) {
                         <a href="#settings" onClick={(e) => { e.preventDefault(); setOpen(false); setSettingOpen(true); }}>
                             <IconSettings style={{ marginRight: 8 }} /> Settings
                         </a>
-                        <a href="/" onClick={(e) => { e.preventDefault(); setOpen(false); window.location.href = '/'; }}>
+                        <a href="/" onClick={(e) => { e.preventDefault(); setOpen(false); logout(); navigate('/'); }}>
                             <IconLogout style={{ marginRight: 8 }} /> Logout
                         </a>
                     </div>
