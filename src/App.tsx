@@ -1,4 +1,5 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
+import ProtectedRoute from './components/ProtectedRoute';
 import Login from './user/pages/Login';
 import SignUp from './user/pages/SignUp';
 import ForgotPassword from './user/pages/ForgotPassword';
@@ -19,33 +20,33 @@ import AdminRequest from './admin/pages/AdminRequest';
 export default function App() {
     return (
         <Routes>
-            {/* Public landing at root */}
+            {/* Public routes - accessible without authentication */}
             <Route path="/" element={<Home />} />
-            {/* Public auth pages */}
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<SignUp />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
-            {/* User routes (sidebar/header layout) */}
-            <Route path="/dashboard" element={<UserDashboard />} />
-            <Route path="/member" element={<UserMember />} />
-            <Route path="/product" element={<UserProduct />} />
-            <Route path="/wallet" element={<UserWallet />} />
-            <Route path="/payment" element={<UserPayment />} />
-            <Route path="/training" element={<UserTraining />} />
-            {/* User profile/setting appear as modals (no routes) */}
-            {/* Admin routes */}
-            <Route path="/admin-dashboard" element={<AdminDashboard />} />
-            <Route path="/admin-users" element={<AdminUsers />} />
-            <Route path="/admin-product" element={<AdminProduct />} />
-            <Route path="/admin-commission" element={<AdminCommission />} />
-            <Route path="/admin-request" element={<AdminRequest />} />
-            {/* Admin profile/setting appear as modals (no routes) */}
+            
+            {/* Protected User routes - require 'user' role */}
+            <Route element={<ProtectedRoute requiredRole="user" />}>
+                <Route path="/dashboard" element={<UserDashboard />} />
+                <Route path="/member" element={<UserMember />} />
+                <Route path="/product" element={<UserProduct />} />
+                <Route path="/wallet" element={<UserWallet />} />
+                <Route path="/payment" element={<UserPayment />} />
+                <Route path="/training" element={<UserTraining />} />
+            </Route>
+            
+            {/* Protected Admin routes - require 'admin' role */}
+            <Route element={<ProtectedRoute requiredRole="admin" />}>
+                <Route path="/admin-dashboard" element={<AdminDashboard />} />
+                <Route path="/admin-users" element={<AdminUsers />} />
+                <Route path="/admin-product" element={<AdminProduct />} />
+                <Route path="/admin-commission" element={<AdminCommission />} />
+                <Route path="/admin-request" element={<AdminRequest />} />
+            </Route>
 
-            {/* Catchall: go home */}
-            <Route
-                path="*"
-                element={<Navigate to="/" replace />}
-            />
+            {/* Catchall: redirect to home */}
+            <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
     );
 }

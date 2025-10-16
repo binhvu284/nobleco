@@ -1,7 +1,22 @@
+import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { isAuthenticated, getUserRole } from '../../auth';
 
 export default function Home() {
     const navigate = useNavigate();
+
+    useEffect(() => {
+        // If user is already logged in, redirect to appropriate dashboard
+        if (isAuthenticated()) {
+            const role = getUserRole();
+            if (role === 'admin') {
+                navigate('/admin-dashboard', { replace: true });
+            } else {
+                navigate('/dashboard', { replace: true });
+            }
+        }
+    }, [navigate]);
+
     return (
         <div className="home-root">
             <div className="navbar">

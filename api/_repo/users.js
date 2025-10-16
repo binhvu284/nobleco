@@ -13,6 +13,8 @@ function normalize(u) {
     level: u.level ?? 'guest',
     status: u.status ?? 'active',
     created_at: u.created_at,
+    refer_code: u.refer_code,
+    commission: u.commission ?? 0,
     password: u.password, // keep internal for auth only; strip before returning to clients
   };
 }
@@ -40,6 +42,18 @@ export async function findUserByUsername(username) {
     .select('id, email, name, password, role')
     .eq('name', username)
     .maybeSingle();
+  if (error) throw new Error(error.message);
+  return normalize(data);
+}
+
+export async function findUserByEmail(email) {
+  const supabase = getSupabase();
+  const { data, error } = await supabase
+    .from('users')
+    .select('id, email, name, password, role, points, level, status, refer_code, commission')
+    .eq('email', email)
+    .maybeSingle();
+  
   if (error) throw new Error(error.message);
   return normalize(data);
 }
