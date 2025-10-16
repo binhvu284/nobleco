@@ -18,26 +18,72 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
 
     useEffect(() => {
         if (open) {
-            // Always get fresh data from localStorage when modal opens
+            loadFreshUserData();
+        }
+    }, [open]);
+
+    const loadFreshUserData = async () => {
+        try {
             const currentUser = getCurrentUser();
-            console.log('Current user data:', currentUser);
-            setUser(currentUser);
-            if (currentUser) {
+            if (!currentUser?.id) return;
+
+            // Fetch fresh data from database
+            const response = await fetch(`/api/users/${currentUser.id}`);
+            if (response.ok) {
+                const data = await response.json();
+                const freshUser = data.user;
+                
+                // Update localStorage with fresh data
+                localStorage.setItem('nobleco_user_data', JSON.stringify(freshUser));
+                
+                // Update local state
+                setUser(freshUser);
+                setFormData({
+                    name: freshUser.name || '',
+                    phone: freshUser.phone || '',
+                    address: freshUser.address || ''
+                });
+                
+                // Generate QR code
+                if (freshUser.refer_code) {
+                    generateQRCode(freshUser.refer_code);
+                }
+                
+                // Trigger storage event for header update
+                window.dispatchEvent(new Event('storage'));
+            } else {
+                // Fallback to localStorage if API fails
+                console.log('Using cached user data from localStorage');
+                setUser(currentUser);
                 setFormData({
                     name: currentUser.name || '',
                     phone: currentUser.phone || '',
                     address: currentUser.address || ''
                 });
-                // Generate QR code with signup URL
                 if (currentUser.refer_code) {
                     generateQRCode(currentUser.refer_code);
                 }
             }
-            // Reset editing state
+        } catch (err) {
+            console.error('Error loading user data:', err);
+            // Fallback to localStorage
+            const currentUser = getCurrentUser();
+            if (currentUser) {
+                setUser(currentUser);
+                setFormData({
+                    name: currentUser.name || '',
+                    phone: currentUser.phone || '',
+                    address: currentUser.address || ''
+                });
+                if (currentUser.refer_code) {
+                    generateQRCode(currentUser.refer_code);
+                }
+            }
+        } finally {
             setIsEditing(false);
             setError('');
         }
-    }, [open]);
+    };
 
     const generateQRCode = async (referCode: string) => {
         try {

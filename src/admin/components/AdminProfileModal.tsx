@@ -14,21 +14,60 @@ export default function AdminProfileModal({ open, onClose }: { open: boolean; on
 
     useEffect(() => {
         if (open) {
-            // Always get fresh data from localStorage when modal opens
+            loadFreshUserData();
+        }
+    }, [open]);
+
+    const loadFreshUserData = async () => {
+        try {
             const currentUser = getCurrentUser();
-            setUser(currentUser);
-            if (currentUser) {
+            if (!currentUser?.id) return;
+
+            // Fetch fresh data from database
+            const response = await fetch(`/api/users/${currentUser.id}`);
+            if (response.ok) {
+                const data = await response.json();
+                const freshUser = data.user;
+                
+                // Update localStorage with fresh data
+                localStorage.setItem('nobleco_user_data', JSON.stringify(freshUser));
+                
+                // Update local state
+                setUser(freshUser);
+                setFormData({
+                    name: freshUser.name || '',
+                    phone: freshUser.phone || '',
+                    address: freshUser.address || ''
+                });
+                
+                // Trigger storage event for header update
+                window.dispatchEvent(new Event('storage'));
+            } else {
+                // Fallback to localStorage if API fails
+                setUser(currentUser);
                 setFormData({
                     name: currentUser.name || '',
                     phone: currentUser.phone || '',
                     address: currentUser.address || ''
                 });
             }
-            // Reset editing state
+        } catch (err) {
+            console.error('Error loading user data:', err);
+            // Fallback to localStorage
+            const currentUser = getCurrentUser();
+            if (currentUser) {
+                setUser(currentUser);
+                setFormData({
+                    name: currentUser.name || '',
+                    phone: currentUser.phone || '',
+                    address: currentUser.address || ''
+                });
+            }
+        } finally {
             setIsEditing(false);
             setError('');
         }
-    }, [open]);
+    };
 
     const handleSave = async () => {
         if (!user?.id) return;
