@@ -19,6 +19,10 @@
     display: none;
 }
 
+.admin-root.mobile-open .admin-overlay {
+    display: block;
+}
+
 html,
 body,
 #root {
@@ -1705,6 +1709,11 @@ input:focus {
         grid-column: 1;
     }
 
+    .admin-header {
+        margin-top: 70px;
+        /* Space for mobile toggle button */
+    }
+
     .admin-mobile-toggle {
         position: fixed;
         top: 24px;
@@ -1712,17 +1721,19 @@ input:focus {
         z-index: 60;
         width: 40px;
         height: 40px;
-        display: grid;
+        display: grid !important;
         place-items: center;
         border-radius: 10px;
         border: 1px solid var(--border);
         background: var(--panel);
         box-shadow: 0 8px 24px rgba(2, 8, 23, 0.08);
         cursor: pointer;
+        transition: opacity 0.2s ease;
     }
 
     .admin-root.mobile-open .admin-mobile-toggle {
-        display: none;
+        opacity: 0;
+        pointer-events: none;
         /* hide button when sidebar is open */
     }
 
@@ -1732,6 +1743,7 @@ input:focus {
         background: rgba(16, 24, 40, 0.38);
         backdrop-filter: blur(2px);
         z-index: 40;
+        display: block;
     }
 
     /* Make modal friendlier on small screens */
