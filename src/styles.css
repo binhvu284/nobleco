@@ -611,14 +611,14 @@ input:focus {
     flex-direction: column;
     gap: 10px;
     margin-bottom: 16px;
-    padding: 12px 16px;
+    padding: 10px 16px;
     background: rgba(255, 255, 255, 0.95);
     border: 1px solid var(--border);
     border-radius: 12px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
     position: sticky;
     top: 0;
-    z-index: 50;
+    z-index: 0;
     backdrop-filter: blur(8px);
 }
 
@@ -1719,6 +1719,188 @@ input:focus {
 
 .value {
     font-weight: 600;
+}
+
+/* Filter popup for mobile */
+.mobile-filter-btn {
+    display: none;
+}
+
+.filter-popup-overlay {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    display: none;
+}
+
+.filter-popup-overlay.active {
+    display: block;
+}
+
+.filter-popup {
+    position: fixed;
+    top: 0;
+    right: -100%;
+    width: 300px;
+    max-width: 85vw;
+    height: 100vh;
+    background: white;
+    box-shadow: -4px 0 12px rgba(0, 0, 0, 0.15);
+    transition: right 0.3s ease;
+    z-index: 1001;
+    display: flex;
+    flex-direction: column;
+}
+
+.filter-popup.active {
+    right: 0;
+}
+
+.filter-popup-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px;
+    border-bottom: 1px solid var(--border);
+}
+
+.filter-popup-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.filter-popup-close {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text);
+    font-size: 24px;
+}
+
+.filter-popup-close:hover {
+    background: rgba(0, 0, 0, 0.05);
+}
+
+.filter-popup-body {
+    flex: 1;
+    padding: 16px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.filter-popup-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.filter-popup-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.filter-popup-footer {
+    padding: 16px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 8px;
+}
+
+.filter-popup-footer button {
+    flex: 1;
+}
+
+/* Mobile responsive for filters toolbar */
+@media (max-width: 768px) {
+    .filters-bar {
+        padding: 4px 8px;
+        gap: 6px;
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+        min-height: auto;
+    }
+
+    .search-box {
+        flex: 0 0 auto;
+        width: 240px;
+    }
+
+
+    .mobile-filter-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: var(--panel);
+        cursor: pointer;
+        flex-shrink: 0;
+        padding: 0;
+    }
+
+    .mobile-filter-btn:hover {
+        background: rgba(0, 0, 0, 0.05);
+    }
+
+    .mobile-filter-btn svg {
+        width: 16px;
+        height: 16px;
+    }
+
+    .filter-controls {
+        display: none;
+    }
+
+    .view-toggle {
+        display: flex !important;
+        gap: 4px;
+        flex-shrink: 0;
+    }
+
+    .view-btn {
+        width: 32px;
+        height: 32px;
+        padding: 6px;
+        display: flex !important;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: var(--panel);
+        cursor: pointer;
+    }
+
+    .view-btn:hover {
+        background: rgba(0, 0, 0, 0.05);
+    }
+
+    .view-btn.active {
+        background: var(--primary);
+        border-color: var(--primary);
+        color: white;
+    }
+
+    .view-btn svg {
+        width: 16px;
+        height: 16px;
+    }
 }
 
 /* Responsive: mobile sidebar popup */

@@ -37,6 +37,9 @@ export default function AdminUsers() {
     const [filterDate, setFilterDate] = useState<string>('');
     const [viewMode, setViewMode] = useState<'table' | 'list'>('table');
 
+    // Mobile states
+    const [filterPopupOpen, setFilterPopupOpen] = useState(false);
+
     // Modal states
     const [deleteModal, setDeleteModal] = useState<{ show: boolean; userId: string | number | null; userEmail: string }>({ 
         show: false, 
@@ -179,12 +182,17 @@ export default function AdminUsers() {
                     <div className="search-box">
                         <input
                             type="text"
-                            placeholder="Search by ID, name or email..."
+                            placeholder="Search..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             className="search-input"
                         />
                     </div>
+                    <button className="mobile-filter-btn" onClick={() => setFilterPopupOpen(true)}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
+                        </svg>
+                    </button>
                     <div className="filter-controls">
                         <select
                             value={filterLevel}
@@ -516,6 +524,74 @@ export default function AdminUsers() {
                     <span>{errorMessage}</span>
                     <button className="notification-close" onClick={() => setErrorMessage(null)}>×</button>
                 </div>
+            )}
+
+            {/* Mobile Filter Popup */}
+            {filterPopupOpen && (
+                <>
+                    <div className="filter-popup-overlay active" onClick={() => setFilterPopupOpen(false)} />
+                    <div className={`filter-popup ${filterPopupOpen ? 'active' : ''}`}>
+                        <div className="filter-popup-header">
+                            <h3 className="filter-popup-title">Filters</h3>
+                            <button className="filter-popup-close" onClick={() => setFilterPopupOpen(false)}>×</button>
+                        </div>
+                        <div className="filter-popup-body">
+                            <div className="filter-popup-group">
+                                <label className="filter-popup-label">Level</label>
+                                <select
+                                    value={filterLevel}
+                                    onChange={(e) => setFilterLevel(e.target.value as Level | 'all')}
+                                    className="filter-select"
+                                >
+                                    <option value="all">All Levels</option>
+                                    <option value="guest">Guest</option>
+                                    <option value="member">Member</option>
+                                    <option value="unit manager">Unit Manager</option>
+                                    <option value="brand manager">Brand Manager</option>
+                                </select>
+                            </div>
+                            <div className="filter-popup-group">
+                                <label className="filter-popup-label">Status</label>
+                                <select
+                                    value={filterStatus}
+                                    onChange={(e) => setFilterStatus(e.target.value as Status | 'all')}
+                                    className="filter-select"
+                                >
+                                    <option value="all">All Status</option>
+                                    <option value="active">Active</option>
+                                    <option value="inactive">Inactive</option>
+                                </select>
+                            </div>
+                            <div className="filter-popup-group">
+                                <label className="filter-popup-label">Created Date</label>
+                                <input
+                                    type="date"
+                                    value={filterDate}
+                                    onChange={(e) => setFilterDate(e.target.value)}
+                                    className="filter-date"
+                                />
+                            </div>
+                        </div>
+                        <div className="filter-popup-footer">
+                            <button 
+                                className="btn-secondary"
+                                onClick={() => {
+                                    setFilterLevel('all');
+                                    setFilterStatus('all');
+                                    setFilterDate('');
+                                }}
+                            >
+                                Clear All
+                            </button>
+                            <button 
+                                className="btn-primary"
+                                onClick={() => setFilterPopupOpen(false)}
+                            >
+                                Apply
+                            </button>
+                        </div>
+                    </div>
+                </>
             )}
         </AdminLayout>
     );
