@@ -15,5 +15,10 @@ CREATE TABLE public.users (
   commission integer NOT NULL DEFAULT 0,
   phone text,
   address text,
+  referred_by text,
   CONSTRAINT users_pkey PRIMARY KEY (id)
 );
+
+-- Index for performance when finding inferiors and superiors
+CREATE INDEX IF NOT EXISTS idx_users_referred_by ON public.users(referred_by);
+CREATE INDEX IF NOT EXISTS idx_users_refer_code ON public.users(refer_code);

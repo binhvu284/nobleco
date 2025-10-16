@@ -23,13 +23,15 @@ export default async function handler(req, res) {
     }
 
     // If refer code is provided, validate it exists
-    let referredById = null;
+    let validReferCode = null;
+    let referrerName = null;
     if (referCode && referCode.trim()) {
       const supabase = getSupabase();
+      const normalizedCode = referCode.trim().toUpperCase();
       const { data: referrer, error: referError } = await supabase
         .from('users')
-        .select('id')
-        .eq('refer_code', referCode.trim().toUpperCase())
+        .select('refer_code, name')
+        .eq('refer_code', normalizedCode)
         .maybeSingle();
       
       if (referError) {
@@ -40,10 +42,11 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'Invalid refer code' });
       }
       
-      referredById = referrer.id;
+      validReferCode = referrer.refer_code;
+      referrerName = referrer.name;
     }
 
-    // Create the new user
+    // Create the new user with hierarchy relationship
     const newUser = await createUser({
       email,
       name,
@@ -52,19 +55,17 @@ export default async function handler(req, res) {
       points: 0,
       level: 'guest',
       status: 'active',
+      referred_by: validReferCode, // Store the actual refer_code (text), not the user id
     });
-
-    // If there's a valid referrer, we can store the relationship in users_info or a separate table
-    // For now, we'll just acknowledge it was successful
-    // TODO: Implement referral relationship logic later
 
     // Return user data (without password)
     const { password: _pw, ...safeUser } = newUser;
+
     return res.status(201).json({
       success: true,
       user: safeUser,
-      message: referredById 
-        ? 'Account created successfully with referral code' 
+      message: referrerName 
+        ? `Account created successfully! You are now connected with ${referrerName}` 
         : 'Account created successfully',
     });
   } catch (error) {
