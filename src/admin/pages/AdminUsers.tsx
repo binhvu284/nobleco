@@ -274,18 +274,16 @@ export default function AdminUsers() {
                         </thead>
                         <tbody>
                             {loading ? (
-                                // Show sample rows while loading
-                                filteredRows.map((r) => (
-                                    <tr key={`loading-${r.id}`} className="row-loading">
-                                        <td><code>{r.id}</code></td>
-                                        <td>{r.name}</td>
-                                        <td>{r.email}</td>
-                                        <td><span className={`badge ${`badge-level-${r.level.replace(/\s+/g, '-')}`}`}>{
-                                            r.level === 'unit manager' ? 'Unit Manager' : r.level === 'brand manager' ? 'Brand Manager' : r.level === 'member' ? 'Member' : 'Guest'
-                                        }</span></td>
-                                        <td>{r.points}</td>
-                                        <td><span className={`badge ${r.status === 'active' ? 'badge-success' : 'badge-muted'}`}>{r.status}</span></td>
-                                        <td>{r.createdAt}</td>
+                                // Show skeleton loading rows
+                                Array.from({ length: 5 }).map((_, i) => (
+                                    <tr key={`skeleton-${i}`} className="row-loading">
+                                        <td><div className="skeleton skeleton-text" style={{ width: '60px' }}></div></td>
+                                        <td><div className="skeleton skeleton-text" style={{ width: '120px' }}></div></td>
+                                        <td><div className="skeleton skeleton-text" style={{ width: '180px' }}></div></td>
+                                        <td><div className="skeleton skeleton-badge"></div></td>
+                                        <td><div className="skeleton skeleton-text" style={{ width: '50px' }}></div></td>
+                                        <td><div className="skeleton skeleton-badge"></div></td>
+                                        <td><div className="skeleton skeleton-text" style={{ width: '100px' }}></div></td>
                                         <td></td>
                                     </tr>
                                 ))

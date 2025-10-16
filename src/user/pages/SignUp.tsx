@@ -3,22 +3,61 @@ import { Link, useNavigate } from 'react-router-dom';
 
 export default function SignUp() {
     const navigate = useNavigate();
+    const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirm, setConfirm] = useState('');
+    const [referCode, setReferCode] = useState('');
     const [error, setError] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirm, setShowConfirm] = useState(false);
 
     const onSubmit = async (e: FormEvent) => {
         e.preventDefault();
         setError('');
+        
         if (password !== confirm) {
             setError('Passwords do not match');
             return;
         }
-        // Placeholder: In a real flow, call your signup API and then redirect
-        navigate('/login', { replace: true });
+
+        if (password.length < 6) {
+            setError('Password must be at least 6 characters');
+            return;
+        }
+
+        setIsLoading(true);
+
+        try {
+            const response = await fetch('/api/auth/signup', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name,
+                    email,
+                    password,
+                    referCode: referCode.trim() || undefined,
+                }),
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                setError(data.error || 'Failed to create account');
+                return;
+            }
+
+            // Success - redirect to login
+            navigate('/login', { 
+                replace: true, 
+                state: { message: 'Account created successfully! Please log in.' }
+            });
+        } catch (err) {
+            setError('Failed to connect to server. Please try again.');
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     return (
@@ -29,8 +68,24 @@ export default function SignUp() {
                 <p className="subtitle">Join Nobleco</p>
                 <form onSubmit={onSubmit} className="form">
                     <label>
+                        Name
+                        <input 
+                            type="text"
+                            value={name} 
+                            onChange={(e) => setName(e.target.value)} 
+                            placeholder="Your full name" 
+                            required 
+                        />
+                    </label>
+                    <label>
                         Email
-                        <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" required />
+                        <input 
+                            type="email"
+                            value={email} 
+                            onChange={(e) => setEmail(e.target.value)} 
+                            placeholder="you@example.com" 
+                            required 
+                        />
                     </label>
                     <label style={{ position: 'relative' }}>
                         Password
@@ -90,8 +145,21 @@ export default function SignUp() {
                             )}
                         </button>
                     </label>
+                    <label>
+                        Refer Code (Optional)
+                        <input 
+                            type="text"
+                            value={referCode} 
+                            onChange={(e) => setReferCode(e.target.value.toUpperCase())} 
+                            placeholder="Enter referral code if you have one" 
+                            maxLength={6}
+                            style={{ textTransform: 'uppercase' }}
+                        />
+                    </label>
                     {error && <div className="error">{error}</div>}
-                    <button type="submit" className="primary">Sign Up</button>
+                    <button type="submit" className="primary" disabled={isLoading}>
+                        {isLoading ? 'Creating account...' : 'Sign Up'}
+                    </button>
                 </form>
                 <div className="auth-footer">
                     <span>Already have an account?</span>

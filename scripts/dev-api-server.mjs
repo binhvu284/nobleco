@@ -1,7 +1,9 @@
 import 'dotenv/config';
 import express from 'express';
 import usersHandler from '../api/users.js';
+import profileHandler from '../api/users/profile.js';
 import loginHandler from '../api/auth/login.js';
+import signupHandler from '../api/auth/signup.js';
 import healthHandler from '../api/health.js';
 import diagnosticsHandler from '../api/diagnostics.js';
 
@@ -20,9 +22,11 @@ function toRoute(handler) {
 }
 
 app.all('/api/users', toRoute(usersHandler));
+app.all('/api/users/profile', toRoute(profileHandler));
 app.all('/api/health', toRoute(healthHandler));
 app.all('/api/diagnostics', toRoute(diagnosticsHandler));
 app.all('/api/auth/login', toRoute(loginHandler));
+app.all('/api/auth/signup', toRoute(signupHandler));
 
 const port = process.env.API_PORT || 3001;
 app.listen(port, () => {

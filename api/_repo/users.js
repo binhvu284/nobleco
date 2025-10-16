@@ -15,6 +15,8 @@ function normalize(u) {
     created_at: u.created_at,
     refer_code: u.refer_code,
     commission: u.commission ?? 0,
+    phone: u.phone ?? null,
+    address: u.address ?? null,
     password: u.password, // keep internal for auth only; strip before returning to clients
   };
 }
@@ -50,7 +52,7 @@ export async function findUserByEmail(email) {
   const supabase = getSupabase();
   const { data, error } = await supabase
     .from('users')
-    .select('id, email, name, password, role, points, level, status, refer_code, commission')
+    .select('id, email, name, password, role, points, level, status, refer_code, commission, phone, address')
     .eq('email', email)
     .maybeSingle();
   

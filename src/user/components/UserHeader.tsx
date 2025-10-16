@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { logout } from '../../auth';
+import { logout, getCurrentUser } from '../../auth';
 import { IconUser, IconSettings, IconLogout, IconDashboard, IconUsers, IconBox, IconWallet, IconCreditCard, IconBook } from '../../admin/components/icons';
 import { useState as useModalState } from 'react';
 import UserProfileModal from './UserProfileModal';
@@ -12,6 +12,31 @@ export default function UserHeader({ title }: { title: string }) {
     const location = useLocation();
     const [profileOpen, setProfileOpen] = useModalState(false);
     const [settingOpen, setSettingOpen] = useModalState(false);
+    const [userName, setUserName] = useState('User');
+    
+    useEffect(() => {
+        // Initial load
+        const currentUser = getCurrentUser();
+        setUserName(currentUser?.name || 'User');
+        
+        // Listen for storage changes (when profile is updated)
+        const handleStorageChange = () => {
+            const updatedUser = getCurrentUser();
+            setUserName(updatedUser?.name || 'User');
+        };
+        
+        window.addEventListener('storage', handleStorageChange);
+        
+        return () => {
+            window.removeEventListener('storage', handleStorageChange);
+        };
+    }, []);
+    
+    const currentUser = getCurrentUser();
+    const user = { 
+        name: userName, 
+        avatar: currentUser?.avatar || 'https://i.pravatar.cc/100?img=8' 
+    };
 
     const iconForRoute = () => {
         if (location.pathname.startsWith('/dashboard')) return <IconDashboard style={{ marginRight: 8 }} />;
@@ -31,8 +56,8 @@ export default function UserHeader({ title }: { title: string }) {
             </div>
             <div className="admin-actions">
                 <button className="admin-user" onClick={() => setOpen((v) => !v)}>
-                    <img className="avatar" src="https://i.pravatar.cc/100?img=8" alt="avatar" />
-                    <span>User</span>
+                    <img className="avatar" src={user.avatar} alt="avatar" />
+                    <span>{user.name}</span>
                 </button>
                 {open && (
                     <div className="dropdown" onMouseLeave={() => setOpen(false)}>

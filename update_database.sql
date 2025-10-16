@@ -12,7 +12,9 @@ ADD COLUMN IF NOT EXISTS level text DEFAULT 'guest' CHECK (level IN ('guest','me
 ADD COLUMN IF NOT EXISTS status text DEFAULT 'active' CHECK (status IN ('active','inactive')),
 ADD COLUMN IF NOT EXISTS created_at timestamp with time zone DEFAULT now(),
 ADD COLUMN IF NOT EXISTS refer_code text unique default upper(substring(md5(random()::text) from 1 for 6)),
-ADD COLUMN IF NOT EXISTS commission integer not null default 0;
+ADD COLUMN IF NOT EXISTS commission integer not null default 0,
+ADD COLUMN IF NOT EXISTS phone text,
+ADD COLUMN IF NOT EXISTS address text;
 
 -- Fix status column constraint (remove old 'disable' and ensure only 'active'/'inactive')
 ALTER TABLE public.users 

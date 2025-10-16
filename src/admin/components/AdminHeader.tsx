@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { IconDashboard, IconUsers, IconSettings, IconUser, IconLogout } from './icons';
 import { useState as useModalState } from 'react';
-import { logout } from '../../auth';
+import { logout, getCurrentUser } from '../../auth';
 import AdminProfileModal from './AdminProfileModal';
 import AdminSettingModal from './AdminSettingModal';
 
@@ -10,19 +10,41 @@ export default function AdminHeader({ title }: { title: string }) {
     const [open, setOpen] = useState(false);
     const [profileOpen, setProfileOpen] = useModalState(false);
     const [settingOpen, setSettingOpen] = useModalState(false);
+    const [userName, setUserName] = useState('Admin User');
     const menuRef = useRef<HTMLDivElement | null>(null);
     const location = useLocation();
     const navigate = useNavigate();
+    
     useEffect(() => {
+        // Initial load
+        const currentUser = getCurrentUser();
+        setUserName(currentUser?.name || 'Admin User');
+        
+        // Listen for storage changes (when profile is updated)
+        const handleStorageChange = () => {
+            const updatedUser = getCurrentUser();
+            setUserName(updatedUser?.name || 'Admin User');
+        };
+        
+        window.addEventListener('storage', handleStorageChange);
+        
         const onDocClick = (e: MouseEvent) => {
             if (!menuRef.current) return;
             if (!menuRef.current.contains(e.target as Node)) setOpen(false);
         };
         document.addEventListener('click', onDocClick);
-        return () => document.removeEventListener('click', onDocClick);
+        
+        return () => {
+            window.removeEventListener('storage', handleStorageChange);
+            document.removeEventListener('click', onDocClick);
+        };
     }, []);
-
-    const user = { name: 'Admin User', avatar: '/images/logo.png' };
+    
+    const currentUser = getCurrentUser();
+    const user = { 
+        name: userName, 
+        avatar: currentUser?.avatar || '/images/logo.png' 
+    };
 
     const iconForRoute = () => {
         if (location.pathname.startsWith('/admin-users')) return <IconUsers style={{ marginRight: 8 }} />;
