@@ -69,7 +69,7 @@ export async function updateUserPasswordHashed(id, password) {
   return true;
 }
 
-export async function createUser({ email, name, password, role, points, level, status }) {
+export async function createUser({ email, name, password, role, points, level, status, referred_by }) {
   const supabase = getSupabase();
   const payload = {
     email,
@@ -79,17 +79,26 @@ export async function createUser({ email, name, password, role, points, level, s
     points: points ?? 0,
     level: level ?? 'guest',
     status: status ?? 'active',
+    referred_by: referred_by ?? null,
   };
   let { data, error } = await supabase
     .from('users')
     .insert(payload)
-    .select('id, email, name, role, points, level, status, created_at')
+    .select('id, email, name, role, points, level, status, created_at, referred_by')
     .single();
   if (error && /column\s+"?role"?\s+does not exist/i.test(error.message)) {
     const resp = await supabase
       .from('users')
-      .insert({ email, name, password: payload.password, points: payload.points, level: payload.level, status: payload.status })
-      .select('id, email, name, points, level, status, created_at')
+      .insert({ 
+        email, 
+        name, 
+        password: payload.password, 
+        points: payload.points, 
+        level: payload.level, 
+        status: payload.status,
+        referred_by: payload.referred_by
+      })
+      .select('id, email, name, points, level, status, created_at, referred_by')
       .single();
     if (resp.error) throw new Error(resp.error.message);
     return normalize({ ...resp.data, role: 'user' });

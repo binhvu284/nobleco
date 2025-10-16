@@ -185,3 +185,39 @@ SELECT '========== TEST ACCOUNTS ==========' as info;
 SELECT id, email, name, role, points, level, status 
 FROM public.users 
 WHERE email IN ('admin@nobleco.com', 'user@nobleco.com');
+
+-- ========================================
+-- ADD HIERARCHY SYSTEM (referred_by column)
+-- ========================================
+
+-- First, drop the old foreign key constraint and column if they exist
+DO $$ 
+BEGIN
+    -- Drop foreign key constraint if exists
+    IF EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'users_referred_by_fkey') THEN
+        ALTER TABLE public.users DROP CONSTRAINT users_referred_by_fkey;
+    END IF;
+    
+    -- Drop old index if exists
+    DROP INDEX IF EXISTS idx_users_referred_by;
+    
+    -- Drop the column if it exists
+    ALTER TABLE public.users DROP COLUMN IF EXISTS referred_by;
+END $$;
+
+-- Add referred_by as text column to store the refer_code of the superior
+ALTER TABLE public.users 
+ADD COLUMN referred_by text;
+
+-- Add indexes for better query performance
+CREATE INDEX IF NOT EXISTS idx_users_referred_by ON public.users(referred_by);
+CREATE INDEX IF NOT EXISTS idx_users_refer_code ON public.users(refer_code);
+
+-- Add comment for documentation
+COMMENT ON COLUMN public.users.referred_by IS 'Refer code of the user who referred this user (superior in hierarchy)';
+
+-- Verify the column was added
+SELECT '========== HIERARCHY SYSTEM ADDED ==========' as info;
+SELECT column_name, data_type, is_nullable 
+FROM information_schema.columns 
+WHERE table_name = 'users' AND column_name = 'referred_by';
