@@ -14,6 +14,7 @@ export interface User {
     phone?: string;
     address?: string;
     avatar?: string;
+    created_at?: string;
 }
 
 export function isAuthenticated(): boolean {

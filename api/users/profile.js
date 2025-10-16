@@ -17,9 +17,9 @@ export default async function handler(req, res) {
 
     // Build update object with only provided fields
     const updates = {};
-    if (name !== undefined) updates.name = name;
-    if (phone !== undefined) updates.phone = phone;
-    if (address !== undefined) updates.address = address;
+    if (name !== undefined) updates.name = name || null;
+    if (phone !== undefined) updates.phone = phone || null;
+    if (address !== undefined) updates.address = address || null;
 
     if (Object.keys(updates).length === 0) {
       return res.status(400).json({ error: 'No fields to update' });
@@ -32,7 +32,7 @@ export default async function handler(req, res) {
       .from('users')
       .update(updates)
       .eq('id', id)
-      .select('id, email, name, role, points, level, status, refer_code, commission, phone, address')
+      .select('id, email, name, role, points, level, status, refer_code, commission, phone, address, created_at')
       .single();
 
     if (userError) {
@@ -55,6 +55,7 @@ export default async function handler(req, res) {
         commission: userData.commission,
         phone: userData.phone,
         address: userData.address,
+        created_at: userData.created_at,
       },
     });
   } catch (error) {
