@@ -1,13 +1,15 @@
 import { FormEvent, useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { login, isAuthenticated, getUserRole } from '../../auth';
 
 export default function Login() {
     const navigate = useNavigate();
+    const location = useLocation();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [remember, setRemember] = useState(true);
     const [error, setError] = useState('');
+    const [success, setSuccess] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
 
@@ -23,11 +25,18 @@ export default function Login() {
             return;
         }
 
+        // Check for success message from signup
+        if (location.state?.message) {
+            setSuccess(location.state.message);
+            // Clear the state
+            window.history.replaceState({}, document.title);
+        }
+
         try {
             const saved = localStorage.getItem('remember_email');
             if (saved) setEmail(saved);
         } catch { }
-    }, [navigate]);
+    }, [navigate, location]);
 
     const onSubmit = async (e: FormEvent) => {
         e.preventDefault();
@@ -110,6 +119,7 @@ export default function Login() {
                         </label>
                         <Link to="/forgot-password" className="auth-link">Forgot password?</Link>
                     </div>
+                    {success && <div className="success">{success}</div>}
                     {error && <div className="error">{error}</div>}
                     <button type="submit" className="primary" disabled={isLoading}>
                         {isLoading ? 'Signing in...' : 'Sign In'}

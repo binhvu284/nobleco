@@ -4,32 +4,83 @@ import { getCurrentUser, type User } from '../../auth';
 export default function AdminProfileModal({ open, onClose }: { open: boolean; onClose: () => void }) {
     const [user, setUser] = useState<User | null>(null);
     const [isEditing, setIsEditing] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
+    const [error, setError] = useState('');
     const [formData, setFormData] = useState({
         name: '',
         phone: '',
-        address: '',
-        avatar: ''
+        address: ''
     });
 
     useEffect(() => {
         if (open) {
+            // Always get fresh data from localStorage when modal opens
             const currentUser = getCurrentUser();
             setUser(currentUser);
             if (currentUser) {
                 setFormData({
                     name: currentUser.name || '',
                     phone: currentUser.phone || '',
-                    address: currentUser.address || '',
-                    avatar: currentUser.avatar || ''
+                    address: currentUser.address || ''
                 });
             }
+            // Reset editing state
+            setIsEditing(false);
+            setError('');
         }
     }, [open]);
 
     const handleSave = async () => {
-        // TODO: Implement API call to update admin profile
-        console.log('Saving profile:', formData);
-        setIsEditing(false);
+        if (!user?.id) return;
+        
+        setIsSaving(true);
+        setError('');
+        
+        try {
+            const response = await fetch('/api/users/profile', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    id: user.id,
+                    name: formData.name,
+                    phone: formData.phone,
+                    address: formData.address,
+                }),
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                setError(data.error || 'Failed to update profile');
+                return;
+            }
+
+            // Update localStorage with new user data (use data from server as source of truth)
+            localStorage.setItem('nobleco_user_data', JSON.stringify(data.user));
+            
+            // Update local state with fresh data from server
+            setUser(data.user);
+            
+            // Update form data with the latest values from server
+            setFormData({
+                name: data.user.name || '',
+                phone: data.user.phone || '',
+                address: data.user.address || ''
+            });
+            
+            setIsEditing(false);
+            
+            // Trigger a storage event to notify other components (like header)
+            window.dispatchEvent(new Event('storage'));
+            
+            // Show success feedback
+            console.log('Profile updated successfully');
+        } catch (err) {
+            setError('Failed to connect to server. Please try again.');
+            console.error('Profile update error:', err);
+        } finally {
+            setIsSaving(false);
+        }
     };
 
     const handleCancel = () => {
@@ -37,10 +88,10 @@ export default function AdminProfileModal({ open, onClose }: { open: boolean; on
             setFormData({
                 name: user.name || '',
                 phone: user.phone || '',
-                address: user.address || '',
-                avatar: user.avatar || ''
+                address: user.address || ''
             });
         }
+        setError('');
         setIsEditing(false);
     };
 
@@ -61,17 +112,9 @@ export default function AdminProfileModal({ open, onClose }: { open: boolean; on
                         <div className="profile-avatar-wrapper">
                             <img 
                                 className="profile-avatar-large" 
-                                src={formData.avatar || '/images/logo.png'} 
+                                src="/images/logo.png" 
                                 alt="avatar" 
                             />
-                            {isEditing && (
-                                <button className="avatar-edit-btn" title="Change avatar">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
-                                        <circle cx="12" cy="13" r="4" />
-                                    </svg>
-                                </button>
-                            )}
                         </div>
                         <div className="profile-level-info">
                             <span className="level-badge level-admin">
@@ -155,11 +198,22 @@ export default function AdminProfileModal({ open, onClose }: { open: boolean; on
                         </div>
                     </div>
 
+                    {/* Error Message */}
+                    {error && (
+                        <div className="error" style={{ marginTop: '16px', textAlign: 'center' }}>
+                            {error}
+                        </div>
+                    )}
+
                     {/* Action Buttons */}
                     {isEditing && (
                         <div className="profile-actions">
-                            <button className="btn-secondary" onClick={handleCancel}>Cancel</button>
-                            <button className="btn-primary" onClick={handleSave}>Save Changes</button>
+                            <button className="btn-secondary" onClick={handleCancel} disabled={isSaving}>
+                                Cancel
+                            </button>
+                            <button className="btn-primary" onClick={handleSave} disabled={isSaving}>
+                                {isSaving ? 'Saving...' : 'Save Changes'}
+                            </button>
                         </div>
                     )}
                 </div>

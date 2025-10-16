@@ -2,7 +2,7 @@
 -- Table order and constraints may not be valid for execution.
 
 CREATE TABLE public.users (
-  id int8 NOT NULL,
+  id bigint NOT NULL DEFAULT nextval('users_id_seq'::regclass),
   email text UNIQUE,
   name text UNIQUE,
   password text,
@@ -13,5 +13,7 @@ CREATE TABLE public.users (
   level text DEFAULT 'guest'::text CHECK (level = ANY (ARRAY['guest'::text, 'member'::text, 'unit manager'::text, 'brand manager'::text])),
   refer_code text DEFAULT upper(SUBSTRING(md5((random())::text) FROM 1 FOR 6)) UNIQUE,
   commission integer NOT NULL DEFAULT 0,
+  phone text,
+  address text,
   CONSTRAINT users_pkey PRIMARY KEY (id)
 );
