@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { getCurrentUser, type User } from '../../auth';
+import QRCode from 'qrcode';
 
 export default function UserProfileModal({ open, onClose }: { open: boolean; onClose: () => void }) {
     const [user, setUser] = useState<User | null>(null);
@@ -11,6 +12,9 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
         phone: '',
         address: ''
     });
+    const [qrCodeUrl, setQrCodeUrl] = useState('');
+    const [showQrModal, setShowQrModal] = useState(false);
+    const qrCanvasRef = useRef<HTMLCanvasElement>(null);
 
     useEffect(() => {
         if (open) {
@@ -24,12 +28,51 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
                     phone: currentUser.phone || '',
                     address: currentUser.address || ''
                 });
+                // Generate QR code with signup URL
+                if (currentUser.refer_code) {
+                    generateQRCode(currentUser.refer_code);
+                }
             }
             // Reset editing state
             setIsEditing(false);
             setError('');
         }
     }, [open]);
+
+    const generateQRCode = async (referCode: string) => {
+        try {
+            // Create signup URL with pre-filled refer code
+            const signupUrl = `${window.location.origin}/signup?ref=${referCode}`;
+            const qrDataUrl = await QRCode.toDataURL(signupUrl, {
+                width: 200,
+                margin: 2,
+                color: {
+                    dark: '#000000',
+                    light: '#FFFFFF'
+                }
+            });
+            setQrCodeUrl(qrDataUrl);
+        } catch (err) {
+            console.error('Error generating QR code:', err);
+        }
+    };
+
+    const downloadQRCode = () => {
+        if (!qrCodeUrl || !user?.refer_code) return;
+        
+        const link = document.createElement('a');
+        link.download = `referral-qr-${user.refer_code}.png`;
+        link.href = qrCodeUrl;
+        link.click();
+    };
+
+    const expandQRCode = () => {
+        setShowQrModal(true);
+    };
+
+    const closeQrModal = () => {
+        setShowQrModal(false);
+    };
 
     const handleSave = async () => {
         if (!user?.id) return;
@@ -101,12 +144,12 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
         return `level-badge level-${level.replace(/\s+/g, '-')}`;
     };
 
-    if (!open || !user) return null;
-
     return (
         <>
-            <div className="modal-overlay" onClick={onClose} />
-            <div className="profile-modal-card" role="dialog" aria-modal="true">
+            {open && user && !showQrModal && (
+                <>
+                    <div className="modal-overlay" onClick={onClose} />
+                    <div className="profile-modal-card" role="dialog" aria-modal="true">
                 <div className="modal-header">
                     <span>Your Profile</span>
                     <button className="modal-close" aria-label="Close" onClick={onClose}>✕</button>
@@ -149,21 +192,53 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
                                 </div>
                                 <div className="profile-field refer-code-field">
                                     <label>Refer Code</label>
-                                    <div className={user.refer_code ? "refer-code-value" : "profile-field-value non-editable"}>
-                                        <span>{user.refer_code || 'N/A'}</span>
-                                        {user.refer_code && (
-                                            <button 
-                                                className="copy-btn" 
-                                                title="Copy refer code"
-                                                onClick={() => {
-                                                    navigator.clipboard.writeText(user.refer_code || '');
-                                                }}
-                                            >
-                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-                                                </svg>
-                                            </button>
+                                    <div className="refer-code-container">
+                                        <div className={user.refer_code ? "refer-code-value" : "profile-field-value non-editable"}>
+                                            <span>{user.refer_code || 'N/A'}</span>
+                                            {user.refer_code && (
+                                                <button 
+                                                    className="copy-btn" 
+                                                    title="Copy refer code"
+                                                    onClick={() => {
+                                                        navigator.clipboard.writeText(user.refer_code || '');
+                                                    }}
+                                                >
+                                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                                                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                                                    </svg>
+                                                </button>
+                                            )}
+                                        </div>
+                                        {qrCodeUrl && (
+                                            <div className="qr-code-preview">
+                                                <img src={qrCodeUrl} alt="QR Code" />
+                                                <div className="qr-actions">
+                                                    <button 
+                                                        className="qr-action-btn" 
+                                                        title="Expand QR Code"
+                                                        onClick={expandQRCode}
+                                                    >
+                                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                            <polyline points="15 3 21 3 21 9" />
+                                                            <polyline points="9 21 3 21 3 15" />
+                                                            <line x1="21" y1="3" x2="14" y2="10" />
+                                                            <line x1="3" y1="21" x2="10" y2="14" />
+                                                        </svg>
+                                                    </button>
+                                                    <button 
+                                                        className="qr-action-btn" 
+                                                        title="Download QR Code"
+                                                        onClick={downloadQRCode}
+                                                    >
+                                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                                            <polyline points="7 10 12 15 17 10" />
+                                                            <line x1="12" y1="15" x2="12" y2="3" />
+                                                        </svg>
+                                                    </button>
+                                                </div>
+                                            </div>
                                         )}
                                     </div>
                                 </div>
@@ -248,6 +323,41 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
                     )}
                 </div>
             </div>
+                </>
+            )}
+
+            {/* QR Code Expanded Modal */}
+            {showQrModal && user && (
+                <div className="modal-overlay qr-modal-overlay" onClick={closeQrModal}>
+                    <div className="qr-modal-card" onClick={(e) => e.stopPropagation()}>
+                        <div className="qr-modal-header">
+                            <h3>Referral QR Code</h3>
+                            <button className="close-btn" onClick={closeQrModal}>
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <line x1="18" y1="6" x2="6" y2="18" />
+                                    <line x1="6" y1="6" x2="18" y2="18" />
+                                </svg>
+                            </button>
+                        </div>
+                        <div className="qr-modal-content">
+                            <div className="qr-code-large">
+                                <img src={qrCodeUrl} alt="Referral QR Code" />
+                            </div>
+                            <p className="qr-modal-description">
+                                Share this QR code with others to invite them to sign up with your referral code: <strong>{user?.refer_code}</strong>
+                            </p>
+                            <button className="btn-primary" onClick={downloadQRCode} style={{ width: '100%', marginTop: '16px' }}>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                    <polyline points="7 10 12 15 17 10" />
+                                    <line x1="12" y1="15" x2="12" y2="3" />
+                                </svg>
+                                Download QR Code
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </>
     );
 }
