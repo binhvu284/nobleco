@@ -147,8 +147,8 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
     return (
         <>
             {open && user && !showQrModal && (
-                <>
-                    <div className="modal-overlay" onClick={onClose} />
+        <>
+            <div className="modal-overlay" onClick={onClose} />
                     <div className="profile-modal-card" role="dialog" aria-modal="true">
                 <div className="modal-header">
                     <span>Your Profile</span>
@@ -188,7 +188,7 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
                             <div className="profile-fields">
                                 <div className="profile-field">
                                     <label>Email</label>
-                                    <div className="profile-field-value non-editable">{user.email}</div>
+                                    <div className="profile-field-value email-display">{user.email}</div>
                                 </div>
                                 <div className="profile-field refer-code-field">
                                     <label>Refer Code</label>

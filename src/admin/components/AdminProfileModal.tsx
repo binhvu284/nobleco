@@ -131,7 +131,7 @@ export default function AdminProfileModal({ open, onClose }: { open: boolean; on
                             <div className="profile-fields">
                                 <div className="profile-field">
                                     <label>Email</label>
-                                    <div className="profile-field-value non-editable">{user.email}</div>
+                                    <div className="profile-field-value email-display">{user.email}</div>
                                 </div>
                                 <div className="profile-field">
                                     <label>Role</label>
