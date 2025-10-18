@@ -13,7 +13,11 @@ import UserTraining from './user/pages/UserTraining';
 import UserClient from './user/pages/UserClient';
 import AdminDashboard from './admin/pages/AdminDashboard';
 import AdminUsers from './admin/pages/AdminUsers';
+import AdminAdminUsers from './admin/pages/AdminAdminUsers';
+import AdminClients from './admin/pages/AdminClients';
 import AdminProduct from './admin/pages/AdminProduct';
+import AdminCategory from './admin/pages/AdminCategory';
+import AdminOrders from './admin/pages/AdminOrders';
 import AdminCommission from './admin/pages/AdminCommission';
 import AdminRequest from './admin/pages/AdminRequest';
 // Profile/Setting modals are launched from headers; no route imports
@@ -42,7 +46,11 @@ export default function App() {
             <Route element={<ProtectedRoute requiredRole="admin" />}>
                 <Route path="/admin-dashboard" element={<AdminDashboard />} />
                 <Route path="/admin-users" element={<AdminUsers />} />
+                <Route path="/admin-admin-users" element={<AdminAdminUsers />} />
+                <Route path="/admin-clients" element={<AdminClients />} />
                 <Route path="/admin-product" element={<AdminProduct />} />
+                <Route path="/admin-category" element={<AdminCategory />} />
+                <Route path="/admin-orders" element={<AdminOrders />} />
                 <Route path="/admin-commission" element={<AdminCommission />} />
                 <Route path="/admin-request" element={<AdminRequest />} />
             </Route>
