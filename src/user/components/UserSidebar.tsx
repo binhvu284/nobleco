@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { IconDashboard, IconBox, IconWallet, IconCreditCard, IconBook, IconUsers, IconChevronLeft, IconChevronRight } from '../../admin/components/icons';
+import { IconDashboard, IconBox, IconWallet, IconShoppingBag, IconBook, IconUsers, IconChevronLeft, IconChevronRight, IconAddressBook } from '../../admin/components/icons';
 
 export default function UserSidebar({ collapsed, onToggle, onNavigate, onMobileClose }: { collapsed: boolean; onToggle: () => void; onNavigate?: () => void; onMobileClose?: () => void }) {
     const handleToggleClick = () => {
@@ -34,6 +34,10 @@ export default function UserSidebar({ collapsed, onToggle, onNavigate, onMobileC
                     <IconUsers />
                     {!collapsed && <span>My member</span>}
                 </NavLink>
+                <NavLink to="/client" onClick={onNavigate} className={({ isActive }) => (isActive ? 'active' : '')}>
+                    <IconAddressBook />
+                    {!collapsed && <span>Clients</span>}
+                </NavLink>
                 <NavLink to="/product" onClick={onNavigate} className={({ isActive }) => (isActive ? 'active' : '')}>
                     <IconBox />
                     {!collapsed && <span>Product</span>}
@@ -42,9 +46,9 @@ export default function UserSidebar({ collapsed, onToggle, onNavigate, onMobileC
                     <IconWallet />
                     {!collapsed && <span>Wallet</span>}
                 </NavLink>
-                <NavLink to="/payment" onClick={onNavigate} className={({ isActive }) => (isActive ? 'active' : '')}>
-                    <IconCreditCard />
-                    {!collapsed && <span>Payment</span>}
+                <NavLink to="/orders" onClick={onNavigate} className={({ isActive }) => (isActive ? 'active' : '')}>
+                    <IconShoppingBag />
+                    {!collapsed && <span>Orders</span>}
                 </NavLink>
                 <NavLink to="/training" onClick={onNavigate} className={({ isActive }) => (isActive ? 'active' : '')}>
                     <IconBook />
