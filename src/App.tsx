@@ -8,8 +8,9 @@ import UserDashboard from './user/pages/UserDashboard';
 import UserMember from './user/pages/UserMember';
 import UserProduct from './user/pages/UserProduct';
 import UserWallet from './user/pages/UserWallet';
-import UserPayment from './user/pages/UserPayment';
+import UserOrders from './user/pages/UserOrders';
 import UserTraining from './user/pages/UserTraining';
+import UserClient from './user/pages/UserClient';
 import AdminDashboard from './admin/pages/AdminDashboard';
 import AdminUsers from './admin/pages/AdminUsers';
 import AdminProduct from './admin/pages/AdminProduct';
@@ -32,8 +33,9 @@ export default function App() {
                 <Route path="/member" element={<UserMember />} />
                 <Route path="/product" element={<UserProduct />} />
                 <Route path="/wallet" element={<UserWallet />} />
-                <Route path="/payment" element={<UserPayment />} />
+                <Route path="/orders" element={<UserOrders />} />
                 <Route path="/training" element={<UserTraining />} />
+                <Route path="/client" element={<UserClient />} />
             </Route>
             
             {/* Protected Admin routes - require 'admin' role */}
