@@ -128,3 +128,140 @@ export async function deleteUser(id) {
   if (error) throw new Error(error.message);
   return true;
 }
+
+export async function getUserHierarchy(userId) {
+  const supabase = getSupabase();
+  
+  // Get user's refer_code to find their referrer
+  const { data: user, error: userError } = await supabase
+    .from('users')
+    .select('refer_code, referred_by')
+    .eq('id', userId)
+    .single();
+  
+  if (userError) throw new Error(userError.message);
+  
+  let superior = null;
+  let inferiors = [];
+  
+  // Find superior (the person who referred this user)
+  if (user.referred_by) {
+    const { data: superiorData, error: superiorError } = await supabase
+      .from('users')
+      .select('id, name, email, level, refer_code, created_at')
+      .eq('refer_code', user.referred_by)
+      .single();
+    
+    if (!superiorError && superiorData) {
+      superior = normalize(superiorData);
+    }
+  }
+  
+  // Find direct inferiors (people referred by this user)
+  const { data: inferiorsData, error: inferiorsError } = await supabase
+    .from('users')
+    .select('id, name, email, level, refer_code, created_at, referred_by')
+    .eq('referred_by', user.refer_code);
+  
+  if (!inferiorsError && inferiorsData) {
+    inferiors = inferiorsData.map(inferior => {
+      const normalized = normalize(inferior);
+      // Count how many people this inferior has referred
+      return {
+        ...normalized,
+        inferiors_count: 0 // We'll calculate this separately
+      };
+    });
+    
+    // Get inferiors count for each inferior
+    for (let i = 0; i < inferiors.length; i++) {
+      const { count } = await supabase
+        .from('users')
+        .select('*', { count: 'exact', head: true })
+        .eq('referred_by', inferiors[i].refer_code);
+      
+      inferiors[i].inferiors_count = count || 0;
+    }
+  }
+  
+  return { superior, inferiors };
+}
+
+export async function getIndirectInferiors(userId) {
+  const supabase = getSupabase();
+  
+  // Get user's refer_code
+  const { data: user, error: userError } = await supabase
+    .from('users')
+    .select('refer_code')
+    .eq('id', userId)
+    .single();
+  
+  if (userError) throw new Error(userError.message);
+  
+  // Get direct inferiors first
+  const { data: directInferiors, error: directError } = await supabase
+    .from('users')
+    .select('id, name, email, level, refer_code, created_at')
+    .eq('referred_by', user.refer_code);
+  
+  if (directError) throw new Error(directError.message);
+  
+  let indirectInferiors = [];
+  
+  // For each direct inferior, get their inferiors (indirect inferiors)
+  for (const directInferior of directInferiors || []) {
+    const { data: indirectData, error: indirectError } = await supabase
+      .from('users')
+      .select('id, name, email, level, refer_code, created_at')
+      .eq('referred_by', directInferior.refer_code);
+    
+    if (!indirectError && indirectData) {
+      indirectInferiors = indirectInferiors.concat(indirectData.map(normalize));
+    }
+  }
+  
+  return indirectInferiors;
+}
+
+export async function calculateCommissions(userId) {
+  const supabase = getSupabase();
+  
+  // Get user's refer_code
+  const { data: user, error: userError } = await supabase
+    .from('users')
+    .select('refer_code')
+    .eq('id', userId)
+    .single();
+  
+  if (userError) throw new Error(userError.message);
+  
+  // Calculate direct commission (from direct inferiors)
+  const { data: directInferiors, error: directError } = await supabase
+    .from('users')
+    .select('commission')
+    .eq('referred_by', user.refer_code);
+  
+  if (directError) throw new Error(directError.message);
+  
+  const directCommission = (directInferiors || []).reduce((sum, inferior) => sum + (inferior.commission || 0), 0);
+  
+  // Calculate indirect commission (from indirect inferiors)
+  let indirectCommission = 0;
+  for (const directInferior of directInferiors || []) {
+    const { data: indirectData, error: indirectError } = await supabase
+      .from('users')
+      .select('commission')
+      .eq('referred_by', directInferior.refer_code);
+    
+    if (!indirectError && indirectData) {
+      indirectCommission += (indirectData || []).reduce((sum, inferior) => sum + (inferior.commission || 0), 0);
+    }
+  }
+  
+  return {
+    direct_commission: directCommission,
+    indirect_commission: indirectCommission,
+    total_commission: directCommission + indirectCommission
+  };
+}
