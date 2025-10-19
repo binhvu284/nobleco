@@ -89,7 +89,7 @@ export default function Login() {
                             type={showPassword ? 'text' : 'password'}
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
-                            placeholder="••••••••"
+                            placeholder="your password"
                             required
                             style={{ paddingRight: '40px' }}
                         />

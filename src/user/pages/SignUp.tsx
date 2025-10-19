@@ -81,7 +81,17 @@ export default function SignUp() {
                         <input 
                             type="text"
                             value={name} 
-                            onChange={(e) => setName(e.target.value)} 
+                            onChange={(e) => {
+                                const value = e.target.value;
+                                // Auto-uppercase the first letter of each word (including Vietnamese characters)
+                                // Split by spaces and capitalize first letter of each word
+                                const words = value.split(' ');
+                                const formattedWords = words.map(word => {
+                                    if (word.length === 0) return word;
+                                    return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+                                });
+                                setName(formattedWords.join(' '));
+                            }} 
                             placeholder="Your full name" 
                             required 
                         />
@@ -102,7 +112,7 @@ export default function SignUp() {
                             type={showPassword ? 'text' : 'password'}
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
-                            placeholder="••••••••"
+                            placeholder="your password"
                             required
                             style={{ paddingRight: '40px' }}
                         />
@@ -131,7 +141,7 @@ export default function SignUp() {
                             type={showConfirm ? 'text' : 'password'}
                             value={confirm}
                             onChange={(e) => setConfirm(e.target.value)}
-                            placeholder="••••••••"
+                            placeholder="your password"
                             required
                             style={{ paddingRight: '40px' }}
                         />
