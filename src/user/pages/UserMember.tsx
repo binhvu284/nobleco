@@ -26,6 +26,7 @@ export default function UserMember() {
     const [showRemoveModal, setShowRemoveModal] = useState(false);
     const [selectedInferior, setSelectedInferior] = useState<MemberData | null>(null);
     const [loadingInferiors, setLoadingInferiors] = useState(false);
+    const [removingInferior, setRemovingInferior] = useState(false);
 
     useEffect(() => {
         loadMemberData();
@@ -60,7 +61,7 @@ export default function UserMember() {
         };
     }, []);
 
-    const loadMemberData = async () => {
+    const loadMemberData = async (includeDetails = false) => {
         try {
             setLoading(true);
             const currentUser = getCurrentUser();
@@ -70,8 +71,17 @@ export default function UserMember() {
                 return;
             }
 
-            // Fetch superior and inferiors data
-            const response = await fetch(`/api/users/hierarchy?userId=${currentUser.id}`);
+            // Fetch superior and inferiors data (only include details if needed)
+            const url = includeDetails 
+                ? `/api/users/hierarchy?userId=${currentUser.id}&includeDetails=true`
+                : `/api/users/hierarchy?userId=${currentUser.id}`;
+                
+            const response = await fetch(url, {
+                // Add cache headers for better performance
+                headers: {
+                    'Cache-Control': 'max-age=300', // Cache for 5 minutes
+                }
+            });
             
             if (!response.ok) {
                 throw new Error('Failed to fetch member data');
@@ -131,7 +141,11 @@ export default function UserMember() {
         
         // Fetch indirect inferiors and commission data for this specific inferior
         try {
-            const response = await fetch(`/api/users/hierarchy?userId=${inferior.id}`);
+            const response = await fetch(`/api/users/hierarchy?userId=${inferior.id}&includeDetails=true`, {
+                headers: {
+                    'Cache-Control': 'max-age=300', // Cache for 5 minutes
+                }
+            });
             if (response.ok) {
                 const data = await response.json();
                 const updatedInferior = {
@@ -158,7 +172,12 @@ export default function UserMember() {
     const handleRemoveConfirm = async () => {
         if (!selectedInferior) return;
         
+        setRemovingInferior(true);
+        setError(''); // Clear any previous errors
+        
         try {
+            console.log('Attempting to remove inferior with ID:', selectedInferior.id);
+            
             // API call to remove inferior
             const response = await fetch(`/api/users/remove-inferior`, {
                 method: 'POST',
@@ -170,17 +189,42 @@ export default function UserMember() {
                 })
             });
 
+            console.log('Response status:', response.status);
+            console.log('Response headers:', response.headers);
+            
             if (response.ok) {
+                const result = await response.json();
+                console.log('Success response:', result);
+                
                 // Remove from local state
                 setInferiors(prev => prev.filter(inf => inf.id !== selectedInferior.id));
                 setShowRemoveModal(false);
                 setSelectedInferior(null);
+                
+                // Show success message (you could add a toast notification here)
+                console.log('Inferior removed successfully:', result.message);
             } else {
-                throw new Error('Failed to remove inferior');
+                console.log('Error response status:', response.status);
+                const responseText = await response.text();
+                console.log('Error response text:', responseText);
+                
+                try {
+                    const errorData = JSON.parse(responseText);
+                    throw new Error(errorData.error || 'Failed to remove inferior');
+                } catch (parseError) {
+                    // If response is HTML (like a 404 page), provide a more user-friendly error
+                    if (responseText.includes('<!DOCTYPE') || responseText.includes('<html')) {
+                        throw new Error('API endpoint not found. Please try again or contact support.');
+                    }
+                    throw new Error(`Server error: ${response.status} - ${responseText.substring(0, 100)}...`);
+                }
             }
         } catch (err) {
             console.error('Error removing inferior:', err);
-            // Handle error - could show a toast notification
+            setError(err instanceof Error ? err.message : 'Failed to remove inferior');
+            // Keep the modal open so user can try again
+        } finally {
+            setRemovingInferior(false);
         }
     };
 
@@ -189,6 +233,8 @@ export default function UserMember() {
         setShowRemoveModal(false);
         setSelectedInferior(null);
         setLoadingInferiors(false);
+        setRemovingInferior(false);
+        setError(''); // Clear any errors when closing modal
     };
 
     if (loading) {
@@ -569,14 +615,40 @@ export default function UserMember() {
                                         <li>Any future sales from their network</li>
                                     </ul>
                                 </div>
+                                
+                                {error && (
+                                    <div className="alert-error">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <circle cx="12" cy="12" r="10"/>
+                                            <line x1="15" y1="9" x2="9" y2="15"/>
+                                            <line x1="9" y1="9" x2="15" y2="15"/>
+                                        </svg>
+                                        <span>{error}</span>
+                                    </div>
+                                )}
                             </div>
                         </div>
                         <div className="modal-footer">
-                            <button className="btn-secondary" onClick={handleModalClose}>
+                            <button 
+                                className="btn-secondary" 
+                                onClick={handleModalClose}
+                                disabled={removingInferior}
+                            >
                                 Cancel
                             </button>
-                            <button className="btn-danger" onClick={handleRemoveConfirm}>
-                                Remove Inferior
+                            <button 
+                                className="btn-danger" 
+                                onClick={handleRemoveConfirm}
+                                disabled={removingInferior}
+                            >
+                                {removingInferior ? (
+                                    <>
+                                        <div className="spinner-ring" style={{ width: '16px', height: '16px', marginRight: '8px' }}></div>
+                                        Removing...
+                                    </>
+                                ) : (
+                                    'Remove Inferior'
+                                )}
                             </button>
                         </div>
                     </div>

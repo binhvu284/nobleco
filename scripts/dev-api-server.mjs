@@ -4,6 +4,7 @@ import usersHandler from '../api/users.js';
 import userByIdHandler from '../api/users/[id].js';
 import profileHandler from '../api/users/profile.js';
 import hierarchyHandler from '../api/users/hierarchy.js';
+import removeInferiorHandler from '../api/users/remove-inferior.js';
 import loginHandler from '../api/auth/login.js';
 import signupHandler from '../api/auth/signup.js';
 import healthHandler from '../api/health.js';
@@ -26,6 +27,7 @@ function toRoute(handler) {
 app.all('/api/users', toRoute(usersHandler));
 app.all('/api/users/profile', toRoute(profileHandler));
 app.all('/api/users/hierarchy', toRoute(hierarchyHandler));
+app.all('/api/users/remove-inferior', toRoute(removeInferiorHandler));
 app.get('/api/users/:id', toRoute(userByIdHandler));
 app.all('/api/health', toRoute(healthHandler));
 app.all('/api/diagnostics', toRoute(diagnosticsHandler));
