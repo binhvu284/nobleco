@@ -25,6 +25,7 @@ export default function UserMember() {
     const [showDetailModal, setShowDetailModal] = useState(false);
     const [showRemoveModal, setShowRemoveModal] = useState(false);
     const [selectedInferior, setSelectedInferior] = useState<MemberData | null>(null);
+    const [loadingInferiors, setLoadingInferiors] = useState(false);
 
     useEffect(() => {
         loadMemberData();
@@ -126,6 +127,7 @@ export default function UserMember() {
         setSelectedInferior(inferior);
         setShowDetailModal(true);
         setActiveDropdown(null);
+        setLoadingInferiors(true);
         
         // Fetch indirect inferiors and commission data for this specific inferior
         try {
@@ -142,6 +144,8 @@ export default function UserMember() {
             }
         } catch (err) {
             console.error('Error fetching inferior details:', err);
+        } finally {
+            setLoadingInferiors(false);
         }
     };
 
@@ -184,6 +188,7 @@ export default function UserMember() {
         setShowDetailModal(false);
         setShowRemoveModal(false);
         setSelectedInferior(null);
+        setLoadingInferiors(false);
     };
 
     if (loading) {
@@ -473,7 +478,16 @@ export default function UserMember() {
 
                             <div className="detail-inferiors">
                                 <h4>Indirect Inferiors ({selectedInferior.inferiors_list?.length || 0})</h4>
-                                {selectedInferior.inferiors_list && selectedInferior.inferiors_list.length > 0 ? (
+                                {loadingInferiors ? (
+                                    <div className="inferiors-loading">
+                                        <div className="loading-spinner">
+                                            <div className="spinner-ring"></div>
+                                            <div className="spinner-ring"></div>
+                                            <div className="spinner-ring"></div>
+                                        </div>
+                                        <p className="loading-text">Loading indirect inferiors...</p>
+                                    </div>
+                                ) : selectedInferior.inferiors_list && selectedInferior.inferiors_list.length > 0 ? (
                                     <div className="inferiors-mini-list">
                                         {selectedInferior.inferiors_list.map((subInferior) => (
                                             <div key={subInferior.id} className="mini-member-card">
@@ -554,7 +568,6 @@ export default function UserMember() {
                                         <li>All sales from their inferiors (indirect commission)</li>
                                         <li>Any future sales from their network</li>
                                     </ul>
-                                    <p className="alert-total">Total potential loss: <strong>${(selectedInferior.direct_commission || 0) + (selectedInferior.indirect_commission || 0)}</strong></p>
                                 </div>
                             </div>
                         </div>

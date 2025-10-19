@@ -8,6 +8,8 @@
     --primary: #2563eb;
     --primary-700: #1d4ed8;
     --border: #e5e7eb;
+    --danger: #ef4444;
+    --danger-dark: #dc2626;
 }
 
 /* Default: hide mobile-only controls on desktop */
@@ -2716,8 +2718,8 @@ input:focus {
     padding: 12px 24px;
     border-radius: 8px;
     border: 1px solid #ef4444;
-    background: transparent;
-    color: #ef4444;
+    background: #ef4444;
+    color: white;
     font-size: 14px;
     font-weight: 600;
     cursor: pointer;
@@ -5087,9 +5089,111 @@ input:focus {
     display: none;
 }
 
+/* Loading state for indirect inferiors */
+.inferiors-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    text-align: center;
+}
+
+.inferiors-loading .loading-spinner {
+    margin-bottom: 16px;
+}
+
+.inferiors-loading .loading-text {
+    font-size: 14px;
+    color: var(--muted);
+    margin: 0;
+}
+
 /* Alert Modal Styles */
 .alert-modal {
     max-width: 450px;
+}
+
+/* Mobile Responsive for Alert Modal */
+@media (max-width: 768px) {
+    .alert-modal {
+        max-width: 95vw;
+        max-height: 90vh;
+        margin: 0;
+    }
+    
+    .alert-modal .modal-header,
+    .alert-modal .modal-body,
+    .alert-modal .modal-footer {
+        padding: 12px;
+    }
+    
+    .alert-modal .modal-footer {
+        flex-direction: row !important;
+        gap: 8px;
+        padding: 12px;
+    }
+    
+    .alert-modal .btn-secondary,
+    .alert-modal .btn-danger {
+        flex: 1;
+        padding: 10px 16px;
+        font-size: 14px;
+    }
+    
+    .alert-icon {
+        margin-bottom: 12px;
+    }
+    
+    .alert-icon svg {
+        width: 36px;
+        height: 36px;
+    }
+    
+    .alert-content h3 {
+        font-size: 16px;
+        margin-bottom: 12px;
+    }
+    
+    .alert-member {
+        padding: 12px;
+        margin-bottom: 12px;
+        gap: 10px;
+    }
+    
+    .alert-avatar {
+        width: 32px;
+        height: 32px;
+        font-size: 14px;
+    }
+    
+    .alert-name {
+        font-size: 13px;
+    }
+    
+    .alert-email {
+        font-size: 11px;
+    }
+    
+    .alert-warning {
+        padding: 12px;
+        margin-bottom: 0;
+    }
+    
+    .alert-warning p {
+        font-size: 13px;
+        margin-bottom: 8px;
+    }
+    
+    .alert-warning ul {
+        margin: 8px 0;
+        padding-left: 16px;
+    }
+    
+    .alert-warning li {
+        font-size: 12px;
+        margin-bottom: 3px;
+    }
 }
 
 .alert-icon {
@@ -5134,6 +5238,7 @@ input:focus {
     display: flex;
     flex-direction: column;
     gap: 2px;
+    align-items: flex-start;
 }
 
 .alert-name {
@@ -5145,6 +5250,8 @@ input:focus {
 .alert-email {
     font-size: 12px;
     color: var(--muted);
+    text-align: left;
+    width: fit-content;
 }
 
 .alert-warning {
@@ -5172,12 +5279,6 @@ input:focus {
     margin-bottom: 4px;
 }
 
-.alert-total {
-    margin: 12px 0 0 0 !important;
-    font-size: 15px !important;
-    font-weight: 600 !important;
-    color: #b45309 !important;
-}
 
 /* Button Styles */
 .btn-secondary {
