@@ -27,6 +27,7 @@ export default function UserMember() {
     const [selectedInferior, setSelectedInferior] = useState<MemberData | null>(null);
     const [loadingInferiors, setLoadingInferiors] = useState(false);
     const [removingInferior, setRemovingInferior] = useState(false);
+    const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
 
     useEffect(() => {
         loadMemberData();
@@ -34,8 +35,12 @@ export default function UserMember() {
         // Refresh data when window gains focus (user comes back to the page)
         const handleFocus = () => {
             if (!loading) {
-                setRefreshing(true);
-                loadMemberData();
+                // Only refresh if it's been more than 30 seconds since last refresh
+                const now = new Date();
+                if (!lastRefresh || (now.getTime() - lastRefresh.getTime()) > 30000) {
+                    setRefreshing(true);
+                    loadMemberData();
+                }
             }
         };
         
@@ -77,9 +82,11 @@ export default function UserMember() {
                 : `/api/users/hierarchy?userId=${currentUser.id}`;
                 
             const response = await fetch(url, {
-                // Add cache headers for better performance
+                // Add cache headers for better performance (reduced for development)
                 headers: {
-                    'Cache-Control': 'max-age=300', // Cache for 5 minutes
+                    'Cache-Control': 'max-age=30', // Cache for 30 seconds
+                    // Add timestamp to bypass cache in development
+                    ...(import.meta.env.DEV && { 'X-No-Cache': Date.now().toString() })
                 }
             });
             
@@ -96,6 +103,7 @@ export default function UserMember() {
         } finally {
             setLoading(false);
             setRefreshing(false);
+            setLastRefresh(new Date());
         }
     };
 
@@ -143,7 +151,9 @@ export default function UserMember() {
         try {
             const response = await fetch(`/api/users/hierarchy?userId=${inferior.id}&includeDetails=true`, {
                 headers: {
-                    'Cache-Control': 'max-age=300', // Cache for 5 minutes
+                    'Cache-Control': 'max-age=30', // Cache for 30 seconds
+                    // Add timestamp to bypass cache in development
+                    ...(import.meta.env.DEV && { 'X-No-Cache': Date.now().toString() })
                 }
             });
             if (response.ok) {

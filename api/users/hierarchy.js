@@ -5,6 +5,9 @@ export default async function handler(req, res) {
     if (req.method === 'GET') {
       const { userId, includeDetails } = req.query;
       
+      // In development, check for no-cache header
+      const isDevelopment = process.env.NODE_ENV === 'development' || req.headers['x-no-cache'];
+      
       if (!userId) {
         return res.status(400).json({ error: 'userId is required' });
       }
@@ -30,16 +33,24 @@ export default async function handler(req, res) {
             })
           );
 
-          // Set cache headers for better performance
-          res.setHeader('Cache-Control', 'public, max-age=300, s-maxage=300'); // 5 minutes cache
+          // Set cache headers for better performance (reduced for development)
+          if (isDevelopment) {
+            res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate'); // No cache in development
+          } else {
+            res.setHeader('Cache-Control', 'public, max-age=30, s-maxage=30'); // 30 seconds cache in production
+          }
           return res.status(200).json({
             superior: hierarchyData.superior,
             inferiors: inferiorsWithIndirect
           });
         } else {
           // Return basic hierarchy data without detailed calculations
-          // Set cache headers for better performance
-          res.setHeader('Cache-Control', 'public, max-age=300, s-maxage=300'); // 5 minutes cache
+          // Set cache headers for better performance (reduced for development)
+          if (isDevelopment) {
+            res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate'); // No cache in development
+          } else {
+            res.setHeader('Cache-Control', 'public, max-age=30, s-maxage=30'); // 30 seconds cache in production
+          }
           return res.status(200).json({
             superior: hierarchyData.superior,
             inferiors: hierarchyData.inferiors
