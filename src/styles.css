@@ -4700,7 +4700,7 @@ input:focus {
     }
 
     .member-section .section-subtitle {
-        margin-left: 0;
+        margin-right: 10px;
         font-size: 10px;
         line-height: 1.3;
         margin-top: 2px;
@@ -5557,11 +5557,38 @@ input:focus {
     flex: 1;
 }
 
+.balance-amount-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+
 .balance-label {
     font-size: 14px;
     opacity: 0.9;
-    margin-bottom: 8px;
+    margin: 0 0 8px 0;
     font-weight: 500;
+}
+
+.balance-toggle-btn {
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    color: rgba(255, 255, 255, 0.9);
+    cursor: pointer;
+    padding: 6px;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(10px);
+}
+
+.balance-toggle-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+    color: white;
+    transform: scale(1.05);
 }
 
 .balance-amount {
@@ -5973,6 +6000,20 @@ input:focus {
         padding: 24px;
         flex-direction: column;
         align-items: stretch;
+    }
+
+    .balance-amount-row {
+        gap: 8px;
+        margin-bottom: 6px;
+    }
+
+    .balance-toggle-btn {
+        padding: 8px;
+    }
+
+    .balance-toggle-btn svg {
+        width: 18px;
+        height: 18px;
     }
 
     .balance-header {

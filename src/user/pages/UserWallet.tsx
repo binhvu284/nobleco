@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import UserLayout from '../components/UserLayout';
+import { getCurrentUser } from '../../auth';
 
 type Transaction = {
     id: number;
@@ -10,70 +11,84 @@ type Transaction = {
     status?: 'completed' | 'pending' | 'rejected';
 };
 
+type WalletData = {
+    user: {
+        id: number;
+        name: string;
+        email: string;
+        balance: number;
+        level: string;
+        commission: number;
+        joinedDate: string;
+    };
+    commissionRates: {
+        self: number;
+        level1: number;
+        level2: number;
+    };
+    transactions: Transaction[];
+};
+
 export default function UserWallet() {
     const [showWithdrawModal, setShowWithdrawModal] = useState(false);
     const [withdrawAmount, setWithdrawAmount] = useState('');
     const [bankName, setBankName] = useState('');
     const [bankNumber, setBankNumber] = useState('');
     const [showInfoModal, setShowInfoModal] = useState<'points' | 'commission' | null>(null);
+    const [walletData, setWalletData] = useState<WalletData | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
+    const [balanceVisible, setBalanceVisible] = useState(false);
 
-    // Sample data - will be replaced with real data later
-    const currentBalance = 1250.00;
-    const userLevel = 'Unit Manager';
-    const selfCommissionRate = 5;
-    const level1CommissionRate = 2;
-    const level2CommissionRate = 1;
+    useEffect(() => {
+        loadWalletData();
+    }, []);
 
-    const transactions: Transaction[] = [
-        {
-            id: 1,
-            type: 'commission',
-            amount: 50.00,
-            description: 'Commission from order #12345 (Direct)',
-            date: '2025-10-18 14:30',
-            status: 'completed'
-        },
-        {
-            id: 2,
-            type: 'commission',
-            amount: 20.00,
-            description: 'Commission from order #12344 (Level 1)',
-            date: '2025-10-18 12:15',
-            status: 'completed'
-        },
-        {
-            id: 3,
-            type: 'withdrawal',
-            amount: -500.00,
-            description: 'Withdrawal to bank account',
-            date: '2025-10-17 09:00',
-            status: 'completed'
-        },
-        {
-            id: 4,
-            type: 'commission',
-            amount: 10.00,
-            description: 'Commission from order #12343 (Level 2)',
-            date: '2025-10-16 16:45',
-            status: 'completed'
-        },
-        {
-            id: 5,
-            type: 'bonus',
-            amount: 100.00,
-            description: 'Monthly performance bonus',
-            date: '2025-10-15 10:00',
-            status: 'completed'
-        },
-        {
-            id: 6,
-            type: 'withdrawal',
-            amount: -300.00,
-            description: 'Withdrawal to bank account',
-            date: '2025-10-14 11:30',
-            status: 'pending'
+    const loadWalletData = async () => {
+        try {
+            setLoading(true);
+            const currentUser = getCurrentUser();
+            
+            if (!currentUser?.id) {
+                setError('User not found');
+                return;
+            }
+
+            const response = await fetch(`/api/users/wallet?userId=${currentUser.id}`, {
+                headers: {
+                    'Cache-Control': 'max-age=60', // Cache for 1 minute
+                }
+            });
+            
+            if (!response.ok) {
+                throw new Error('Failed to fetch wallet data');
+            }
+
+            const data = await response.json();
+            setWalletData(data);
+        } catch (err) {
+            console.error('Error loading wallet data:', err);
+            setError('Failed to load wallet data');
+        } finally {
+            setLoading(false);
         }
-    ];
+    };
+
+    // Use real data if available, otherwise fallback to defaults
+    const currentBalance = walletData?.user.balance || 0;
+    const userLevel = walletData?.user.level || 'Guest';
+    const selfCommissionRate = walletData?.commissionRates.self || 0;
+    const level1CommissionRate = walletData?.commissionRates.level1 || 0;
+    const level2CommissionRate = walletData?.commissionRates.level2 || 0;
+    const transactions = walletData?.transactions || [];
+
+    const getLevelDisplay = (level: string) => {
+        if (level === 'unit manager') return 'Unit Manager';
+        if (level === 'brand manager') return 'Brand Manager';
+        if (level === 'member') return 'Member';
+        if (level === 'guest') return 'Guest';
+        return level.charAt(0).toUpperCase() + level.slice(1);
+    };
 
     const handleWithdrawSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -113,6 +128,35 @@ export default function UserWallet() {
         }
     };
 
+    if (loading) {
+        return (
+            <UserLayout title="Wallet">
+                <div className="wallet-page loading">
+                    <div className="loading-overlay">
+                        <div className="loading-spinner">
+                            <div className="spinner-ring"></div>
+                            <div className="spinner-ring"></div>
+                            <div className="spinner-ring"></div>
+                        </div>
+                        <p className="loading-text">Loading wallet data...</p>
+                    </div>
+                </div>
+            </UserLayout>
+        );
+    }
+
+    if (error) {
+        return (
+            <UserLayout title="Wallet">
+                <div className="wallet-page">
+                    <div style={{ textAlign: 'center', padding: '40px', color: '#b42318' }}>
+                        {error}
+                    </div>
+                </div>
+            </UserLayout>
+        );
+    }
+
     return (
         <UserLayout title="Wallet">
             <div className="wallet-page">
@@ -127,7 +171,28 @@ export default function UserWallet() {
                         </div>
                         <div className="balance-info">
                             <p className="balance-label">Available Balance</p>
-                            <h1 className="balance-amount">${currentBalance.toFixed(2)}</h1>
+                            <div className="balance-amount-row">
+                                <h1 className="balance-amount">
+                                    {balanceVisible ? `$${currentBalance.toFixed(2)}` : '••••••'}
+                                </h1>
+                                <button 
+                                    className="balance-toggle-btn"
+                                    onClick={() => setBalanceVisible(!balanceVisible)}
+                                    title={balanceVisible ? "Hide balance" : "Show balance"}
+                                >
+                                    {balanceVisible ? (
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+                                            <line x1="1" y1="1" x2="23" y2="23"/>
+                                        </svg>
+                                    ) : (
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                            <circle cx="12" cy="12" r="3"/>
+                                        </svg>
+                                    )}
+                                </button>
+                            </div>
                             <p className="balance-description">
                                 Points you can withdraw to real money
                                 <button 
@@ -169,7 +234,7 @@ export default function UserWallet() {
                                 </svg>
                             </button>
                         </h2>
-                        <span className="user-level-badge">{userLevel}</span>
+                        <span className="user-level-badge">{getLevelDisplay(userLevel)}</span>
                     </div>
                     <div className="commission-rates">
                         <div className="rate-item">
