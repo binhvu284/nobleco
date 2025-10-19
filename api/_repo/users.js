@@ -157,31 +157,39 @@ export async function getUserHierarchy(userId) {
     }
   }
   
-  // Find direct inferiors (people referred by this user)
+  // Find direct inferiors (people referred by this user) with optimized query
   const { data: inferiorsData, error: inferiorsError } = await supabase
     .from('users')
-    .select('id, name, email, level, refer_code, created_at, referred_by')
+    .select('id, name, email, level, refer_code, created_at, referred_by, commission')
     .eq('referred_by', user.refer_code);
   
   if (!inferiorsError && inferiorsData) {
+    // Get all refer_codes of direct inferiors for batch counting
+    const referCodes = inferiorsData.map(inf => inf.refer_code).filter(Boolean);
+    
+    // Batch query to get inferiors count for all direct inferiors at once
+    let inferiorsCountMap = {};
+    if (referCodes.length > 0) {
+      const { data: countData, error: countError } = await supabase
+        .from('users')
+        .select('referred_by')
+        .in('referred_by', referCodes);
+      
+      if (!countError && countData) {
+        // Count inferiors for each refer_code
+        countData.forEach(item => {
+          inferiorsCountMap[item.referred_by] = (inferiorsCountMap[item.referred_by] || 0) + 1;
+        });
+      }
+    }
+    
     inferiors = inferiorsData.map(inferior => {
       const normalized = normalize(inferior);
-      // Count how many people this inferior has referred
       return {
         ...normalized,
-        inferiors_count: 0 // We'll calculate this separately
+        inferiors_count: inferiorsCountMap[inferior.refer_code] || 0
       };
     });
-    
-    // Get inferiors count for each inferior
-    for (let i = 0; i < inferiors.length; i++) {
-      const { count } = await supabase
-        .from('users')
-        .select('*', { count: 'exact', head: true })
-        .eq('referred_by', inferiors[i].refer_code);
-      
-      inferiors[i].inferiors_count = count || 0;
-    }
   }
   
   return { superior, inferiors };
@@ -264,4 +272,20 @@ export async function calculateCommissions(userId) {
     indirect_commission: indirectCommission,
     total_commission: directCommission + indirectCommission
   };
+}
+
+export async function removeInferior(inferiorId) {
+  const supabase = getSupabase();
+  
+  // Update the inferior's referred_by field to null to remove the relationship
+  const { data, error } = await supabase
+    .from('users')
+    .update({ referred_by: null })
+    .eq('id', inferiorId)
+    .select('id, name, email')
+    .single();
+  
+  if (error) throw new Error(error.message);
+  
+  return data;
 }

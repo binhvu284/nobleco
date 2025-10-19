@@ -5310,9 +5310,33 @@ input:focus {
     transition: all 0.2s ease;
 }
 
-.btn-danger:hover {
+.btn-danger:hover:not(:disabled) {
     background: #b91c1c;
     border-color: #b91c1c;
+}
+
+.btn-danger:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background: #9ca3af;
+    border-color: #9ca3af;
+}
+
+.alert-error {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: 8px;
+    margin-top: 12px;
+    color: #dc2626;
+    font-size: 14px;
+}
+
+.alert-error svg {
+    flex-shrink: 0;
 }
 
 /* Animations */

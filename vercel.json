@@ -1,11 +1,18 @@
 {
-  "rewrites": [
-    { "source": "/((?!api).*)", "destination": "/index.html" }
-  ],
   "functions": {
-    "api/**/*.js": {
-      "memory": 1024,
+    "api/users/hierarchy.js": {
       "maxDuration": 10
     }
-  }
+  },
+  "headers": [
+    {
+      "source": "/api/users/hierarchy",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=300, s-maxage=300"
+        }
+      ]
+    }
+  ]
 }
