@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import AdminLayout from '../components/AdminLayout';
-import { IconCrown, IconShield, IconTrash2, IconSettings, IconMoreHorizontal, IconPlay, IconPause } from '../components/icons';
+import { IconCrown, IconShield, IconTrash2, IconSettings, IconMoreHorizontal, IconPlay, IconPause, IconLoader } from '../components/icons';
 
 interface AdminUser {
     id: number;
@@ -29,6 +29,7 @@ export default function AdminAdminUsers() {
     const [userToDelete, setUserToDelete] = useState<AdminUser | null>(null);
     const [userToEdit, setUserToEdit] = useState<AdminUser | null>(null);
     const [activeDropdown, setActiveDropdown] = useState<number | null>(null);
+    const [statusUpdating, setStatusUpdating] = useState<number | null>(null);
 
     const fetchAdminUsers = async () => {
         try {
@@ -99,6 +100,7 @@ export default function AdminAdminUsers() {
         const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
         
         try {
+            setStatusUpdating(userId);
             const response = await fetch('/api/users', {
                 method: 'PUT',
                 headers: {
@@ -132,6 +134,8 @@ export default function AdminAdminUsers() {
             console.error('Error updating status:', error);
             // You could add a toast notification here
             alert(`Failed to update status: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        } finally {
+            setStatusUpdating(null);
         }
     };
 
@@ -351,13 +355,18 @@ export default function AdminAdminUsers() {
                                                                 </button>
                                                                 <button 
                                                                     className="dropdown-item"
+                                                                    disabled={statusUpdating === user.id}
                                                                     onClick={() => {
                                                                         handleStatusToggle(user.id, user.status);
                                                                         handleDropdownClose();
                                                                     }}
                                                                 >
-                                                                    {user.status === 'active' ? <IconPause /> : <IconPlay />}
-                                                                    {user.status === 'active' ? 'Deactivate' : 'Activate'}
+                                                                    {statusUpdating === user.id ? (
+                                                                        <IconLoader className="animate-spin" />
+                                                                    ) : (
+                                                                        user.status === 'active' ? <IconPause /> : <IconPlay />
+                                                                    )}
+                                                                    {statusUpdating === user.id ? 'Updating...' : (user.status === 'active' ? 'Deactivate' : 'Activate')}
                                                                 </button>
                                                                 <button 
                                                                     className="dropdown-item delete"
@@ -441,13 +450,18 @@ export default function AdminAdminUsers() {
                                                         </button>
                                                         <button 
                                                             className="dropdown-item"
+                                                            disabled={statusUpdating === user.id}
                                                             onClick={() => {
                                                                 handleStatusToggle(user.id, user.status);
                                                                 handleDropdownClose();
                                                             }}
                                                         >
-                                                            {user.status === 'active' ? <IconPause /> : <IconPlay />}
-                                                            {user.status === 'active' ? 'Deactivate' : 'Activate'}
+                                                            {statusUpdating === user.id ? (
+                                                                <IconLoader className="animate-spin" />
+                                                            ) : (
+                                                                user.status === 'active' ? <IconPause /> : <IconPlay />
+                                                            )}
+                                                            {statusUpdating === user.id ? 'Updating...' : (user.status === 'active' ? 'Deactivate' : 'Activate')}
                                                         </button>
                                                         <button 
                                                             className="dropdown-item delete"
