@@ -394,7 +394,7 @@ export default function AdminDashboard() {
                             </svg>
                             <span>Manage Commission</span>
                         </button>
-                        <button className="quick-action-btn" onClick={() => navigate('/admin-product')}>
+                        <button className="quick-action-btn" onClick={() => navigate('/admin-products')}>
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <rect x="1" y="3" width="15" height="13" />
                                 <polygon points="16 8 20 8 23 11 23 16 16 16 16 8" />

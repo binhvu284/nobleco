@@ -15,7 +15,8 @@ import AdminDashboard from './admin/pages/AdminDashboard';
 import AdminUsers from './admin/pages/AdminUsers';
 import AdminAdminUsers from './admin/pages/AdminAdminUsers';
 import AdminClients from './admin/pages/AdminClients';
-import AdminProduct from './admin/pages/AdminProduct';
+import AdminProducts from './admin/pages/AdminProducts';
+import AdminProductDetail from './admin/pages/AdminProductDetail';
 import AdminCategory from './admin/pages/AdminCategory';
 import AdminOrders from './admin/pages/AdminOrders';
 import AdminCommission from './admin/pages/AdminCommission';
@@ -48,7 +49,8 @@ export default function App() {
                 <Route path="/admin-users" element={<AdminUsers />} />
                 <Route path="/admin-admin-users" element={<AdminAdminUsers />} />
                 <Route path="/admin-clients" element={<AdminClients />} />
-                <Route path="/admin-product" element={<AdminProduct />} />
+                <Route path="/admin-products" element={<AdminProducts />} />
+                <Route path="/admin-product-detail/:id" element={<AdminProductDetail />} />
                 <Route path="/admin-category" element={<AdminCategory />} />
                 <Route path="/admin-orders" element={<AdminOrders />} />
                 <Route path="/admin-commission" element={<AdminCommission />} />
