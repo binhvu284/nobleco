@@ -6907,6 +6907,30 @@ input:focus {
     background: var(--danger-light);
 }
 
+.dropdown-item:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.dropdown-item:disabled:hover {
+    background: transparent;
+    color: inherit;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.animate-spin {
+    animation: spin 1s linear infinite;
+}
+
 .empty-state {
     text-align: center;
     padding: 60px 20px;
@@ -7624,13 +7648,13 @@ input:focus {
         }
         
         .admin-avatar {
-            width: 32px;
-            height: 32px;
+            width: 28px;
+            height: 28px;
             font-size: 0.8rem;
         }
         
         .admin-name {
-            font-size: 0.9rem;
+            font-size: 0.75rem !important;
         }
         
         .admin-email {
