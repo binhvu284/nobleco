@@ -3,6 +3,16 @@ import { listUsers, createUser, deleteUser, updateUserStatus, listAdminUsers, li
 import { getSupabase } from './_db.js';
 
 export default async function handler(req, res) {
+  // Set CORS headers
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  
+  // Handle preflight requests
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+  
   try {
     if (req.method === 'GET') {
       try {
@@ -175,10 +185,14 @@ export default async function handler(req, res) {
       }
     }
 
-    res.setHeader('Allow', 'GET, POST, PATCH, PUT, DELETE');
+    res.setHeader('Allow', 'GET, POST, PATCH, PUT, DELETE, OPTIONS');
     return res.status(405).end('Method Not Allowed');
   } catch (e) {
-    return res.status(500).json({ error: e.message });
+    console.error('API Error:', e);
+    return res.status(500).json({ 
+      error: e.message || 'Internal server error',
+      timestamp: new Date().toISOString()
+    });
   }
 }
 
