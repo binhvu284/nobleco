@@ -6,7 +6,7 @@ import {
     IconAdmin,
     IconChevronLeft, 
     IconChevronRight, 
-    IconBox, 
+    IconBox,
     IconPercent, 
     IconWallet, 
     IconChevronDown, 
@@ -63,7 +63,7 @@ export default function AdminSidebar({ collapsed, onToggle, onNavigate, onMobile
 
     // Only show active styling when actually on a page within that section
     const isUsersActive = isSectionActive('users', ['/admin-users', '/admin-admin-users', '/admin-clients']);
-    const isProductsActive = isSectionActive('products', ['/admin-product', '/admin-category', '/admin-orders']);
+    const isProductsActive = isSectionActive('products', ['/admin-products', '/admin-category', '/admin-orders']);
     const isPaymentActive = isSectionActive('payment', ['/admin-commission', '/admin-request']);
 
     // Load state from localStorage on component mount
@@ -158,7 +158,7 @@ export default function AdminSidebar({ collapsed, onToggle, onNavigate, onMobile
                             </button>
                             {openSections.products && (
                                 <nav className="section-content">
-                                    <NavLink to="/admin-product" onClick={onNavigate} className={({ isActive }) => isActive ? 'active' : ''}>
+                                    <NavLink to="/admin-products" onClick={onNavigate} className={({ isActive }) => isActive ? 'active' : ''}>
                                         <IconBox />
                                         <span>Products</span>
                                     </NavLink>
@@ -176,7 +176,7 @@ export default function AdminSidebar({ collapsed, onToggle, onNavigate, onMobile
                     ) : (
                         /* Collapsed state - show all product page icons */
                         <div className="collapsed-section">
-                            <NavLink to="/admin-product" onClick={onNavigate} className={({ isActive }) => isActive ? 'active' : ''} title="Products">
+                            <NavLink to="/admin-products" onClick={onNavigate} className={({ isActive }) => isActive ? 'active' : ''} title="Products">
                                 <IconBox />
                             </NavLink>
                             <NavLink to="/admin-category" onClick={onNavigate} className={({ isActive }) => isActive ? 'active' : ''} title="Category">
