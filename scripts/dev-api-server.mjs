@@ -2,13 +2,8 @@ import 'dotenv/config';
 import express from 'express';
 import usersHandler from '../api/users.js';
 import userByIdHandler from '../api/users/[id].js';
-import profileHandler from '../api/users/profile.js';
 import hierarchyHandler from '../api/users/hierarchy.js';
-import removeInferiorHandler from '../api/users/remove-inferior.js';
 import walletHandler from '../api/users/wallet.js';
-import adminUsersHandler from '../api/users/admin.js';
-import coworkersHandler from '../api/users/coworkers.js';
-import updateStatusHandler from '../api/users/update-status.js';
 import loginHandler from '../api/auth/login.js';
 import signupHandler from '../api/auth/signup.js';
 import healthHandler from '../api/health.js';
@@ -29,13 +24,8 @@ function toRoute(handler) {
 }
 
 app.all('/api/users', toRoute(usersHandler));
-app.all('/api/users/profile', toRoute(profileHandler));
 app.all('/api/users/hierarchy', toRoute(hierarchyHandler));
-app.all('/api/users/remove-inferior', toRoute(removeInferiorHandler));
 app.all('/api/users/wallet', toRoute(walletHandler));
-app.all('/api/users/admin', toRoute(adminUsersHandler));
-app.all('/api/users/coworkers', toRoute(coworkersHandler));
-app.all('/api/users/update-status', toRoute(updateStatusHandler));
 app.get('/api/users/:id', toRoute(userByIdHandler));
 app.all('/api/health', toRoute(healthHandler));
 app.all('/api/diagnostics', toRoute(diagnosticsHandler));

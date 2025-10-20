@@ -189,7 +189,7 @@ export default function UserMember() {
             console.log('Attempting to remove inferior with ID:', selectedInferior.id);
             
             // API call to remove inferior
-            const response = await fetch(`/api/users/remove-inferior`, {
+            const response = await fetch(`/api/users`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

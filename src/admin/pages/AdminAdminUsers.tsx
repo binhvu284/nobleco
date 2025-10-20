@@ -34,7 +34,7 @@ export default function AdminAdminUsers() {
         try {
             setLoading(true);
             setError(null);
-            const res = await fetch('/api/users/admin');
+            const res = await fetch('/api/users?type=admin');
             if (!res.ok) throw new Error(`Request failed: ${res.status}`);
             const data = await res.json();
             setAdminUsers(Array.isArray(data) ? data : []);
@@ -49,7 +49,7 @@ export default function AdminAdminUsers() {
         try {
             setCoworkersLoading(true);
             setCoworkersError(null);
-            const res = await fetch('/api/users/coworkers');
+            const res = await fetch('/api/users?type=coworkers');
             if (!res.ok) throw new Error(`Request failed: ${res.status}`);
             const data = await res.json();
             setCoworkers(Array.isArray(data) ? data : []);
@@ -99,7 +99,7 @@ export default function AdminAdminUsers() {
         const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
         
         try {
-            const response = await fetch('/api/users/update-status', {
+            const response = await fetch('/api/users', {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
