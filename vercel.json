@@ -2,6 +2,9 @@
   "functions": {
     "api/users/hierarchy.js": {
       "maxDuration": 10
+    },
+    "api/users.js": {
+      "maxDuration": 10
     }
   },
   "headers": [
@@ -14,5 +17,7 @@
         }
       ]
     }
-  ]
+  ],
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist"
 }
