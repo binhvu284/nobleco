@@ -25,8 +25,10 @@ export async function listUsers() {
   const supabase = getSupabase();
   let { data, error } = await supabase
     .from('users')
-    .select('id, email, name, role, points, level, status, created_at');
+    .select('id, email, name, role, points, level, status, created_at')
+    .eq('role', 'user'); // Only fetch users with 'user' role
   if (error && /column\s+"?role"?\s+does not exist/i.test(error.message)) {
+    // If role column doesn't exist, fetch all users and filter manually
     const resp = await supabase
       .from('users')
       .select('id, email, name, points, level, status, created_at');
@@ -35,6 +37,37 @@ export async function listUsers() {
   }
   if (error) throw new Error(error.message);
   return (data || []).map(normalize);
+}
+
+export async function listAdminUsers() {
+  const supabase = getSupabase();
+  let { data, error } = await supabase
+    .from('users')
+    .select('id, email, name, role, points, level, status, created_at')
+    .eq('role', 'admin'); // Only fetch users with 'admin' role
+  if (error && /column\s+"?role"?\s+does not exist/i.test(error.message)) {
+    // If role column doesn't exist, return empty array (no admin users)
+    return [];
+  }
+  if (error) throw new Error(error.message);
+  return (data || []).map(normalize);
+}
+
+export async function listCoworkers() {
+  const supabase = getSupabase();
+  let { data, error } = await supabase
+    .from('users')
+    .select('id, email, name, role, points, level, status, created_at')
+    .eq('role', 'coworker'); // Only fetch users with 'coworker' role
+  if (error && /column\s+"?role"?\s+does not exist/i.test(error.message)) {
+    // If role column doesn't exist, return empty array (no coworker users)
+    return [];
+  }
+  if (error) throw new Error(error.message);
+  return (data || []).map(user => ({
+    ...normalize(user),
+    permissions: ['products', 'category', 'withdraw_request'] // Default permissions for coworkers
+  }));
 }
 
 export async function findUserByUsername(username) {
@@ -113,6 +146,7 @@ export async function updateUserStatus(id, status) {
     .from('users')
     .update({ status })
     .eq('id', id)
+    .in('role', ['user', 'coworker']) // Allow updating users and coworkers
     .select('id, email, name, role, points, level, status, created_at')
     .single();
   if (error) throw new Error(error.message);
@@ -124,7 +158,8 @@ export async function deleteUser(id) {
   const { error } = await supabase
     .from('users')
     .delete()
-    .eq('id', id);
+    .eq('id', id)
+    .eq('role', 'user'); // Only allow deleting users with 'user' role
   if (error) throw new Error(error.message);
   return true;
 }
