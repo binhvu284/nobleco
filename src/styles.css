@@ -7245,6 +7245,7 @@ input:focus {
     color: var(--muted);
     font-size: 0.9rem;
     font-weight: 500;
+    margin-right: 15px;
 }
 
 .section-description {
@@ -7708,13 +7709,13 @@ input:focus {
     }
     
     .admin-badge {
-        padding: 6px 12px;
-        font-size: 0.8rem;
+        padding: 4px 12px;
+        font-size: 0.7rem;
     }
     
     .admin-badge svg {
-        width: 14px;
-        height: 14px;
+        width: 12px;
+        height: 12px;
     }
     
     /* Mobile table solution - convert to cards */
