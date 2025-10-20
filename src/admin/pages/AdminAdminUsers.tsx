@@ -1,77 +1,28 @@
 import { useState, useEffect } from 'react';
 import AdminLayout from '../components/AdminLayout';
-import { IconCrown, IconShield, IconTrash2, IconSettings, IconSearch, IconFilter, IconPlus, IconMoreHorizontal } from '../components/icons';
+import { IconCrown, IconShield, IconTrash2, IconSettings, IconMoreHorizontal, IconPlay, IconPause } from '../components/icons';
 
 interface AdminUser {
     id: number;
     name: string;
     email: string;
-    role: 'administrator' | 'coworker';
-    permissions: string[];
-    lastActive: string;
+    role: 'admin' | 'user' | 'coworker';
+    points?: number;
+    level?: string;
     status: 'active' | 'inactive';
+    created_at: string;
     avatar?: string;
+    permissions?: string[];
 }
 
 export default function AdminAdminUsers() {
-    const [adminUsers, setAdminUsers] = useState<AdminUser[]>([
-        {
-            id: 1,
-            name: 'Super Lord',
-            email: 'superlord@nobleco.com',
-            role: 'administrator',
-            permissions: ['all'],
-            lastActive: '2024-02-20',
-            status: 'active'
-        },
-        {
-            id: 5,
-            name: 'Sarah Admin',
-            email: 'sarah.admin@nobleco.com',
-            role: 'administrator',
-            permissions: ['all'],
-            lastActive: '2024-02-19',
-            status: 'active'
-        },
-        {
-            id: 6,
-            name: 'Michael Director',
-            email: 'michael.director@nobleco.com',
-            role: 'administrator',
-            permissions: ['all'],
-            lastActive: '2024-02-18',
-            status: 'active'
-        },
-        {
-            id: 2,
-            name: 'Alice Johnson',
-            email: 'alice@nobleco.com',
-            role: 'coworker',
-            permissions: ['products', 'category', 'withdraw_request'],
-            lastActive: '2024-02-19',
-            status: 'active'
-        },
-        {
-            id: 3,
-            name: 'Bob Brown',
-            email: 'bob@nobleco.com',
-            role: 'coworker',
-            permissions: ['products', 'category'],
-            lastActive: '2024-02-18',
-            status: 'active'
-        },
-        {
-            id: 4,
-            name: 'Charlie Wilson',
-            email: 'charlie@nobleco.com',
-            role: 'coworker',
-            permissions: ['withdraw_request'],
-            lastActive: '2024-02-15',
-            status: 'inactive'
-        }
-    ]);
+    const [adminUsers, setAdminUsers] = useState<AdminUser[]>([]);
+    const [coworkers, setCoworkers] = useState<AdminUser[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [coworkersLoading, setCoworkersLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const [coworkersError, setCoworkersError] = useState<string | null>(null);
 
-    const [searchQuery, setSearchQuery] = useState('');
     const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [showPermissionModal, setShowPermissionModal] = useState(false);
@@ -79,13 +30,42 @@ export default function AdminAdminUsers() {
     const [userToEdit, setUserToEdit] = useState<AdminUser | null>(null);
     const [activeDropdown, setActiveDropdown] = useState<number | null>(null);
 
-    const administrators = adminUsers.filter(user => user.role === 'administrator');
-    const coworkers = adminUsers.filter(user => user.role === 'coworker');
+    const fetchAdminUsers = async () => {
+        try {
+            setLoading(true);
+            setError(null);
+            const res = await fetch('/api/users/admin');
+            if (!res.ok) throw new Error(`Request failed: ${res.status}`);
+            const data = await res.json();
+            setAdminUsers(Array.isArray(data) ? data : []);
+        } catch (e: any) {
+            setError(e?.message || 'Failed to load admin users');
+        } finally {
+            setLoading(false);
+        }
+    };
 
-    const filteredCoworkers = coworkers.filter(user =>
-        user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        user.email.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    const fetchCoworkers = async () => {
+        try {
+            setCoworkersLoading(true);
+            setCoworkersError(null);
+            const res = await fetch('/api/users/coworkers');
+            if (!res.ok) throw new Error(`Request failed: ${res.status}`);
+            const data = await res.json();
+            setCoworkers(Array.isArray(data) ? data : []);
+        } catch (e: any) {
+            setCoworkersError(e?.message || 'Failed to load coworkers');
+        } finally {
+            setCoworkersLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchAdminUsers();
+        fetchCoworkers();
+    }, []);
+
+    const administrators = adminUsers.filter(user => user.role === 'admin');
 
     const handleDeleteClick = (user: AdminUser) => {
         setUserToDelete(user);
@@ -115,6 +95,46 @@ export default function AdminAdminUsers() {
         setUserToEdit(null);
     };
 
+    const handleStatusToggle = async (userId: number, currentStatus: string) => {
+        const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
+        
+        try {
+            const response = await fetch('/api/users/update-status', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    userId: userId,
+                    status: newStatus
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`Failed to update status: ${response.status}`);
+            }
+
+            const result = await response.json();
+            
+            if (result.success) {
+                // Update the coworkers list with the new status
+                setCoworkers(prevCoworkers => 
+                    prevCoworkers.map(coworker => 
+                        coworker.id === userId 
+                            ? { ...coworker, status: newStatus as 'active' | 'inactive' }
+                            : coworker
+                    )
+                );
+            } else {
+                throw new Error(result.error || 'Failed to update status');
+            }
+        } catch (error) {
+            console.error('Error updating status:', error);
+            // You could add a toast notification here
+            alert(`Failed to update status: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
+    };
+
     const handleDropdownToggle = (userId: number) => {
         setActiveDropdown(activeDropdown === userId ? null : userId);
     };
@@ -130,6 +150,7 @@ export default function AdminAdminUsers() {
             day: 'numeric'
         });
     };
+
 
     const getPermissionLabel = (permission: string) => {
         const labels: { [key: string]: string } = {
@@ -161,36 +182,6 @@ export default function AdminAdminUsers() {
     return (
         <AdminLayout title="Admin Users">
             <div className="admin-users-page">
-                {/* Header */}
-                <div className="admin-users-header">
-                    <div className="admin-users-header-info">
-                        <h1>Admin Users Management</h1>
-                        <p>Manage administrator and co-worker access permissions</p>
-                    </div>
-                    <button className="btn-add-user" title="Add New Admin User">
-                        <IconPlus />
-                        Add User
-                    </button>
-                </div>
-
-                {/* Search and Filter Bar */}
-                <div className="admin-users-toolbar">
-                    <div className="search-box">
-                        <IconSearch />
-                        <input
-                            type="text"
-                            placeholder="Search co-workers by name or email..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                        />
-                    </div>
-                    <div className="filter-controls">
-                        <button className="filter-btn">
-                            <IconFilter />
-                            Filter
-                        </button>
-                    </div>
-                </div>
 
                 {/* Administrator Section */}
                 <div className="administrator-section">
@@ -206,21 +197,54 @@ export default function AdminAdminUsers() {
                     </div>
                     
                     <div className="administrator-list">
-                        {administrators.map((admin) => (
-                            <div key={admin.id} className="administrator-item">
-                                <div className="admin-avatar">
-                                    {admin.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                        {loading ? (
+                            // Loading skeleton
+                            Array.from({ length: 2 }).map((_, i) => (
+                                <div key={`loading-${i}`} className="administrator-item row-loading">
+                                    <div className="admin-avatar">
+                                        <div className="skeleton skeleton-circle"></div>
+                                    </div>
+                                    <div className="admin-details">
+                                        <div className="skeleton skeleton-text" style={{ width: '120px', height: '20px' }}></div>
+                                        <div className="skeleton skeleton-text" style={{ width: '180px', height: '16px', marginTop: '8px' }}></div>
+                                    </div>
+                                    <div className="admin-badge">
+                                        <div className="skeleton skeleton-badge"></div>
+                                    </div>
                                 </div>
-                                <div className="admin-details">
-                                    <h3 className="admin-name">{admin.name}</h3>
-                                    <p className="admin-email">{admin.email}</p>
-                                </div>
-                                <div className="admin-badge">
-                                    <IconCrown />
-                                    <span>Administrator</span>
-                                </div>
+                            ))
+                        ) : error ? (
+                            <div className="error-state">
+                                <div className="error-icon">⚠️</div>
+                                <h3>Error loading administrators</h3>
+                                <p>{error}</p>
+                                <button className="btn-primary" onClick={fetchAdminUsers}>
+                                    Try Again
+                                </button>
                             </div>
-                        ))}
+                        ) : administrators.length === 0 ? (
+                            <div className="empty-state">
+                                <div className="empty-icon">👑</div>
+                                <h3>No administrators found</h3>
+                                <p>There are currently no administrators in the system.</p>
+                            </div>
+                        ) : (
+                            administrators.map((admin) => (
+                                <div key={admin.id} className="administrator-item">
+                                    <div className="admin-avatar">
+                                        {admin.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                                    </div>
+                                    <div className="admin-details">
+                                        <h3 className="admin-name">{admin.name}</h3>
+                                        <p className="admin-email">{admin.email}</p>
+                                    </div>
+                                    <div className="admin-badge">
+                                        <IconCrown />
+                                        <span>Administrator</span>
+                                    </div>
+                                </div>
+                            ))
+                        )}
                     </div>
                 </div>
 
@@ -241,85 +265,228 @@ export default function AdminAdminUsers() {
                     </div>
 
                     <div className="coworker-table-container">
+                        {/* Desktop Table */}
                         <div className="table-wrap">
                             <table className="coworker-table">
                                 <thead>
                                     <tr>
                                         <th>Name</th>
                                         <th>Email</th>
-                                        <th>Last Active</th>
                                         <th>Status</th>
                                         <th>Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {filteredCoworkers.map((user) => (
-                                        <tr key={user.id}>
-                                            <td>
-                                                <div className="user-info">
-                                                    <div className="user-avatar">
-                                                        {user.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                                    {coworkersLoading ? (
+                                        // Loading skeleton rows
+                                        Array.from({ length: 3 }).map((_, i) => (
+                                            <tr key={`loading-${i}`} className="row-loading">
+                                                <td>
+                                                    <div className="user-info">
+                                                        <div className="skeleton skeleton-circle"></div>
+                                                        <div className="skeleton skeleton-text" style={{ width: '100px' }}></div>
                                                     </div>
-                                                    <span>{user.name}</span>
-                                                </div>
-                                            </td>
-                                            <td>{user.email}</td>
-                                            <td>{formatDate(user.lastActive)}</td>
-                                            <td>
-                                                <span className={`status-badge ${user.status}`}>
-                                                    {user.status}
-                                                </span>
-                                            </td>
-                                            <td>
-                                                <div className="action-dropdown">
-                                                    <button 
-                                                        className="btn-more"
-                                                        onClick={() => handleDropdownToggle(user.id)}
-                                                        title="More Actions"
-                                                    >
-                                                        <IconMoreHorizontal />
-                                                    </button>
-                                                    {activeDropdown === user.id && (
-                                                        <div className="dropdown-menu">
-                                                            <button 
-                                                                className="dropdown-item"
-                                                                onClick={() => {
-                                                                    handlePermissionClick(user);
-                                                                    handleDropdownClose();
-                                                                }}
-                                                            >
-                                                                <IconSettings />
-                                                                Permissions
-                                                            </button>
-                                                            <button 
-                                                                className="dropdown-item delete"
-                                                                onClick={() => {
-                                                                    handleDeleteClick(user);
-                                                                    handleDropdownClose();
-                                                                }}
-                                                            >
-                                                                <IconTrash2 />
-                                                                Delete
-                                                            </button>
-                                                        </div>
-                                                    )}
-                                                </div>
+                                                </td>
+                                                <td><div className="skeleton skeleton-text" style={{ width: '150px' }}></div></td>
+                                                <td><div className="skeleton skeleton-badge"></div></td>
+                                                <td><div className="skeleton skeleton-text" style={{ width: '30px' }}></div></td>
+                                            </tr>
+                                        ))
+                                    ) : coworkersError ? (
+                                        <tr>
+                                            <td colSpan={4} className="error-state">
+                                                <div className="error-icon">⚠️</div>
+                                                <h3>Error loading coworkers</h3>
+                                                <p>{coworkersError}</p>
+                                                <button className="btn-primary" onClick={fetchCoworkers}>
+                                                    Try Again
+                                                </button>
                                             </td>
                                         </tr>
-                                    ))}
+                                    ) : coworkers.length === 0 ? (
+                                        <tr>
+                                            <td colSpan={4} className="empty-state">
+                                                <div className="empty-icon">👥</div>
+                                                <h3>No co-workers found</h3>
+                                                <p>There are currently no co-workers in the system.</p>
+                                            </td>
+                                        </tr>
+                                    ) : (
+                                        coworkers.map((user) => (
+                                            <tr key={user.id}>
+                                                <td>
+                                                    <div className="user-info">
+                                                        <div className="user-avatar">
+                                                            {user.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                                                        </div>
+                                                        <span>{user.name}</span>
+                                                    </div>
+                                                </td>
+                                                <td>{user.email}</td>
+                                                <td>
+                                                    <span className={`status-badge ${user.status}`}>
+                                                        {user.status}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <div className="action-dropdown">
+                                                        <button 
+                                                            className="btn-more"
+                                                            onClick={() => handleDropdownToggle(user.id)}
+                                                            title="More Actions"
+                                                        >
+                                                            <IconMoreHorizontal />
+                                                        </button>
+                                                        {activeDropdown === user.id && (
+                                                            <div className="dropdown-menu dropdown-menu-up">
+                                                                <button 
+                                                                    className="dropdown-item"
+                                                                    onClick={() => {
+                                                                        handlePermissionClick(user);
+                                                                        handleDropdownClose();
+                                                                    }}
+                                                                >
+                                                                    <IconSettings />
+                                                                    Permissions
+                                                                </button>
+                                                                <button 
+                                                                    className="dropdown-item"
+                                                                    onClick={() => {
+                                                                        handleStatusToggle(user.id, user.status);
+                                                                        handleDropdownClose();
+                                                                    }}
+                                                                >
+                                                                    {user.status === 'active' ? <IconPause /> : <IconPlay />}
+                                                                    {user.status === 'active' ? 'Deactivate' : 'Activate'}
+                                                                </button>
+                                                                <button 
+                                                                    className="dropdown-item delete"
+                                                                    onClick={() => {
+                                                                        handleDeleteClick(user);
+                                                                        handleDropdownClose();
+                                                                    }}
+                                                                >
+                                                                    <IconTrash2 />
+                                                                    Delete
+                                                                </button>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))
+                                    )}
                                 </tbody>
                             </table>
                         </div>
+
+                        {/* Mobile Cards */}
+                        <div className="coworker-mobile-cards">
+                            {coworkersLoading ? (
+                                // Loading skeleton cards
+                                Array.from({ length: 3 }).map((_, i) => (
+                                    <div key={`loading-${i}`} className="coworker-mobile-card">
+                                        <div className="coworker-card-header">
+                                            <div className="skeleton skeleton-circle" style={{ width: '40px', height: '40px' }}></div>
+                                            <div className="coworker-card-info">
+                                                <div className="skeleton skeleton-text" style={{ width: '120px', height: '16px' }}></div>
+                                                <div className="skeleton skeleton-text" style={{ width: '180px', height: '14px', marginTop: '4px' }}></div>
+                                            </div>
+                                        </div>
+                                        <div className="coworker-card-footer">
+                                            <div className="skeleton skeleton-badge" style={{ width: '60px', height: '24px' }}></div>
+                                            <div className="skeleton skeleton-text" style={{ width: '30px', height: '30px' }}></div>
+                                        </div>
+                                    </div>
+                                ))
+                            ) : coworkersError ? (
+                                <div className="error-state">
+                                    <div className="error-icon">⚠️</div>
+                                    <h3>Error loading coworkers</h3>
+                                    <p>{coworkersError}</p>
+                                    <button className="btn-primary" onClick={fetchCoworkers}>
+                                        Try Again
+                                    </button>
+                                </div>
+                            ) : coworkers.length === 0 ? (
+                                <div className="empty-state">
+                                    <div className="empty-icon">👥</div>
+                                    <h3>No co-workers found</h3>
+                                    <p>There are currently no co-workers in the system.</p>
+                                </div>
+                            ) : (
+                                coworkers.map((user) => (
+                                    <div key={user.id} className="coworker-mobile-card">
+                                        {/* Three-dot button positioned at top right */}
+                                        <div className="coworker-card-actions">
+                                            <div className="action-dropdown">
+                                                <button 
+                                                    className="btn-more"
+                                                    onClick={() => handleDropdownToggle(user.id)}
+                                                    title="More Actions"
+                                                >
+                                                    <IconMoreHorizontal />
+                                                </button>
+                                                {activeDropdown === user.id && (
+                                                    <div className="dropdown-menu">
+                                                        <button 
+                                                            className="dropdown-item"
+                                                            onClick={() => {
+                                                                handlePermissionClick(user);
+                                                                handleDropdownClose();
+                                                            }}
+                                                        >
+                                                            <IconSettings />
+                                                            Permissions
+                                                        </button>
+                                                        <button 
+                                                            className="dropdown-item"
+                                                            onClick={() => {
+                                                                handleStatusToggle(user.id, user.status);
+                                                                handleDropdownClose();
+                                                            }}
+                                                        >
+                                                            {user.status === 'active' ? <IconPause /> : <IconPlay />}
+                                                            {user.status === 'active' ? 'Deactivate' : 'Activate'}
+                                                        </button>
+                                                        <button 
+                                                            className="dropdown-item delete"
+                                                            onClick={() => {
+                                                                handleDeleteClick(user);
+                                                                handleDropdownClose();
+                                                            }}
+                                                        >
+                                                            <IconTrash2 />
+                                                            Delete
+                                                        </button>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        <div className="coworker-card-header">
+                                            <div className="coworker-card-avatar">
+                                                {user.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                                            </div>
+                                            <div className="coworker-card-info">
+                                                <h3 className="coworker-card-name">{user.name}</h3>
+                                                <p className="coworker-card-email">{user.email}</p>
+                                            </div>
+                                        </div>
+                                        <div className="coworker-card-footer">
+                                            <div className="coworker-card-status">
+                                                <span className="coworker-card-status-label">Status:</span>
+                                                <span className={`status-badge ${user.status}`}>
+                                                    {user.status}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))
+                            )}
+                        </div>
                     </div>
 
-                    {/* Empty State */}
-                    {filteredCoworkers.length === 0 && (
-                        <div className="empty-state">
-                            <div className="empty-icon">👥</div>
-                            <h3>No co-workers found</h3>
-                            <p>Try adjusting your search criteria or add a new co-worker.</p>
-                        </div>
-                    )}
                 </div>
 
                 {/* Delete Confirmation Modal */}
@@ -375,15 +542,15 @@ export default function AdminAdminUsers() {
                                     <h3>Edit permissions for {userToEdit.name}</h3>
                                     <div className="permission-options">
                                         <label className="permission-option">
-                                            <input type="checkbox" defaultChecked={userToEdit.permissions.includes('products')} />
+                                            <input type="checkbox" defaultChecked={userToEdit.permissions?.includes('products') || false} />
                                             <span>Products Management</span>
                                         </label>
                                         <label className="permission-option">
-                                            <input type="checkbox" defaultChecked={userToEdit.permissions.includes('category')} />
+                                            <input type="checkbox" defaultChecked={userToEdit.permissions?.includes('category') || false} />
                                             <span>Category Management</span>
                                         </label>
                                         <label className="permission-option">
-                                            <input type="checkbox" defaultChecked={userToEdit.permissions.includes('withdraw_request')} />
+                                            <input type="checkbox" defaultChecked={userToEdit.permissions?.includes('withdraw_request') || false} />
                                             <span>Withdraw Request Management</span>
                                         </label>
                                     </div>
