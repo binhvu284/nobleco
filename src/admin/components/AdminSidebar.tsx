@@ -63,7 +63,7 @@ export default function AdminSidebar({ collapsed, onToggle, onNavigate, onMobile
 
     // Only show active styling when actually on a page within that section
     const isUsersActive = isSectionActive('users', ['/admin-users', '/admin-admin-users', '/admin-clients']);
-    const isProductsActive = isSectionActive('products', ['/admin-products', '/admin-category', '/admin-orders']);
+    const isProductsActive = isSectionActive('products', ['/admin-products', '/admin-categories', '/admin-orders']);
     const isPaymentActive = isSectionActive('payment', ['/admin-commission', '/admin-request']);
 
     // Load state from localStorage on component mount
@@ -162,9 +162,9 @@ export default function AdminSidebar({ collapsed, onToggle, onNavigate, onMobile
                                         <IconBox />
                                         <span>Products</span>
                                     </NavLink>
-                                    <NavLink to="/admin-category" onClick={onNavigate} className={({ isActive }) => isActive ? 'active' : ''}>
+                                    <NavLink to="/admin-categories" onClick={onNavigate} className={({ isActive }) => isActive ? 'active' : ''}>
                                         <IconTag />
-                                        <span>Category</span>
+                                        <span>Categories</span>
                                     </NavLink>
                                     <NavLink to="/admin-orders" onClick={onNavigate} className={({ isActive }) => isActive ? 'active' : ''}>
                                         <IconShoppingBag />
@@ -179,7 +179,7 @@ export default function AdminSidebar({ collapsed, onToggle, onNavigate, onMobile
                             <NavLink to="/admin-products" onClick={onNavigate} className={({ isActive }) => isActive ? 'active' : ''} title="Products">
                                 <IconBox />
                             </NavLink>
-                            <NavLink to="/admin-category" onClick={onNavigate} className={({ isActive }) => isActive ? 'active' : ''} title="Category">
+                            <NavLink to="/admin-categories" onClick={onNavigate} className={({ isActive }) => isActive ? 'active' : ''} title="Categories">
                                 <IconTag />
                             </NavLink>
                             <NavLink to="/admin-orders" onClick={onNavigate} className={({ isActive }) => isActive ? 'active' : ''} title="Orders">
