@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { IconDashboard, IconUsers, IconSettings, IconUser, IconLogout, IconMenu, IconAdmin, IconBox, IconTag } from './icons';
+import { IconDashboard, IconUsers, IconSettings, IconUser, IconLogout, IconMenu, IconAdmin, IconBox, IconTag, IconShoppingBag } from './icons';
 import { useState as useModalState } from 'react';
 import { logout, getCurrentUser } from '../../auth';
 import AdminProfileModal from './AdminProfileModal';
@@ -57,6 +57,7 @@ export default function AdminHeader({ title, mobileMenuOpen, onMobileMenuToggle 
         if (location.pathname.startsWith('/admin-users')) return <IconUsers style={{ marginRight: 8 }} />;
         if (location.pathname.startsWith('/admin-products')) return <IconBox style={{ marginRight: 8 }} />;
         if (location.pathname.startsWith('/admin-categories')) return <IconTag style={{ marginRight: 8 }} />;
+        if (location.pathname.startsWith('/admin-orders')) return <IconShoppingBag style={{ marginRight: 8 }} />;
         if (location.pathname.startsWith('/admin-dashboard')) return <IconDashboard style={{ marginRight: 8 }} />;
         return <IconSettings style={{ marginRight: 8 }} />;
     };

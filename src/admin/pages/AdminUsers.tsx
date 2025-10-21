@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import AdminLayout from '../components/AdminLayout';
+import { IconPlus, IconSearch, IconFilter, IconList, IconGrid, IconLayout, IconChevronDown } from '../components/icons';
 
 type User = {
     id: string | number;
@@ -35,10 +36,14 @@ export default function AdminUsers() {
     const [filterLevel, setFilterLevel] = useState<Level | 'all'>('all');
     const [filterStatus, setFilterStatus] = useState<Status | 'all'>('all');
     const [filterDate, setFilterDate] = useState<string>('');
-    const [viewMode, setViewMode] = useState<'table' | 'list'>('table');
+    const [viewMode, setViewMode] = useState<'table' | 'list'>(
+        window.innerWidth <= 768 ? 'list' : 'table'
+    );
 
     // Mobile states
     const [filterPopupOpen, setFilterPopupOpen] = useState(false);
+    const [mobileColumns, setMobileColumns] = useState<1 | 2 | 3>(2);
+    const [showColumnDropdown, setShowColumnDropdown] = useState(false);
 
     // Modal states
     const [deleteModal, setDeleteModal] = useState<{ show: boolean; userId: string | number | null; userEmail: string }>({ 
@@ -71,6 +76,36 @@ export default function AdminUsers() {
         })();
         return () => { cancelled = true; };
     }, []);
+
+    // Handle window resize to force list view on mobile
+    useEffect(() => {
+        const handleResize = () => {
+            if (window.innerWidth <= 768) {
+                setViewMode('list');
+            }
+        };
+
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
+    // Handle click outside to close dropdown
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            const target = event.target as Element;
+            if (!target.closest('.mobile-column-selector')) {
+                setShowColumnDropdown(false);
+            }
+        };
+
+        if (showColumnDropdown) {
+            document.addEventListener('click', handleClickOutside);
+        }
+
+        return () => {
+            document.removeEventListener('click', handleClickOutside);
+        };
+    }, [showColumnDropdown]);
 
     const openDeleteModal = (userId: string | number, userEmail: string) => {
         setDeleteModal({ show: true, userId, userEmail });
@@ -177,65 +212,151 @@ export default function AdminUsers() {
     return (
         <AdminLayout title="User Management">
             <div className="admin-users">
-                {/* Search and Filter Controls */}
-                <div className="filters-bar">
-                    <div className="search-box">
-                        <input
-                            type="text"
-                            placeholder="Search..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="search-input"
-                        />
+                {/* Toolbar */}
+                <div className="admin-users-toolbar">
+                    <div className="toolbar-left">
+                        <div className="search-container">
+                            <IconSearch className="search-icon" />
+                            <input
+                                type="text"
+                                placeholder="Search users..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="search-input"
+                            />
+                        </div>
+                        <button 
+                            className="btn-filter" 
+                            title="Filter users"
+                            onClick={() => setFilterPopupOpen(true)}
+                        >
+                            <IconFilter />
+                        </button>
                     </div>
-                    <button className="mobile-filter-btn" onClick={() => setFilterPopupOpen(true)}>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
-                        </svg>
-                    </button>
-                    <div className="filter-controls">
-                        <select
-                            value={filterLevel}
-                            onChange={(e) => setFilterLevel(e.target.value as Level | 'all')}
-                            className="filter-select"
-                        >
-                            <option value="all">All Levels</option>
-                            <option value="guest">Guest</option>
-                            <option value="member">Member</option>
-                            <option value="unit manager">Unit Manager</option>
-                            <option value="brand manager">Brand Manager</option>
-                        </select>
-                        <select
-                            value={filterStatus}
-                            onChange={(e) => setFilterStatus(e.target.value as Status | 'all')}
-                            className="filter-select"
-                        >
-                            <option value="all">All Status</option>
-                            <option value="active">Active</option>
-                            <option value="inactive">Inactive</option>
-                        </select>
-                        <input
-                            type="date"
-                            value={filterDate}
-                            onChange={(e) => setFilterDate(e.target.value)}
-                            className="filter-date"
-                            placeholder="Filter by date"
-                        />
-                        {(searchQuery || filterLevel !== 'all' || filterStatus !== 'all' || filterDate) && (
+                    <div className="toolbar-right">
+                        {/* Desktop view toggle */}
+                        <div className="view-toggle desktop-only">
                             <button
-                                onClick={() => {
-                                    setSearchQuery('');
-                                    setFilterLevel('all');
-                                    setFilterStatus('all');
-                                    setFilterDate('');
-                                }}
-                                className="clear-filters-btn"
+                                className={`view-btn ${viewMode === 'table' ? 'active' : ''}`}
+                                onClick={() => setViewMode('table')}
+                                title="Table view"
                             >
-                                Clear Filters
+                                <IconList />
                             </button>
-                        )}
+                            <button
+                                className={`view-btn ${viewMode === 'list' ? 'active' : ''}`}
+                                onClick={() => setViewMode('list')}
+                                title="List view"
+                            >
+                                <IconGrid />
+                            </button>
+                        </div>
+                        
+                        {/* Mobile column selector */}
+                        <div className="mobile-column-selector mobile-only">
+                            <button
+                                className="column-toggle-btn"
+                                onClick={() => setShowColumnDropdown(!showColumnDropdown)}
+                                title="Choose users per row"
+                            >
+                                <IconLayout />
+                                <span className="column-count">{mobileColumns}</span>
+                                <IconChevronDown className={`chevron ${showColumnDropdown ? 'rotated' : ''}`} />
+                            </button>
+                            {showColumnDropdown && (
+                                <div className="column-dropdown">
+                                    <div className="dropdown-header">Users per row</div>
+                                    <button
+                                        className={`column-option ${mobileColumns === 1 ? 'active' : ''}`}
+                                        onClick={() => {
+                                            setMobileColumns(1);
+                                            setShowColumnDropdown(false);
+                                        }}
+                                    >
+                                        <span className="option-icon">📱</span>
+                                        <span className="option-text">1 per row</span>
+                                        <span className="option-desc">Large view</span>
+                                    </button>
+                                    <button
+                                        className={`column-option ${mobileColumns === 2 ? 'active' : ''}`}
+                                        onClick={() => {
+                                            setMobileColumns(2);
+                                            setShowColumnDropdown(false);
+                                        }}
+                                    >
+                                        <span className="option-icon">📱📱</span>
+                                        <span className="option-text">2 per row</span>
+                                        <span className="option-desc">Balanced</span>
+                                    </button>
+                                    <button
+                                        className={`column-option ${mobileColumns === 3 ? 'active' : ''}`}
+                                        onClick={() => {
+                                            setMobileColumns(3);
+                                            setShowColumnDropdown(false);
+                                        }}
+                                    >
+                                        <span className="option-icon">📱📱📱</span>
+                                        <span className="option-text">3 per row</span>
+                                        <span className="option-desc">Compact</span>
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                        
+                        <button className="btn-create-user" title="Create User">
+                            <IconPlus />
+                            <span className="desktop-only">Create User</span>
+                        </button>
                     </div>
-                    <div className="view-toggle">
+                </div>
+
+                {/* Hidden Filter Panel for Mobile */}
+                <div className="hidden-filter-controls">
+                    <select
+                        value={filterLevel}
+                        onChange={(e) => setFilterLevel(e.target.value as Level | 'all')}
+                        className="filter-select"
+                    >
+                        <option value="all">All Levels</option>
+                        <option value="guest">Guest</option>
+                        <option value="member">Member</option>
+                        <option value="unit manager">Unit Manager</option>
+                        <option value="brand manager">Brand Manager</option>
+                    </select>
+                    <select
+                        value={filterStatus}
+                        onChange={(e) => setFilterStatus(e.target.value as Status | 'all')}
+                        className="filter-select"
+                    >
+                        <option value="all">All Status</option>
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
+                    </select>
+                    <input
+                        type="date"
+                        value={filterDate}
+                        onChange={(e) => setFilterDate(e.target.value)}
+                        className="filter-date"
+                        placeholder="Filter by date"
+                    />
+                    {(searchQuery || filterLevel !== 'all' || filterStatus !== 'all' || filterDate) && (
+                        <button
+                            onClick={() => {
+                                setSearchQuery('');
+                                setFilterLevel('all');
+                                setFilterStatus('all');
+                                setFilterDate('');
+                            }}
+                            className="clear-filters-btn"
+                        >
+                            Clear Filters
+                        </button>
+                    )}
+                </div>
+
+                {/* Old view toggle removed - now in toolbar */}
+                <div style={{ display: 'none' }}>
+                    <div className="view-toggle-old">
                         <button
                             onClick={() => setViewMode('table')}
                             className={`view-btn ${viewMode === 'table' ? 'active' : ''}`}
@@ -358,7 +479,7 @@ export default function AdminUsers() {
                     </table>
                 </div>
                 ) : (
-                    <div className="list-view">
+                    <div className={`list-view users-list mobile-cols-${mobileColumns}`}>
                         {loading ? (
                             filteredRows.map((r) => (
                                 <div key={`loading-${r.id}`} className="list-item row-loading">
