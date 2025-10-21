@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import AdminLayout from '../components/AdminLayout';
-import { IconPlus, IconSearch, IconFilter, IconTable, IconCards, IconMoreVertical, IconEdit, IconTrash2, IconEye, IconPackage, IconLayout, IconChevronDown } from '../components/icons';
+import { IconPlus, IconSearch, IconFilter, IconList, IconGrid, IconMoreVertical, IconEdit, IconTrash2, IconEye, IconPackage, IconLayout, IconChevronDown } from '../components/icons';
 
 interface Product {
     id: number;
@@ -114,13 +114,14 @@ export default function AdminProducts() {
                 {/* Toolbar */}
                 <div className="admin-products-toolbar">
                     <div className="toolbar-left">
-                        <div className="search-box">
-                            <IconSearch />
+                        <div className="search-container">
+                            <IconSearch className="search-icon" />
                             <input
                                 type="text"
                                 placeholder="Search products..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
+                                className="search-input"
                             />
                         </div>
                         <button className="btn-filter" title="Filter products">
@@ -133,22 +134,20 @@ export default function AdminProducts() {
                     </div>
                     <div className="toolbar-right">
                         {/* Desktop view toggle */}
-                        <div className="view-toggle-new desktop-only" style={{display: 'flex', flexDirection: 'row', gap: '4px', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '2px', backgroundColor: '#f9fafb'}}>
+                        <div className="view-toggle desktop-only">
                             <button
-                                className={`view-btn-new ${viewMode === 'table' ? 'active' : ''}`}
+                                className={`view-btn ${viewMode === 'table' ? 'active' : ''}`}
                                 onClick={() => setViewMode('table')}
                                 title="Table view"
-                                style={{border: 'none', padding: '6px', borderRadius: '4px', backgroundColor: viewMode === 'table' ? '#3b82f6' : 'transparent', color: viewMode === 'table' ? 'white' : '#6b7280', display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: '28px', height: '28px'}}
                             >
-                                <IconTable />
+                                <IconList />
                             </button>
                             <button
-                                className={`view-btn-new ${viewMode === 'card' ? 'active' : ''}`}
+                                className={`view-btn ${viewMode === 'card' ? 'active' : ''}`}
                                 onClick={() => setViewMode('card')}
                                 title="Card view"
-                                style={{border: 'none', padding: '6px', borderRadius: '4px', backgroundColor: viewMode === 'card' ? '#3b82f6' : 'transparent', color: viewMode === 'card' ? 'white' : '#6b7280', display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: '28px', height: '28px'}}
                             >
-                                <IconCards />
+                                <IconGrid />
                             </button>
                         </div>
                         
@@ -205,6 +204,7 @@ export default function AdminProducts() {
                         
                         <button className="btn-create-product-compact" title="Create Product">
                             <IconPlus />
+                            <span className="desktop-only">Create Product</span>
                         </button>
                     </div>
                 </div>
@@ -258,25 +258,25 @@ export default function AdminProducts() {
                                             </span>
                                         </td>
                                         <td>
-                                            <div className="product-actions">
+                                            <div className={`unified-dropdown ${activeDropdown === product.id ? 'active' : ''}`}>
                                                 <button
-                                                    className="btn-more"
+                                                    className="unified-more-btn"
                                                     onClick={() => setActiveDropdown(activeDropdown === product.id ? null : product.id)}
                                                 >
                                                     <IconMoreVertical />
                                                 </button>
                                                 {activeDropdown === product.id && (
-                                                    <div className="dropdown-menu">
-                                                        <button className="dropdown-item">
+                                                    <div className="unified-dropdown-menu">
+                                                        <button className="unified-dropdown-item">
                                                             <IconEye />
                                                             View Details
                                                         </button>
-                                                        <button className="dropdown-item">
+                                                        <button className="unified-dropdown-item">
                                                             <IconEdit />
                                                             Edit
                                                         </button>
                                                         <button 
-                                                            className="dropdown-item danger"
+                                                            className="unified-dropdown-item danger"
                                                             onClick={() => handleDelete(product.id)}
                                                         >
                                                             <IconTrash2 />
@@ -298,31 +298,33 @@ export default function AdminProducts() {
                                 <div className="product-card-image">
                                     📦
                                     <div className="product-card-actions">
-                                        <button
-                                            className="btn-more"
-                                            onClick={() => setActiveDropdown(activeDropdown === product.id ? null : product.id)}
-                                        >
-                                            <IconMoreVertical />
-                                        </button>
-                                        {activeDropdown === product.id && (
-                                            <div className="dropdown-menu">
-                                                <button className="dropdown-item">
-                                                    <IconEye />
-                                                    View Details
-                                                </button>
-                                                <button className="dropdown-item">
-                                                    <IconEdit />
-                                                    Edit
-                                                </button>
-                                                <button 
-                                                    className="dropdown-item danger"
-                                                    onClick={() => handleDelete(product.id)}
-                                                >
-                                                    <IconTrash2 />
-                                                    Delete
-                                                </button>
-                                            </div>
-                                        )}
+                                        <div className={`unified-dropdown ${activeDropdown === product.id ? 'active' : ''}`}>
+                                            <button
+                                                className="unified-more-btn"
+                                                onClick={() => setActiveDropdown(activeDropdown === product.id ? null : product.id)}
+                                            >
+                                                <IconMoreVertical />
+                                            </button>
+                                            {activeDropdown === product.id && (
+                                                <div className="unified-dropdown-menu">
+                                                    <button className="unified-dropdown-item">
+                                                        <IconEye />
+                                                        View Details
+                                                    </button>
+                                                    <button className="unified-dropdown-item">
+                                                        <IconEdit />
+                                                        Edit
+                                                    </button>
+                                                    <button 
+                                                        className="unified-dropdown-item danger"
+                                                        onClick={() => handleDelete(product.id)}
+                                                    >
+                                                        <IconTrash2 />
+                                                        Delete
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                                 <div className="product-card-content">
