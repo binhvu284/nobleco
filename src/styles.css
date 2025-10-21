@@ -1133,6 +1133,7 @@ input:focus {
     display: flex;
     align-items: center;
     gap: 8px;
+    z-index: var(--z-dropdown);
 }
 
 .admin-user {
@@ -1157,32 +1158,38 @@ input:focus {
     border-radius: 999px;
 }
 
-.dropdown {
+.admin-header .dropdown {
     position: absolute;
     right: 0;
     top: 100%;
-    margin-top: 8px;
-    background: var(--panel);
+    margin-top: 4px;
+    background: white;
     border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 8px;
+    border-radius: 8px;
+    padding: 0;
     min-width: 160px;
-    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
-    z-index: 150;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: var(--z-dropdown-active);
+    overflow: hidden;
 }
 
-.dropdown a {
+.admin-header .dropdown a {
     display: flex;
     align-items: center;
     gap: 8px;
     color: var(--text);
     text-decoration: none;
-    padding: 8px;
-    border-radius: 8px;
+    padding: 10px 16px;
+    border-bottom: 1px solid #f3f4f6;
+    transition: background-color 0.2s ease;
 }
 
-.dropdown a:hover {
-    background: rgba(0, 0, 0, 0.06);
+.admin-header .dropdown a:last-child {
+    border-bottom: none;
+}
+
+.admin-header .dropdown a:hover {
+    background: var(--bg);
 }
 
 /* Modal (popup) */
@@ -4151,16 +4158,16 @@ input:focus {
 
     /* Fix dropdown position on mobile */
     .admin-actions {
-        position: static !important;
+        position: relative !important;
         overflow: visible !important;
     }
 
     .admin-header .dropdown {
-        position: fixed !important;
-        right: 8px !important;
+        position: absolute !important;
+        right: 0 !important;
         left: auto !important;
-        top: 48px !important;
-        margin-top: 0 !important;
+        top: 100% !important;
+        margin-top: 8px !important;
         min-width: 140px !important;
         max-width: calc(100vw - 16px);
         z-index: 999 !important;
