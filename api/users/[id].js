@@ -19,7 +19,7 @@ export default async function handler(req, res) {
     // Fetch user from database
     const { data: userData, error: userError } = await supabase
       .from('users')
-      .select('id, email, name, role, points, level, status, refer_code, commission, phone, address, created_at')
+      .select('id, email, name, role, points, level, status, refer_code, commission, phone, address, created_at, referred_by')
       .eq('id', userId)
       .single();
 
@@ -44,6 +44,7 @@ export default async function handler(req, res) {
         phone: userData.phone,
         address: userData.address,
         created_at: userData.created_at,
+        referred_by: userData.referred_by,
       },
     });
   } catch (error) {
