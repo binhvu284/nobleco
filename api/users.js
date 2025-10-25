@@ -60,7 +60,7 @@ export default async function handler(req, res) {
             .from('users')
             .update(updates)
             .eq('id', id)
-            .select('id, email, name, role, points, level, status, refer_code, commission, phone, address, created_at')
+            .select('id, email, name, role, points, level, status, refer_code, commission, phone, address, created_at, referred_by')
             .single();
 
           if (userError) {

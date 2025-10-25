@@ -152,7 +152,7 @@ export default function AdminProducts() {
                         </div>
                         
                         {/* Mobile column selector */}
-                        <div className="mobile-column-selector mobile-only">
+                        <div className={`mobile-column-selector mobile-only ${showColumnDropdown ? 'active' : ''}`}>
                             <button
                                 className="column-toggle-btn"
                                 onClick={() => setShowColumnDropdown(!showColumnDropdown)}

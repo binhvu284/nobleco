@@ -110,7 +110,7 @@ export default function AdminClients() {
         const handleClickOutside = (event: MouseEvent) => {
             if (activeDropdown !== null) {
                 const target = event.target as HTMLElement;
-                if (!target.closest('.action-dropdown')) {
+                if (!target.closest('.unified-dropdown')) {
                     setActiveDropdown(null);
                 }
             }
@@ -125,53 +125,6 @@ export default function AdminClients() {
     return (
         <AdminLayout title="Client Management">
             <div className="admin-clients-page">
-                {/* Header */}
-                <div className="clients-header">
-                    <div className="clients-header-info">
-                        <h1>Client Management</h1>
-                        <p>Manage and view all client information</p>
-                    </div>
-                    <button className="btn-create-client" title="Add New Client">
-                        <IconPlus />
-                        Add Client
-                    </button>
-                </div>
-
-                {/* Search and Filter Bar */}
-                <div className="clients-toolbar">
-                    <div className="search-box">
-                        <IconSearch />
-                        <input
-                            type="text"
-                            placeholder="Search clients by name, phone, or creator..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                        />
-                    </div>
-                    <div className="filter-controls">
-                        <button className="filter-btn">
-                            <IconFilter />
-                            Filter
-                        </button>
-                    </div>
-                </div>
-
-                {/* Stats Cards */}
-                <div className="clients-stats">
-                    <div className="stat-card">
-                        <div className="stat-value">{clients.length}</div>
-                        <div className="stat-label">Total Clients</div>
-                    </div>
-                    <div className="stat-card">
-                        <div className="stat-value">{clients.reduce((sum, client) => sum + client.ordersMade, 0)}</div>
-                        <div className="stat-label">Total Orders</div>
-                    </div>
-                    <div className="stat-card">
-                        <div className="stat-value">{new Set(clients.map(client => client.madeBy)).size}</div>
-                        <div className="stat-label">Active Creators</div>
-                    </div>
-                </div>
-
                 {/* Clients Table */}
                 <div className="clients-table-container">
                     <div className="table-wrap">
@@ -206,18 +159,18 @@ export default function AdminClients() {
                                         </td>
                                         <td>{formatDate(client.createDate)}</td>
                                         <td>
-                                            <div className="action-dropdown">
+                                            <div className={`unified-dropdown ${activeDropdown === client.id ? 'active' : ''}`}>
                                                 <button 
-                                                    className="btn-more"
+                                                    className="unified-more-btn"
                                                     onClick={() => handleDropdownToggle(client.id)}
                                                     title="More Actions"
                                                 >
                                                     <IconMoreHorizontal />
                                                 </button>
                                                 {activeDropdown === client.id && (
-                                                    <div className="dropdown-menu">
+                                                    <div className="unified-dropdown-menu">
                                                         <button 
-                                                            className="dropdown-item"
+                                                            className="unified-dropdown-item"
                                                             onClick={() => {
                                                                 handleViewDetail(client);
                                                                 handleDropdownClose();
@@ -227,7 +180,7 @@ export default function AdminClients() {
                                                             View Details
                                                         </button>
                                                         <button 
-                                                            className="dropdown-item delete"
+                                                            className="unified-dropdown-item danger"
                                                             onClick={() => {
                                                                 handleDeleteClick(client);
                                                                 handleDropdownClose();

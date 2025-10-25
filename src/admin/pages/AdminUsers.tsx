@@ -1,6 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import AdminLayout from '../components/AdminLayout';
-import { IconPlus, IconSearch, IconFilter, IconList, IconGrid, IconLayout, IconChevronDown } from '../components/icons';
+import UserDetailModal from '../components/UserDetailModal';
+import { 
+    IconSearch, 
+    IconFilter, 
+    IconList, 
+    IconGrid,
+    IconPlus,
+    IconMoreVertical 
+} from '../components/icons';
 
 type User = {
     id: string | number;
@@ -11,6 +19,10 @@ type User = {
     level?: string;
     status?: string;
     created_at?: string;
+    refer_code?: string;
+    phone?: string;
+    address?: string;
+    referred_by?: string;
 };
 
 type Level = 'guest' | 'member' | 'unit manager' | 'brand manager';
@@ -36,14 +48,13 @@ export default function AdminUsers() {
     const [filterLevel, setFilterLevel] = useState<Level | 'all'>('all');
     const [filterStatus, setFilterStatus] = useState<Status | 'all'>('all');
     const [filterDate, setFilterDate] = useState<string>('');
-    const [viewMode, setViewMode] = useState<'table' | 'list'>(
-        window.innerWidth <= 768 ? 'list' : 'table'
-    );
+
+    // View mode states
+    const [viewMode, setViewMode] = useState<'table' | 'card'>('table');
+    const [isMobile, setIsMobile] = useState(false);
 
     // Mobile states
     const [filterPopupOpen, setFilterPopupOpen] = useState(false);
-    const [mobileColumns, setMobileColumns] = useState<1 | 2 | 3>(2);
-    const [showColumnDropdown, setShowColumnDropdown] = useState(false);
 
     // Modal states
     const [deleteModal, setDeleteModal] = useState<{ show: boolean; userId: string | number | null; userEmail: string }>({ 
@@ -51,6 +62,7 @@ export default function AdminUsers() {
         userId: null, 
         userEmail: '' 
     });
+    const [selectedUserForDetail, setSelectedUserForDetail] = useState<User | null>(null);
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
@@ -77,35 +89,26 @@ export default function AdminUsers() {
         return () => { cancelled = true; };
     }, []);
 
-    // Handle window resize to force list view on mobile
+    // Mobile detection and view mode management
     useEffect(() => {
-        const handleResize = () => {
-            if (window.innerWidth <= 768) {
-                setViewMode('list');
+        const checkMobile = () => {
+            const mobile = window.innerWidth <= 768;
+            setIsMobile(mobile);
+            // Force card view on mobile
+            if (mobile && viewMode === 'table') {
+                setViewMode('card');
             }
         };
 
-        window.addEventListener('resize', handleResize);
-        return () => window.removeEventListener('resize', handleResize);
-    }, []);
+        // Check on mount
+        checkMobile();
 
-    // Handle click outside to close dropdown
-    useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            const target = event.target as Element;
-            if (!target.closest('.mobile-column-selector')) {
-                setShowColumnDropdown(false);
-            }
-        };
+        // Add resize listener
+        window.addEventListener('resize', checkMobile);
 
-        if (showColumnDropdown) {
-            document.addEventListener('click', handleClickOutside);
-        }
-
-        return () => {
-            document.removeEventListener('click', handleClickOutside);
-        };
-    }, [showColumnDropdown]);
+        // Cleanup
+        return () => window.removeEventListener('resize', checkMobile);
+    }, [viewMode]);
 
     const openDeleteModal = (userId: string | number, userEmail: string) => {
         setDeleteModal({ show: true, userId, userEmail });
@@ -212,8 +215,8 @@ export default function AdminUsers() {
     return (
         <AdminLayout title="User Management">
             <div className="admin-users">
-                {/* Toolbar */}
-                <div className="admin-users-toolbar">
+                {/* Clean Toolbar */}
+                <div className="categories-toolbar">
                     <div className="toolbar-left">
                         <div className="search-container">
                             <IconSearch className="search-icon" />
@@ -225,11 +228,7 @@ export default function AdminUsers() {
                                 className="search-input"
                             />
                         </div>
-                        <button 
-                            className="btn-filter" 
-                            title="Filter users"
-                            onClick={() => setFilterPopupOpen(true)}
-                        >
+                        <button className="btn-filter" title="Filter">
                             <IconFilter />
                         </button>
                     </div>
@@ -238,155 +237,37 @@ export default function AdminUsers() {
                         <div className="view-toggle desktop-only">
                             <button
                                 className={`view-btn ${viewMode === 'table' ? 'active' : ''}`}
-                                onClick={() => setViewMode('table')}
+                                onClick={() => !isMobile && setViewMode('table')}
                                 title="Table view"
+                                disabled={isMobile}
                             >
                                 <IconList />
                             </button>
                             <button
-                                className={`view-btn ${viewMode === 'list' ? 'active' : ''}`}
-                                onClick={() => setViewMode('list')}
-                                title="List view"
+                                className={`view-btn ${viewMode === 'card' ? 'active' : ''}`}
+                                onClick={() => setViewMode('card')}
+                                title="Card view"
                             >
                                 <IconGrid />
                             </button>
                         </div>
                         
-                        {/* Mobile column selector */}
-                        <div className="mobile-column-selector mobile-only">
-                            <button
-                                className="column-toggle-btn"
-                                onClick={() => setShowColumnDropdown(!showColumnDropdown)}
-                                title="Choose users per row"
-                            >
-                                <IconLayout />
-                                <span className="column-count">{mobileColumns}</span>
-                                <IconChevronDown className={`chevron ${showColumnDropdown ? 'rotated' : ''}`} />
-                            </button>
-                            {showColumnDropdown && (
-                                <div className="column-dropdown">
-                                    <div className="dropdown-header">Users per row</div>
-                                    <button
-                                        className={`column-option ${mobileColumns === 1 ? 'active' : ''}`}
-                                        onClick={() => {
-                                            setMobileColumns(1);
-                                            setShowColumnDropdown(false);
-                                        }}
-                                    >
-                                        <span className="option-icon">📱</span>
-                                        <span className="option-text">1 per row</span>
-                                        <span className="option-desc">Large view</span>
-                                    </button>
-                                    <button
-                                        className={`column-option ${mobileColumns === 2 ? 'active' : ''}`}
-                                        onClick={() => {
-                                            setMobileColumns(2);
-                                            setShowColumnDropdown(false);
-                                        }}
-                                    >
-                                        <span className="option-icon">📱📱</span>
-                                        <span className="option-text">2 per row</span>
-                                        <span className="option-desc">Balanced</span>
-                                    </button>
-                                    <button
-                                        className={`column-option ${mobileColumns === 3 ? 'active' : ''}`}
-                                        onClick={() => {
-                                            setMobileColumns(3);
-                                            setShowColumnDropdown(false);
-                                        }}
-                                    >
-                                        <span className="option-icon">📱📱📱</span>
-                                        <span className="option-text">3 per row</span>
-                                        <span className="option-desc">Compact</span>
-                                    </button>
-                                </div>
-                            )}
+                        {/* Mobile column selector - hidden on users since it's not needed */}
+                        <div className="mobile-column-selector mobile-only" style={{ display: 'none' }}>
                         </div>
                         
-                        <button className="btn-create-user" title="Create User">
+                        <button 
+                            className="create-btn"
+                            title="Create User"
+                        >
                             <IconPlus />
                             <span className="desktop-only">Create User</span>
                         </button>
                     </div>
                 </div>
 
-                {/* Hidden Filter Panel for Mobile */}
-                <div className="hidden-filter-controls">
-                    <select
-                        value={filterLevel}
-                        onChange={(e) => setFilterLevel(e.target.value as Level | 'all')}
-                        className="filter-select"
-                    >
-                        <option value="all">All Levels</option>
-                        <option value="guest">Guest</option>
-                        <option value="member">Member</option>
-                        <option value="unit manager">Unit Manager</option>
-                        <option value="brand manager">Brand Manager</option>
-                    </select>
-                    <select
-                        value={filterStatus}
-                        onChange={(e) => setFilterStatus(e.target.value as Status | 'all')}
-                        className="filter-select"
-                    >
-                        <option value="all">All Status</option>
-                        <option value="active">Active</option>
-                        <option value="inactive">Inactive</option>
-                    </select>
-                    <input
-                        type="date"
-                        value={filterDate}
-                        onChange={(e) => setFilterDate(e.target.value)}
-                        className="filter-date"
-                        placeholder="Filter by date"
-                    />
-                    {(searchQuery || filterLevel !== 'all' || filterStatus !== 'all' || filterDate) && (
-                        <button
-                            onClick={() => {
-                                setSearchQuery('');
-                                setFilterLevel('all');
-                                setFilterStatus('all');
-                                setFilterDate('');
-                            }}
-                            className="clear-filters-btn"
-                        >
-                            Clear Filters
-                        </button>
-                    )}
-                </div>
-
-                {/* Old view toggle removed - now in toolbar */}
-                <div style={{ display: 'none' }}>
-                    <div className="view-toggle-old">
-                        <button
-                            onClick={() => setViewMode('table')}
-                            className={`view-btn ${viewMode === 'table' ? 'active' : ''}`}
-                            aria-label="Table view"
-                        >
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <rect x="3" y="3" width="18" height="18" rx="2"/>
-                                <line x1="3" y1="9" x2="21" y2="9"/>
-                                <line x1="3" y1="15" x2="21" y2="15"/>
-                                <line x1="9" y1="9" x2="9" y2="21"/>
-                            </svg>
-                        </button>
-                        <button
-                            onClick={() => setViewMode('list')}
-                            className={`view-btn ${viewMode === 'list' ? 'active' : ''}`}
-                            aria-label="List view"
-                        >
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <line x1="8" y1="6" x2="21" y2="6"/>
-                                <line x1="8" y1="12" x2="21" y2="12"/>
-                                <line x1="8" y1="18" x2="21" y2="18"/>
-                                <line x1="3" y1="6" x2="3.01" y2="6"/>
-                                <line x1="3" y1="12" x2="3.01" y2="12"/>
-                                <line x1="3" y1="18" x2="3.01" y2="18"/>
-                            </svg>
-                        </button>
-                    </div>
-                </div>
-
-                {viewMode === 'table' ? (
+                {/* Table View */}
+                {viewMode === 'table' && !isMobile ? (
                     <div className="table-wrap">
                         <table className="table">
                         <thead>
@@ -451,6 +332,22 @@ export default function AdminUsers() {
                                                 <div className="menu">
                                                     <button 
                                                         className="menu-item" 
+                                                        onClick={() => {
+                                                            const user = users.find(u => u.id === r.id);
+                                                            if (user) {
+                                                                setSelectedUserForDetail(user);
+                                                                setMenuOpenId(null);
+                                                            }
+                                                        }}
+                                                    >
+                                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                                                            <circle cx="12" cy="12" r="3" />
+                                                        </svg>
+                                                        View Detail
+                                                    </button>
+                                                    <button 
+                                                        className="menu-item" 
                                                         onClick={() => updateUserStatus(r.id, r.status === 'active' ? 'inactive' : 'active')}
                                                         disabled={isUpdatingStatus}
                                                     >
@@ -479,81 +376,101 @@ export default function AdminUsers() {
                     </table>
                 </div>
                 ) : (
-                    <div className={`list-view users-list mobile-cols-${mobileColumns}`}>
+                    /* Card View */
+                    <div className={`users-grid users-grid-2`}>
                         {loading ? (
-                            filteredRows.map((r) => (
-                                <div key={`loading-${r.id}`} className="list-item row-loading">
-                                    <div className="list-item-header">
-                                        <div className="list-item-title">
-                                            <strong>{r.name}</strong>
-                                            <code className="list-item-id">{r.id}</code>
+                            // Show skeleton loading cards
+                            Array.from({ length: 6 }).map((_, i) => (
+                                <div key={`skeleton-card-${i}`} className="user-card skeleton-card">
+                                    <div className="card-header">
+                                        <div className="skeleton skeleton-avatar"></div>
+                                        <div className="card-info">
+                                            <div className="skeleton skeleton-text" style={{ width: '120px', height: '16px' }}></div>
+                                            <div className="skeleton skeleton-text" style={{ width: '180px', height: '14px', marginTop: '8px' }}></div>
                                         </div>
-                                        <span className={`badge ${r.status === 'active' ? 'badge-success' : 'badge-muted'}`}>{r.status}</span>
                                     </div>
-                                    <div className="list-item-body">
-                                        <div className="list-item-field">
-                                            <span className="field-label">Email:</span>
-                                            <span className="field-value">{r.email}</span>
-                                        </div>
-                                        <div className="list-item-field">
-                                            <span className="field-label">Level:</span>
-                                            <span className={`badge ${`badge-level-${r.level.replace(/\s+/g, '-')}`}`}>{
-                                                r.level === 'unit manager' ? 'Unit Manager' : r.level === 'brand manager' ? 'Brand Manager' : r.level === 'member' ? 'Member' : 'Guest'
-                                            }</span>
-                                        </div>
-                                        <div className="list-item-field">
-                                            <span className="field-label">Points:</span>
-                                            <span className="field-value">{r.points}</span>
-                                        </div>
-                                        <div className="list-item-field">
-                                            <span className="field-label">Created at:</span>
-                                            <span className="field-value">{r.createdAt}</span>
-                                        </div>
+                                    <div className="card-body">
+                                        <div className="skeleton skeleton-badge" style={{ width: '80px' }}></div>
+                                        <div className="skeleton skeleton-badge" style={{ width: '60px', marginTop: '8px' }}></div>
                                     </div>
                                 </div>
                             ))
                         ) : filteredRows.length === 0 ? (
-                            <div className="empty-state">No users found</div>
+                            <div className="empty-state">
+                                <p>No users found</p>
+                            </div>
                         ) : (
-                            filteredRows.map((r) => (
-                                <div key={String(r.id)} className="list-item">
-                                    <div className="list-item-header">
-                                        <div className="list-item-title">
-                                            <strong>{r.name}</strong>
-                                            <code className="list-item-id">{r.id}</code>
-                                        </div>
-                                        <div className="list-item-actions">
-                                            <span className={`badge ${r.status === 'active' ? 'badge-success' : 'badge-muted'}`}>{r.status}</span>
-                                            <div className="row-actions">
+                            filteredRows.map((r) => {
+                                const user = users.find(u => u.id === r.id);
+                                return (
+                                    <div key={String(r.id)} className="user-card">
+                                        <div className="card-header">
+                                            <div className="user-avatar">
+                                                {r.name.charAt(0).toUpperCase()}
+                                            </div>
+                                            <div className="card-info">
+                                                <h3>{r.name}</h3>
+                                                <p className="user-email">{r.email}</p>
+                                            </div>
+                                            <div className="card-meta">
+                                                <span className={`badge ${r.status === 'active' ? 'badge-success' : 'badge-muted'}`}>{r.status}</span>
+                                                <span className="created-date">{r.createdAt}</span>
+                                            </div>
+                                            <div className="unified-dropdown">
                                                 <button
-                                                    className="more-btn"
-                                                    aria-label="More actions"
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        setMenuOpenId((prev) => prev === r.id ? null : r.id);
-                                                    }}
+                                                    className="unified-more-btn"
+                                                    onClick={() => setMenuOpenId((prev) => prev === r.id ? null : r.id)}
                                                 >
-                                                    ⋯
+                                                    <IconMoreVertical />
                                                 </button>
                                                 {menuOpenId === r.id && (
-                                                    <div className="menu">
+                                                    <div className="unified-dropdown-menu">
                                                         <button 
-                                                            className="menu-item" 
-                                                            onClick={() => updateUserStatus(r.id, r.status === 'active' ? 'inactive' : 'active')}
-                                                            disabled={isUpdatingStatus}
+                                                            className="unified-dropdown-item" 
+                                                            onClick={() => {
+                                                                if (user) {
+                                                                    setSelectedUserForDetail(user);
+                                                                    setMenuOpenId(null);
+                                                                }
+                                                            }}
                                                         >
                                                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                                {r.status === 'active' ? (
-                                                                    <path d="M18 6L6 18M6 6l12 12" />
-                                                                ) : (
-                                                                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14M22 4L12 14.01l-3-3" />
-                                                                )}
+                                                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                                                                <circle cx="12" cy="12" r="3" />
                                                             </svg>
-                                                            {r.status === 'active' ? 'Deactivate' : 'Activate'}
+                                                            View Detail
                                                         </button>
-                                                        <button className="menu-item danger" onClick={() => openDeleteModal(r.id, r.email)}>
+                                                        {r.status === 'active' ? (
+                                                            <button 
+                                                                className="unified-dropdown-item" 
+                                                                onClick={() => updateUserStatus(r.id, 'inactive')}
+                                                                disabled={isUpdatingStatus}
+                                                            >
+                                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                                    <circle cx="12" cy="12" r="10" />
+                                                                    <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
+                                                                </svg>
+                                                                Deactivate
+                                                            </button>
+                                                        ) : (
+                                                            <button 
+                                                                className="unified-dropdown-item" 
+                                                                onClick={() => updateUserStatus(r.id, 'active')}
+                                                                disabled={isUpdatingStatus}
+                                                            >
+                                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                                    <polyline points="20 6 9 17 4 12" />
+                                                                </svg>
+                                                                Activate
+                                                            </button>
+                                                        )}
+                                                        <button 
+                                                            className="unified-dropdown-item danger" 
+                                                            onClick={() => openDeleteModal(r.id, r.email)}
+                                                        >
                                                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                                <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6" />
+                                                                <polyline points="3 6 5 6 21 6" />
+                                                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
                                                             </svg>
                                                             Delete
                                                         </button>
@@ -561,29 +478,25 @@ export default function AdminUsers() {
                                                 )}
                                             </div>
                                         </div>
-                                    </div>
-                                    <div className="list-item-body">
-                                        <div className="list-item-field">
-                                            <span className="field-label">Email:</span>
-                                            <span className="field-value">{r.email}</span>
-                                        </div>
-                                        <div className="list-item-field">
-                                            <span className="field-label">Level:</span>
-                                            <span className={`badge ${`badge-level-${r.level.replace(/\s+/g, '-')}`}`}>{
-                                                r.level === 'unit manager' ? 'Unit Manager' : r.level === 'brand manager' ? 'Brand Manager' : r.level === 'member' ? 'Member' : 'Guest'
-                                            }</span>
-                                        </div>
-                                        <div className="list-item-field">
-                                            <span className="field-label">Points:</span>
-                                            <span className="field-value">{r.points}</span>
-                                        </div>
-                                        <div className="list-item-field">
-                                            <span className="field-label">Created at:</span>
-                                            <span className="field-value">{r.createdAt}</span>
+                                        <div className="card-body">
+                                            <div className="card-detail">
+                                                <span className="detail-label">ID:</span>
+                                                <span className="detail-value"><code>{r.id}</code></span>
+                                            </div>
+                                            <div className="card-detail">
+                                                <span className="detail-label">Level:</span>
+                                                <span className={`badge ${`badge-level-${r.level.replace(/\s+/g, '-')}`}`}>
+                                                    {r.level === 'unit manager' ? 'Unit Manager' : r.level === 'brand manager' ? 'Brand Manager' : r.level === 'member' ? 'Member' : 'Guest'}
+                                                </span>
+                                            </div>
+                                            <div className="card-detail">
+                                                <span className="detail-label">Points:</span>
+                                                <span className="detail-value">{r.points}</span>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            ))
+                                );
+                            })
                         )}
                     </div>
                 )}
@@ -714,6 +627,13 @@ export default function AdminUsers() {
                     </div>
                 </>
             )}
+
+            {/* User Detail Modal */}
+            <UserDetailModal 
+                open={selectedUserForDetail !== null}
+                onClose={() => setSelectedUserForDetail(null)}
+                user={selectedUserForDetail}
+            />
         </AdminLayout>
     );
 }
