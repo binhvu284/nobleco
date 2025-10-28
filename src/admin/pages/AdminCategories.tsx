@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import AdminLayout from '../components/AdminLayout';
 import CategoryDetailModal from '../components/CategoryDetailModal';
+import ConfirmModal from '../components/ConfirmModal';
 import { 
   IconPlus,
   IconSearch,
@@ -40,6 +41,13 @@ export default function AdminCategories() {
   const [isMobile, setIsMobile] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [notification, setNotification] = useState<{
+    type: 'success' | 'error';
+    message: string;
+  } | null>(null);
 
   // Fetch categories from database
   const fetchCategories = async () => {
@@ -95,25 +103,56 @@ export default function AdminCategories() {
     (category.description && category.description.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
-  const handleDelete = async (categoryId: number) => {
-    if (window.confirm('Are you sure you want to delete this category?')) {
-      try {
-        const response = await fetch(`/api/categories?id=${categoryId}`, {
-          method: 'DELETE'
-        });
+  const handleDeleteClick = (category: Category) => {
+    setCategoryToDelete(category);
+    setShowDeleteConfirm(true);
+    setActiveDropdown(null);
+  };
 
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({ error: 'Failed to delete category' }));
-          throw new Error(errorData.error || 'Failed to delete category');
-        }
+  const handleDeleteConfirm = async () => {
+    if (!categoryToDelete) return;
 
-        // Refresh categories list
-        fetchCategories();
-      } catch (err) {
-        console.error('Error deleting category:', err);
-        alert(err instanceof Error ? err.message : 'Failed to delete category');
+    try {
+      setDeleteLoading(true);
+      const response = await fetch(`/api/categories?id=${categoryToDelete.id}`, {
+        method: 'DELETE'
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Failed to delete category' }));
+        throw new Error(errorData.error || 'Failed to delete category');
       }
+
+      // Show success notification
+      setNotification({
+        type: 'success',
+        message: 'Category deleted successfully'
+      });
+
+      // Auto-hide notification after 3 seconds
+      setTimeout(() => setNotification(null), 3000);
+
+      // Close modal and refresh categories list
+      setShowDeleteConfirm(false);
+      setCategoryToDelete(null);
+      fetchCategories();
+    } catch (err) {
+      console.error('Error deleting category:', err);
+      setNotification({
+        type: 'error',
+        message: err instanceof Error ? err.message : 'Failed to delete category'
+      });
+
+      // Auto-hide notification after 3 seconds
+      setTimeout(() => setNotification(null), 3000);
+    } finally {
+      setDeleteLoading(false);
     }
+  };
+
+  const handleDeleteCancel = () => {
+    setShowDeleteConfirm(false);
+    setCategoryToDelete(null);
   };
 
   const handleEdit = (category: Category) => {
@@ -292,7 +331,7 @@ export default function AdminCategories() {
                               <IconEdit />
                               Edit
                             </button>
-                            <button className="unified-dropdown-item danger" onClick={() => handleDelete(category.id)}>
+                            <button className="unified-dropdown-item danger" onClick={() => handleDeleteClick(category)}>
                               <IconTrash2 />
                               Delete
                             </button>
@@ -341,7 +380,7 @@ export default function AdminCategories() {
                             <IconEdit />
                             Edit
                           </button>
-                          <button className="unified-dropdown-item danger" onClick={() => handleDelete(category.id)}>
+                          <button className="unified-dropdown-item danger" onClick={() => handleDeleteClick(category)}>
                             <IconTrash2 />
                             Delete
                           </button>
@@ -433,6 +472,41 @@ export default function AdminCategories() {
           onClose={handleCloseDetail}
           category={selectedCategory}
         />
+
+        {/* Delete Confirmation Modal */}
+        <ConfirmModal
+          open={showDeleteConfirm}
+          onClose={handleDeleteCancel}
+          onConfirm={handleDeleteConfirm}
+          title="Delete Category"
+          message={`Are you sure you want to delete "${categoryToDelete?.name}"? ${
+            categoryToDelete?.product_count && categoryToDelete.product_count > 0
+              ? `This category has ${categoryToDelete.product_count} product${categoryToDelete.product_count > 1 ? 's' : ''}. `
+              : ''
+          }This action cannot be undone.`}
+          confirmText="Delete"
+          cancelText="Cancel"
+          type="danger"
+          loading={deleteLoading}
+        />
+
+        {/* Notification Toast */}
+        {notification && (
+          <div className={`notification-toast ${notification.type}`}>
+            <div className="notification-content">
+              <span className="notification-icon">
+                {notification.type === 'success' ? '✓' : '✕'}
+              </span>
+              <span className="notification-message">{notification.message}</span>
+            </div>
+            <button 
+              className="notification-close"
+              onClick={() => setNotification(null)}
+            >
+              ✕
+            </button>
+          </div>
+        )}
       </div>
     </AdminLayout>
   );
