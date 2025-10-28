@@ -48,7 +48,7 @@ export default function CategoryDetailModal({ open, onClose, category }: Categor
 
         try {
             setLoadingProducts(true);
-            const response = await fetch(`/api/categories/products?categoryId=${category.id}`);
+            const response = await fetch(`/api/categories?categoryId=${category.id}`);
             
             if (!response.ok) {
                 throw new Error('Failed to fetch category products');

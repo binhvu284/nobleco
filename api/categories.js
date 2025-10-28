@@ -1,8 +1,9 @@
 import * as categoriesRepo from './_repo/categories.js';
+import { getSupabase } from './_db.js';
 
 /**
  * Categories API Handler
- * Handles CRUD operations for categories
+ * Handles CRUD operations for categories and category products
  */
 export default async function handler(req, res) {
   // CORS headers for development
@@ -20,9 +21,54 @@ export default async function handler(req, res) {
   }
 
   try {
-    // GET - List all categories or get by ID
+    // GET - List all categories, get by ID, or get products by category
     if (req.method === 'GET') {
-      const { id } = req.query;
+      const { id, categoryId } = req.query;
+
+      // Get products by category ID
+      if (categoryId) {
+        const supabase = getSupabase();
+
+        // Get products for this category through the junction table
+        const { data: productCategories, error: junctionError } = await supabase
+          .from('product_categories')
+          .select('product_id')
+          .eq('category_id', parseInt(categoryId));
+
+        if (junctionError) {
+          if (junctionError.code === '42P01') {
+            console.warn('product_categories table does not exist yet');
+            return res.status(200).json([]);
+          }
+          throw new Error(`Error fetching product categories: ${junctionError.message}`);
+        }
+
+        if (!productCategories || productCategories.length === 0) {
+          return res.status(200).json([]);
+        }
+
+        // Get the product IDs
+        const productIds = productCategories.map(pc => pc.product_id);
+
+        // Fetch the actual products
+        const { data: products, error: productsError } = await supabase
+          .from('products')
+          .select('id, name, slug, sku, short_description, price, stock, status')
+          .in('id', productIds)
+          .order('name', { ascending: true });
+
+        if (productsError) {
+          if (productsError.code === '42P01') {
+            console.warn('products table does not exist yet');
+            return res.status(200).json([]);
+          }
+          throw new Error(`Error fetching products: ${productsError.message}`);
+        }
+
+        return res.status(200).json(products || []);
+      }
+
+      // Get category by ID
 
       if (id) {
         const category = await categoriesRepo.getCategoryById(parseInt(id));
