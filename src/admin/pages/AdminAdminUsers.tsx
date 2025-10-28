@@ -171,7 +171,7 @@ export default function AdminAdminUsers() {
         const handleClickOutside = (event: MouseEvent) => {
             if (activeDropdown !== null) {
                 const target = event.target as HTMLElement;
-                if (!target.closest('.action-dropdown')) {
+                if (!target.closest('.unified-dropdown') && !target.closest('.action-dropdown')) {
                     setActiveDropdown(null);
                 }
             }
@@ -333,18 +333,18 @@ export default function AdminAdminUsers() {
                                                     </span>
                                                 </td>
                                                 <td>
-                                                    <div className="action-dropdown">
+                                                    <div className={`unified-dropdown ${activeDropdown === user.id ? 'active' : ''}`}>
                                                         <button 
-                                                            className="btn-more"
+                                                            className="unified-more-btn"
                                                             onClick={() => handleDropdownToggle(user.id)}
                                                             title="More Actions"
                                                         >
                                                             <IconMoreHorizontal />
                                                         </button>
                                                         {activeDropdown === user.id && (
-                                                            <div className="dropdown-menu dropdown-menu-up">
+                                                            <div className="unified-dropdown-menu">
                                                                 <button 
-                                                                    className="dropdown-item"
+                                                                    className="unified-dropdown-item"
                                                                     onClick={() => {
                                                                         handlePermissionClick(user);
                                                                         handleDropdownClose();
@@ -354,7 +354,7 @@ export default function AdminAdminUsers() {
                                                                     Permissions
                                                                 </button>
                                                                 <button 
-                                                                    className="dropdown-item"
+                                                                    className="unified-dropdown-item"
                                                                     disabled={statusUpdating === user.id}
                                                                     onClick={() => {
                                                                         handleStatusToggle(user.id, user.status);
@@ -369,7 +369,7 @@ export default function AdminAdminUsers() {
                                                                     {statusUpdating === user.id ? 'Updating...' : (user.status === 'active' ? 'Deactivate' : 'Activate')}
                                                                 </button>
                                                                 <button 
-                                                                    className="dropdown-item delete"
+                                                                    className="unified-dropdown-item danger"
                                                                     onClick={() => {
                                                                         handleDeleteClick(user);
                                                                         handleDropdownClose();
@@ -428,18 +428,18 @@ export default function AdminAdminUsers() {
                                     <div key={user.id} className="coworker-mobile-card">
                                         {/* Three-dot button positioned at top right */}
                                         <div className="coworker-card-actions">
-                                            <div className="action-dropdown">
+                                            <div className={`unified-dropdown ${activeDropdown === user.id ? 'active' : ''}`}>
                                                 <button 
-                                                    className="btn-more"
+                                                    className="unified-more-btn"
                                                     onClick={() => handleDropdownToggle(user.id)}
                                                     title="More Actions"
                                                 >
                                                     <IconMoreHorizontal />
                                                 </button>
                                                 {activeDropdown === user.id && (
-                                                    <div className="dropdown-menu">
+                                                    <div className="unified-dropdown-menu">
                                                         <button 
-                                                            className="dropdown-item"
+                                                            className="unified-dropdown-item"
                                                             onClick={() => {
                                                                 handlePermissionClick(user);
                                                                 handleDropdownClose();
@@ -449,7 +449,7 @@ export default function AdminAdminUsers() {
                                                             Permissions
                                                         </button>
                                                         <button 
-                                                            className="dropdown-item"
+                                                            className="unified-dropdown-item"
                                                             disabled={statusUpdating === user.id}
                                                             onClick={() => {
                                                                 handleStatusToggle(user.id, user.status);
@@ -464,7 +464,7 @@ export default function AdminAdminUsers() {
                                                             {statusUpdating === user.id ? 'Updating...' : (user.status === 'active' ? 'Deactivate' : 'Activate')}
                                                         </button>
                                                         <button 
-                                                            className="dropdown-item delete"
+                                                            className="unified-dropdown-item danger"
                                                             onClick={() => {
                                                                 handleDeleteClick(user);
                                                                 handleDropdownClose();

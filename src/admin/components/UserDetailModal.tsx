@@ -20,8 +20,9 @@ interface UserDetailModalProps {
 import { useState, useEffect } from 'react';
 
 export default function UserDetailModal({ open, onClose, user }: UserDetailModalProps) {
-    const [inferiorsCount, setInferiorsCount] = useState<number>(0);
-    const [superiorName, setSuperiorName] = useState<string>('None');
+    const [directInferiorsCount, setDirectInferiorsCount] = useState<number>(0);
+    const [indirectInferiorsCount, setIndirectInferiorsCount] = useState<number>(0);
+    const [superiorInfo, setSuperiorInfo] = useState<{ name: string; email?: string } | null>(null);
     const [loadingHierarchy, setLoadingHierarchy] = useState(false);
 
     useEffect(() => {
@@ -35,23 +36,41 @@ export default function UserDetailModal({ open, onClose, user }: UserDetailModal
         
         setLoadingHierarchy(true);
         try {
-            // Fetch hierarchy data
-            const response = await fetch(`/api/users/hierarchy?userId=${user.id}`);
+            // Fetch hierarchy data with details to get indirect inferiors
+            const response = await fetch(`/api/users/hierarchy?userId=${user.id}&includeDetails=true`);
             if (response.ok) {
                 const data = await response.json();
-                setInferiorsCount(data.inferiors?.length || 0);
+                
+                // Count direct inferiors
+                const directCount = data.inferiors?.length || 0;
+                setDirectInferiorsCount(directCount);
+                
+                // Count indirect inferiors (all inferiors of direct inferiors)
+                let indirectCount = 0;
+                if (data.inferiors) {
+                    data.inferiors.forEach((inferior: any) => {
+                        if (inferior.inferiors_list) {
+                            indirectCount += inferior.inferiors_list.length;
+                        }
+                    });
+                }
+                setIndirectInferiorsCount(indirectCount);
                 
                 // The hierarchy API already returns the superior object with name
                 if (data.superior) {
-                    setSuperiorName(data.superior.name || data.superior.email || 'Unknown');
+                    setSuperiorInfo({
+                        name: data.superior.name || data.superior.email || 'Unknown',
+                        email: data.superior.email
+                    });
                 } else {
-                    setSuperiorName('None');
+                    setSuperiorInfo(null);
                 }
             }
         } catch (error) {
             console.error('Error fetching hierarchy info:', error);
-            setInferiorsCount(0);
-            setSuperiorName('None');
+            setDirectInferiorsCount(0);
+            setIndirectInferiorsCount(0);
+            setSuperiorInfo(null);
         } finally {
             setLoadingHierarchy(false);
         }
@@ -156,11 +175,28 @@ export default function UserDetailModal({ open, onClose, user }: UserDetailModal
                             <div className="detail-list">
                                 <div className="detail-row">
                                     <span className="detail-label">Superior</span>
-                                    <span className="detail-value">{loadingHierarchy ? 'Loading...' : superiorName}</span>
+                                    <div className="detail-value">
+                                        {loadingHierarchy ? (
+                                            'Loading...'
+                                        ) : superiorInfo ? (
+                                            <div className="superior-info">
+                                                <div className="superior-avatar">
+                                                    {superiorInfo.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                                                </div>
+                                                <span className="superior-name">{superiorInfo.name}</span>
+                                            </div>
+                                        ) : (
+                                            'None'
+                                        )}
+                                    </div>
                                 </div>
                                 <div className="detail-row">
-                                    <span className="detail-label">Number of Inferiors</span>
-                                    <span className="detail-value">{loadingHierarchy ? 'Loading...' : inferiorsCount}</span>
+                                    <span className="detail-label">Number of Direct Inferiors</span>
+                                    <span className="detail-value">{loadingHierarchy ? 'Loading...' : directInferiorsCount}</span>
+                                </div>
+                                <div className="detail-row">
+                                    <span className="detail-label">Number of Indirect Inferiors</span>
+                                    <span className="detail-value">{loadingHierarchy ? 'Loading...' : indirectInferiorsCount}</span>
                                 </div>
                             </div>
                         </div>
