@@ -10,7 +10,6 @@ import healthHandler from '../api/health.js';
 import diagnosticsHandler from '../api/diagnostics.js';
 import productsHandler from '../api/products.js';
 import categoriesHandler from '../api/categories.js';
-import categoryProductsHandler from '../api/categories/products.js';
 import checkTablesHandler from '../api/check-tables.js';
 
 const app = express();
@@ -33,7 +32,6 @@ app.all('/api/users/wallet', toRoute(walletHandler));
 app.get('/api/users/:id', toRoute(userByIdHandler));
 app.all('/api/products', toRoute(productsHandler));
 app.all('/api/categories', toRoute(categoriesHandler));
-app.all('/api/categories/products', toRoute(categoryProductsHandler));
 app.all('/api/check-tables', toRoute(checkTablesHandler));
 app.all('/api/health', toRoute(healthHandler));
 app.all('/api/diagnostics', toRoute(diagnosticsHandler));
