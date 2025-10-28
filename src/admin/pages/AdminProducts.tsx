@@ -3,6 +3,7 @@ import AdminLayout from '../components/AdminLayout';
 import { IconPlus, IconSearch, IconFilter, IconList, IconGrid, IconMoreVertical, IconEdit, IconTrash2, IconEye, IconPackage, IconLayout, IconChevronDown, IconCheck, IconX } from '../components/icons';
 import ProductDetailModal from '../components/ProductDetailModal';
 import ConfirmModal from '../components/ConfirmModal';
+import StockManagementModal from '../components/StockManagementModal';
 
 interface Category {
     id: number;
@@ -49,6 +50,7 @@ export default function AdminProducts() {
     const [notification, setNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [productToDelete, setProductToDelete] = useState<{ id: number, name: string } | null>(null);
+    const [showStockManagement, setShowStockManagement] = useState(false);
 
     const filteredProducts = products.filter(product =>
         product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -180,6 +182,49 @@ export default function AdminProducts() {
         setProductToDelete(null);
     };
 
+    const handleUpdateStock = async (productId: number, newStock: number) => {
+        try {
+            const response = await fetch(`/api/products`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    id: productId,
+                    stock: newStock
+                })
+            });
+            
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+                throw new Error(errorData.error || 'Failed to update stock');
+            }
+            
+            // Refresh products list
+            await fetchProducts();
+            
+            // Show success notification
+            setNotification({
+                type: 'success',
+                message: 'Stock updated successfully!'
+            });
+            
+            // Hide notification after 3 seconds
+            setTimeout(() => setNotification(null), 3000);
+        } catch (err) {
+            console.error('Error updating stock:', err);
+            setNotification({
+                type: 'error',
+                message: err instanceof Error ? err.message : 'Failed to update stock.'
+            });
+            
+            // Hide error notification after 5 seconds
+            setTimeout(() => setNotification(null), 5000);
+            
+            throw err; // Re-throw so the modal knows it failed
+        }
+    };
+
     const getStockStatus = (stock: number) => {
         return stock > 0 ? 'In stock' : 'Out of stock';
     };
@@ -261,7 +306,11 @@ export default function AdminProducts() {
                         <button className="btn-filter" title="Filter products">
                             <IconFilter />
                         </button>
-                        <button className="btn-stock-management" title="Stock Management">
+                        <button 
+                            className="btn-stock-management" 
+                            title="Stock Management"
+                            onClick={() => setShowStockManagement(true)}
+                        >
                             <IconPackage />
                             <span>Stock</span>
                         </button>
@@ -672,6 +721,14 @@ export default function AdminProducts() {
                 open={showDetailModal}
                 onClose={handleCloseDetail}
                 product={selectedProduct}
+            />
+
+            {/* Stock Management Modal */}
+            <StockManagementModal
+                open={showStockManagement}
+                onClose={() => setShowStockManagement(false)}
+                products={products}
+                onUpdateStock={handleUpdateStock}
             />
 
             {/* Delete Confirmation Modal */}
