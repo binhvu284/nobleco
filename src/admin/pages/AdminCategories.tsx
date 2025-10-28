@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import AdminLayout from '../components/AdminLayout';
+import CategoryDetailModal from '../components/CategoryDetailModal';
 import { 
   IconPlus,
   IconSearch,
@@ -14,73 +15,58 @@ import {
 
 // Category interface
 interface Category {
-  id: string;
+  id: number;
   name: string;
-  description: string;
-  productCount: number;
+  slug: string;
+  description: string | null;
+  parent_id: number | null;
+  level: number;
   color: string;
-  createdAt: string;
+  status: 'active' | 'inactive';
+  is_featured: boolean;
+  product_count: number;
+  created_at: string;
+  updated_at: string;
 }
 
-// Sample category data
-const sampleCategories: Category[] = [
-  {
-    id: '1',
-    name: 'Electronics',
-    description: 'Electronic devices and gadgets',
-    productCount: 25,
-    color: '#3B82F6',
-    createdAt: '2024-01-15'
-  },
-  {
-    id: '2',
-    name: 'Clothing',
-    description: 'Fashion and apparel items',
-    productCount: 18,
-    color: '#EF4444',
-    createdAt: '2024-01-10'
-  },
-  {
-    id: '3',
-    name: 'Home & Garden',
-    description: 'Home improvement and garden supplies',
-    productCount: 12,
-    color: '#10B981',
-    createdAt: '2024-01-08'
-  },
-  {
-    id: '4',
-    name: 'Books',
-    description: 'Books and educational materials',
-    productCount: 8,
-    color: '#F59E0B',
-    createdAt: '2024-01-05'
-  },
-  {
-    id: '5',
-    name: 'Sports',
-    description: 'Sports equipment and accessories',
-    productCount: 15,
-    color: '#8B5CF6',
-    createdAt: '2024-01-03'
-  },
-  {
-    id: '6',
-    name: 'Beauty',
-    description: 'Beauty and personal care products',
-    productCount: 22,
-    color: '#EC4899',
-    createdAt: '2024-01-01'
-  }
-];
-
 export default function AdminCategories() {
-  const [categories, setCategories] = useState<Category[]>(sampleCategories);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState<'table' | 'card'>('table');
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
+  const [activeDropdown, setActiveDropdown] = useState<number | null>(null);
   const [isMobile, setIsMobile] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
+  const [showDetailModal, setShowDetailModal] = useState(false);
+
+  // Fetch categories from database
+  const fetchCategories = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await fetch('/api/categories');
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Failed to fetch categories' }));
+        throw new Error(errorData.error || 'Failed to fetch categories');
+      }
+      
+      const data = await response.json();
+      setCategories(data);
+    } catch (err) {
+      console.error('Error fetching categories:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load categories');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch categories on mount
+  useEffect(() => {
+    fetchCategories();
+  }, []);
 
   // Mobile detection and view mode management
   useEffect(() => {
@@ -106,12 +92,27 @@ export default function AdminCategories() {
   // Filter categories based on search term
   const filteredCategories = categories.filter(category =>
     category.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    category.description.toLowerCase().includes(searchTerm.toLowerCase())
+    (category.description && category.description.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
-  const handleDelete = (categoryId: string) => {
+  const handleDelete = async (categoryId: number) => {
     if (window.confirm('Are you sure you want to delete this category?')) {
-      setCategories(categories.filter(cat => cat.id !== categoryId));
+      try {
+        const response = await fetch(`/api/categories?id=${categoryId}`, {
+          method: 'DELETE'
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({ error: 'Failed to delete category' }));
+          throw new Error(errorData.error || 'Failed to delete category');
+        }
+
+        // Refresh categories list
+        fetchCategories();
+      } catch (err) {
+        console.error('Error deleting category:', err);
+        alert(err instanceof Error ? err.message : 'Failed to delete category');
+      }
     }
   };
 
@@ -123,14 +124,25 @@ export default function AdminCategories() {
     setShowCreateModal(true);
   };
 
-  const handleMoreClick = (categoryId: string, event: React.MouseEvent) => {
+  const handleMoreClick = (categoryId: number, event: React.MouseEvent) => {
     event.stopPropagation();
     setActiveDropdown(activeDropdown === categoryId ? null : categoryId);
   };
 
   const handleSeeDetail = (category: Category) => {
-    console.log('See detail for category:', category);
+    setSelectedCategory(category);
+    setShowDetailModal(true);
     setActiveDropdown(null);
+  };
+
+  const handleCloseDetail = () => {
+    setSelectedCategory(null);
+    setShowDetailModal(false);
+  };
+
+  const handleCategoryClick = (category: Category) => {
+    setSelectedCategory(category);
+    setShowDetailModal(true);
   };
 
   const handleCloseDropdown = () => {
@@ -208,8 +220,23 @@ export default function AdminCategories() {
           </div>
         </div>
 
+        {/* Loading State */}
+        {loading && (
+          <div className="loading-state">
+            <p>Loading categories...</p>
+          </div>
+        )}
+
+        {/* Error State */}
+        {error && (
+          <div className="error-state">
+            <p>{error}</p>
+            <button onClick={fetchCategories}>Try Again</button>
+          </div>
+        )}
+
         {/* Content */}
-        {viewMode === 'table' && !isMobile ? (
+        {!loading && !error && viewMode === 'table' && !isMobile ? (
           <div className="table-container">
             <table className="categories-table">
               <thead>
@@ -223,7 +250,11 @@ export default function AdminCategories() {
               </thead>
               <tbody>
                 {filteredCategories.map((category) => (
-                  <tr key={category.id}>
+                  <tr 
+                    key={category.id}
+                    onClick={() => handleCategoryClick(category)}
+                    style={{ cursor: 'pointer' }}
+                  >
                     <td>
                       <div className="category-cell">
                         <div 
@@ -234,15 +265,15 @@ export default function AdminCategories() {
                       </div>
                     </td>
                     <td>
-                      <span className="description">{category.description}</span>
+                      <span className="description">{category.description || '—'}</span>
                     </td>
                     <td>
-                      <span className="product-count">{category.productCount}</span>
+                      <span className="product-count">{category.product_count}</span>
                     </td>
                     <td>
-                      <span className="created-date">{category.createdAt}</span>
+                      <span className="created-date">{new Date(category.created_at).toLocaleDateString()}</span>
                     </td>
-                    <td>
+                    <td onClick={(e) => e.stopPropagation()}>
                       <div className={`unified-dropdown ${activeDropdown === category.id ? 'active' : ''}`}>
                         <button 
                           className="unified-more-btn" 
@@ -274,10 +305,15 @@ export default function AdminCategories() {
               </tbody>
             </table>
           </div>
-        ) : (
+        ) : !loading && !error ? (
           <div className="cards-grid">
             {filteredCategories.map((category) => (
-              <div key={category.id} className="category-card">
+              <div 
+                key={category.id} 
+                className="category-card"
+                onClick={() => handleCategoryClick(category)}
+                style={{ cursor: 'pointer' }}
+              >
                 <div className="card-header">
                   <div className="card-title">
                     <div 
@@ -286,7 +322,7 @@ export default function AdminCategories() {
                     ></div>
                     <h3>{category.name}</h3>
                   </div>
-                  <div className="card-actions">
+                  <div className="card-actions" onClick={(e) => e.stopPropagation()}>
                     <div className={`unified-dropdown ${activeDropdown === category.id ? 'active' : ''}`}>
                       <button 
                         className="unified-more-btn" 
@@ -315,19 +351,19 @@ export default function AdminCategories() {
                   </div>
                 </div>
                 <div className="card-body">
-                  <p className="description">{category.description}</p>
+                  <p className="description">{category.description || 'No description'}</p>
                   <div className="card-stats">
-                    <span className="product-count">{category.productCount} products</span>
-                    <span className="created-date">{category.createdAt}</span>
+                    <span className="product-count">{category.product_count} products</span>
+                    <span className="created-date">{new Date(category.created_at).toLocaleDateString()}</span>
                   </div>
                 </div>
               </div>
             ))}
           </div>
-        )}
+        ) : null}
 
         {/* Empty state */}
-        {filteredCategories.length === 0 && (
+        {!loading && !error && filteredCategories.length === 0 && (
           <div className="empty-state">
             <h3>No categories found</h3>
             <p>Try adjusting your search or create a new category</p>
@@ -390,6 +426,13 @@ export default function AdminCategories() {
             </div>
           </div>
         )}
+
+        {/* Category Detail Modal */}
+        <CategoryDetailModal
+          open={showDetailModal}
+          onClose={handleCloseDetail}
+          category={selectedCategory}
+        />
       </div>
     </AdminLayout>
   );
