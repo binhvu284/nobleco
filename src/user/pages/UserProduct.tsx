@@ -12,7 +12,9 @@ import {
     IconChevronDown,
     IconChevronLeft,
     IconChevronRight,
-    IconTag
+    IconTag,
+    IconMaximize,
+    IconMinimize
 } from '../../admin/components/icons';
 
 // Product interface for user view
@@ -55,14 +57,15 @@ export default function UserProduct() {
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-    const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-    const [showProductDetail, setShowProductDetail] = useState(false);
     const [cart, setCart] = useState<CartItem[]>([]);
     const [showCart, setShowCart] = useState(false);
     const [addingToCart, setAddingToCart] = useState<number | null>(null);
     const [isMobile, setIsMobile] = useState(false);
     const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
     const [categoriesCollapsed, setCategoriesCollapsed] = useState(false);
+    const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+    const [showProductDetail, setShowProductDetail] = useState(false);
+    const [isFullscreen, setIsFullscreen] = useState(false);
 
     // Fetch products and categories
     useEffect(() => {
@@ -172,9 +175,19 @@ export default function UserProduct() {
         return cart.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
     };
 
-    const handleViewDetail = (product: Product) => {
+    const handleProductClick = (product: Product) => {
         setSelectedProduct(product);
         setShowProductDetail(true);
+        setIsFullscreen(false);
+    };
+
+    const handleCloseDetail = () => {
+        setShowProductDetail(false);
+        setIsFullscreen(false);
+    };
+
+    const toggleFullscreen = () => {
+        setIsFullscreen(!isFullscreen);
     };
 
     const getSelectedCategoryName = () => {
@@ -352,26 +365,21 @@ export default function UserProduct() {
                         ) : (
                             <div className={`products-${viewMode}`}>
                                 {filteredProducts.map(product => (
-                                    <div key={product.id} className="product-card">
+                                    <div key={product.id} className="product-card" onClick={() => handleProductClick(product)}>
                                         {/* Product Image */}
-                                        <div className="product-image" onClick={() => handleViewDetail(product)}>
+                                        <div className="product-image">
                                             <div className="image-placeholder">
                                                 <IconPackage />
                                             </div>
-                                            {product.stock === 0 ? (
+                                            {product.stock === 0 && (
                                                 <span className="stock-badge out">Out of Stock</span>
-                                            ) : product.stock < 10 && (
-                                                <span className="stock-badge low">Only {product.stock} left</span>
                                             )}
                                         </div>
 
                                         {/* Product Info */}
                                         <div className="product-info">
                                             <div>
-                                                <h3
-                                                    className="product-name"
-                                                    onClick={() => handleViewDetail(product)}
-                                                >
+                                                <h3 className="product-name">
                                                     {product.name}
                                                 </h3>
                                                 <p className="product-description">
@@ -399,11 +407,18 @@ export default function UserProduct() {
                                                 </div>
                                                 <button
                                                     className={`add-to-cart-btn ${addingToCart === product.id ? 'adding' : ''}`}
-                                                    onClick={() => addToCart(product)}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        addToCart(product);
+                                                    }}
                                                     disabled={addingToCart === product.id || product.stock === 0}
                                                 >
                                                     <IconShoppingBag />
-                                                    {product.stock === 0 ? 'Out of Stock' : addingToCart === product.id ? 'Adding...' : 'Add to Cart'}
+                                                    {product.stock === 0 
+                                                        ? (isMobile ? 'Out' : 'Out of Stock') 
+                                                        : addingToCart === product.id 
+                                                            ? (isMobile ? 'Adding' : 'Adding...') 
+                                                            : isMobile ? 'Add' : 'Add to Cart'}
                                                 </button>
                                             </div>
                                         </div>
@@ -485,19 +500,37 @@ export default function UserProduct() {
                 {/* Product Detail Modal */}
                 {showProductDetail && selectedProduct && (
                     <>
-                        <div className="modal-overlay" onClick={() => setShowProductDetail(false)} />
-                        <div className="user-product-detail-modal">
-                            <button className="modal-close" onClick={() => setShowProductDetail(false)}>
-                                <IconX />
-                            </button>
-                            <div className="modal-content">
-                                <div className="modal-image-section">
-                                    <div className="modal-image-main">
+                        <div className="product-detail-overlay" onClick={handleCloseDetail} />
+                        <div className={`product-detail-modal ${isFullscreen ? 'fullscreen' : ''}`}>
+                            <div className="product-modal-header">
+                                {!isMobile && (
+                                    <button className="product-modal-expand" onClick={toggleFullscreen}>
+                                        {isFullscreen ? <IconMinimize /> : <IconMaximize />}
+                                    </button>
+                                )}
+                                <button className="product-modal-close" onClick={handleCloseDetail}>
+                                    <IconX />
+                                </button>
+                            </div>
+                            <div className="product-modal-body">
+                                <div className="product-modal-image-section">
+                                    <div className="product-modal-image">
                                         <IconPackage />
                                     </div>
+                                    <div className="product-modal-thumbnails">
+                                        <div className="product-modal-thumbnail active">
+                                            <IconPackage />
+                                        </div>
+                                        <div className="product-modal-thumbnail">
+                                            <IconPackage />
+                                        </div>
+                                        <div className="product-modal-thumbnail">
+                                            <IconPackage />
+                                        </div>
+                                    </div>
                                 </div>
-                                <div className="modal-info-section">
-                                    <div className="modal-categories">
+                                <div className="product-modal-info-section">
+                                    <div className="product-modal-categories">
                                         {selectedProduct.categories.map(cat => (
                                             <span
                                                 key={cat.id}
@@ -512,33 +545,30 @@ export default function UserProduct() {
                                             </span>
                                         ))}
                                     </div>
-                                    <h1>{selectedProduct.name}</h1>
-                                    <p className="modal-short-desc">{selectedProduct.short_description}</p>
-                                    <div className="modal-price">
-                                        <span className="price-label">Price:</span>
-                                        <span className="price-value">${selectedProduct.price.toFixed(2)}</span>
+                                    <h1 className="product-modal-title">{selectedProduct.name}</h1>
+                                    <p className="product-modal-short-desc">{selectedProduct.short_description}</p>
+                                    <div className="product-modal-price-section">
+                                        <span className="product-modal-price-label">Price:</span>
+                                        <span className="product-modal-price-value">${selectedProduct.price.toFixed(2)}</span>
                                     </div>
-                                    <div className="modal-stock">
-                                        <span className={`stock-status ${selectedProduct.stock < 10 ? 'low' : 'available'}`}>
-                                            {selectedProduct.stock} in stock
-                                        </span>
-                                    </div>
+                                    <button
+                                        className="product-modal-add-to-cart"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            addToCart(selectedProduct);
+                                            handleCloseDetail();
+                                        }}
+                                        disabled={selectedProduct.stock === 0}
+                                    >
+                                        <IconShoppingBag />
+                                        {selectedProduct.stock === 0 ? 'Out of Stock' : 'Add to Cart'}
+                                    </button>
                                     {selectedProduct.long_description && (
-                                        <div className="modal-description">
+                                        <div className="product-modal-description-section">
                                             <h3>Description</h3>
                                             <p>{selectedProduct.long_description}</p>
                                         </div>
                                     )}
-                                    <button
-                                        className="modal-add-to-cart"
-                                        onClick={() => {
-                                            addToCart(selectedProduct);
-                                            setShowProductDetail(false);
-                                        }}
-                                    >
-                                        <IconShoppingBag />
-                                        Add to Cart
-                                    </button>
                                 </div>
                             </div>
                         </div>

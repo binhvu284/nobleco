@@ -67,7 +67,6 @@ export default function ProductDetailModal({ open, onClose, product }: ProductDe
             <div className="modal-overlay" onClick={onClose} />
             <div className="product-detail-modal" role="dialog" aria-modal="true">
                 <div className="product-modal-header">
-                    <h2>Product Details</h2>
                     <button className="modal-close" aria-label="Close" onClick={onClose}>
                         <IconX />
                     </button>
@@ -96,7 +95,7 @@ export default function ProductDetailModal({ open, onClose, product }: ProductDe
                     <div className="product-info-section">
                         {/* Header with Name and Status */}
                         <div className="product-header-info">
-                            <div>
+                            <div className="product-name-sku-row">
                                 <h1 className="product-name">{product.name}</h1>
                                 {product.sku && (
                                     <p className="product-sku">SKU: {product.sku}</p>
