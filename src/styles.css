@@ -41,9 +41,9 @@
     --z-mobile-menu: 400;
     
     /* Modals and overlays */
-    --z-modal-backdrop: 1000;
-    --z-modal: 1010;
-    --z-modal-content: 1020;
+    --z-modal-backdrop: 99999;
+    --z-modal: 99999;
+    --z-modal-content: 99999;
     
     /* Critical system elements */
     --z-notification: 2000;
@@ -954,7 +954,7 @@ input:focus {
     height: 100%;
     background: var(--panel);
     position: relative;
-    z-index: 1;
+    z-index: auto;
     box-shadow: 0 8px 24px rgba(2, 8, 23, 0.06);
     align-self: stretch;
 }
@@ -1025,7 +1025,7 @@ input:focus {
     display: grid;
     grid-template-rows: auto 1fr;
     position: relative;
-    z-index: 2;
+    z-index: auto;
     row-gap: 16px;
     height: 100%;
     min-height: 500px;
@@ -1044,8 +1044,7 @@ input:focus {
     border-radius: 16px;
     box-shadow: 0 8px 24px rgba(2, 8, 23, 0.06);
     position: relative;
-    z-index: 500;
-    isolation: isolate;
+    z-index: 1;
 }
 
 .admin-content {
@@ -1059,7 +1058,7 @@ input:focus {
     /* only this area scrolls vertically, allow horizontal overflow for dropdowns */
     min-height: 400px;
     position: relative;
-    z-index: 1;
+    z-index: auto;
 }
 
 .admin-page-title {
@@ -1142,15 +1141,21 @@ input:focus {
 
 /* Modal (popup) */
 .modal-overlay {
-    position: fixed;
-    inset: 0;
+    position: fixed !important;
+    inset: 0 !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
     background: rgba(16, 24, 40, 0.38);
     backdrop-filter: blur(2px);
-    z-index: var(--z-modal-backdrop);
+    z-index: 999999 !important;
+    margin: 0 !important;
+    padding: 0 !important;
 }
 
 .modal-card {
-    position: fixed;
+    position: fixed !important;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
@@ -1163,7 +1168,7 @@ input:focus {
     overflow: auto;
     -webkit-overflow-scrolling: touch;
     padding: 20px;
-    z-index: var(--z-modal-backdrop);
+    z-index: 999999 !important;
 }
 
 .modal-header {
@@ -1203,7 +1208,7 @@ input:focus {
 
 /* Profile Modal Styles */
 .profile-modal-card {
-    position: fixed;
+    position: fixed !important;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
@@ -1217,7 +1222,7 @@ input:focus {
     max-height: 95vh;
     display: flex;
     flex-direction: column;
-    z-index: var(--z-notification);
+    z-index: 999999 !important;
 }
 
 .profile-content {
@@ -4341,18 +4346,20 @@ input:focus {
 
 /* Modal Styles */
 .modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
     background: rgba(0, 0, 0, 0.5);
     backdrop-filter: blur(4px);
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: var(--z-modal-backdrop);
+    z-index: 999999 !important;
     animation: fadeIn 0.2s ease-out;
+    margin: 0 !important;
+    padding: 0 !important;
 }
 
 @keyframes fadeIn {
@@ -4371,6 +4378,8 @@ input:focus {
     max-width: 480px;
     width: 90%;
     animation: slideUp 0.3s ease-out;
+    z-index: 999999 !important;
+    position: relative;
 }
 
 @keyframes slideUp {
@@ -6989,6 +6998,8 @@ input:focus {
 .client-detail-modal .modal-content {
     max-width: 1800px !important;
     width: 98% !important;
+    z-index: 99999 !important;
+    position: relative;
 }
 
 /* Client Detail Modal Styles */
@@ -7000,6 +7011,8 @@ input:focus {
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    z-index: 999999 !important;
+    position: fixed !important;
 }
 
 .client-detail-modal .modal-header {
@@ -13879,7 +13892,7 @@ input:focus {
 
 /* ===== CATEGORY DETAIL MODAL ===== */
 .category-detail-modal {
-    position: fixed;
+    position: fixed !important;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
@@ -13890,7 +13903,7 @@ input:focus {
     max-width: 900px;
     max-height: 90vh;
     overflow: hidden;
-    z-index: var(--z-modal);
+    z-index: 999999 !important;
     display: flex;
     flex-direction: column;
 }
@@ -16428,7 +16441,7 @@ input:focus {
 
 /* Product Detail Modal */
 .user-product-detail-modal {
-    position: fixed;
+    position: fixed !important;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
@@ -16440,7 +16453,7 @@ input:focus {
     height: 90vh;
     max-height: 90vh;
     overflow: hidden;
-    z-index: var(--z-modal);
+    z-index: 999999 !important;
     transition: all 0.3s ease;
 }
 
@@ -16658,18 +16671,20 @@ input:focus {
 
 /* Product Detail Modal */
 .product-detail-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
     background: rgba(0, 0, 0, 0.5);
-    z-index: 999;
+    z-index: 999999 !important;
     backdrop-filter: blur(4px);
+    margin: 0 !important;
+    padding: 0 !important;
 }
 
 .product-detail-modal {
-    position: fixed;
+    position: fixed !important;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
@@ -16681,7 +16696,7 @@ input:focus {
     height: 90vh;
     max-height: 90vh;
     overflow: hidden;
-    z-index: 1000;
+    z-index: 999999 !important;
     display: flex;
     flex-direction: column;
     transition: all 0.3s ease;
