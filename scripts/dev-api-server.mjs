@@ -1,17 +1,12 @@
 import 'dotenv/config';
 import express from 'express';
 import usersHandler from '../api/users.js';
-import userByIdHandler from '../api/users/[id].js';
-import hierarchyHandler from '../api/users/hierarchy.js';
-import walletHandler from '../api/users/wallet.js';
 import loginHandler from '../api/auth/login.js';
 import signupHandler from '../api/auth/signup.js';
-import healthHandler from '../api/health.js';
 import diagnosticsHandler from '../api/diagnostics.js';
 import productsHandler from '../api/products.js';
 import categoriesHandler from '../api/categories.js';
 import clientsHandler from '../api/clients.js';
-import checkTablesHandler from '../api/check-tables.js';
 
 const app = express();
 app.use(express.json());
@@ -28,17 +23,36 @@ function toRoute(handler) {
 }
 
 app.all('/api/users', toRoute(usersHandler));
-app.all('/api/users/hierarchy', toRoute(hierarchyHandler));
-app.all('/api/users/wallet', toRoute(walletHandler));
-app.get('/api/users/:id', toRoute(userByIdHandler));
+app.get('/api/users/:id', (req, res) => {
+  req.query = { ...req.query, id: req.params.id };
+  return usersHandler(req, res);
+});
+app.all('/api/users/hierarchy', (req, res) => {
+  req.query = { ...req.query, endpoint: 'hierarchy' };
+  return usersHandler(req, res);
+});
+app.all('/api/users/wallet', (req, res) => {
+  req.query = { ...req.query, endpoint: 'wallet' };
+  return usersHandler(req, res);
+});
 app.all('/api/products', toRoute(productsHandler));
 app.all('/api/categories', toRoute(categoriesHandler));
 app.all('/api/clients', toRoute(clientsHandler));
-app.all('/api/check-tables', toRoute(checkTablesHandler));
-app.all('/api/health', toRoute(healthHandler));
+app.all('/api/check-tables', (req, res) => {
+  req.query = { ...req.query, endpoint: 'tables' };
+  return diagnosticsHandler(req, res);
+});
+app.all('/api/health', (req, res) => {
+  req.query = { ...req.query, endpoint: 'health' };
+  return diagnosticsHandler(req, res);
+});
 app.all('/api/diagnostics', toRoute(diagnosticsHandler));
 app.all('/api/auth/login', toRoute(loginHandler));
 app.all('/api/auth/signup', toRoute(signupHandler));
+app.all('/api/seed-admin', (req, res) => {
+  req.query = { ...req.query, endpoint: 'seed-admin' };
+  return usersHandler(req, res);
+});
 
 const port = process.env.API_PORT || 3001;
 app.listen(port, () => {

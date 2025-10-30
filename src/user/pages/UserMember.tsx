@@ -78,8 +78,8 @@ export default function UserMember() {
 
             // Fetch superior and inferiors data (only include details if needed)
             const url = includeDetails 
-                ? `/api/users/hierarchy?userId=${currentUser.id}&includeDetails=true`
-                : `/api/users/hierarchy?userId=${currentUser.id}`;
+                ? `/api/users?endpoint=hierarchy&userId=${currentUser.id}&includeDetails=true`
+                : `/api/users?endpoint=hierarchy&userId=${currentUser.id}`;
                 
             const response = await fetch(url, {
                 // Add cache headers for better performance (reduced for development)
@@ -149,7 +149,7 @@ export default function UserMember() {
         
         // Fetch indirect inferiors and commission data for this specific inferior
         try {
-            const response = await fetch(`/api/users/hierarchy?userId=${inferior.id}&includeDetails=true`, {
+            const response = await fetch(`/api/users?endpoint=hierarchy&userId=${inferior.id}&includeDetails=true`, {
                 headers: {
                     'Cache-Control': 'max-age=30', // Cache for 30 seconds
                     // Add timestamp to bypass cache in development
