@@ -37,7 +37,7 @@ export default function UserDetailModal({ open, onClose, user }: UserDetailModal
         setLoadingHierarchy(true);
         try {
             // Fetch hierarchy data with details to get indirect inferiors
-            const response = await fetch(`/api/users/hierarchy?userId=${user.id}&includeDetails=true`);
+            const response = await fetch(`/api/users?endpoint=hierarchy&userId=${user.id}&includeDetails=true`);
             if (response.ok) {
                 const data = await response.json();
                 

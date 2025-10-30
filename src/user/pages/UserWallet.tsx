@@ -54,7 +54,7 @@ export default function UserWallet() {
                 return;
             }
 
-            const response = await fetch(`/api/users/wallet?userId=${currentUser.id}`, {
+            const response = await fetch(`/api/users?endpoint=wallet&userId=${currentUser.id}`, {
                 headers: {
                     'Cache-Control': 'max-age=60', // Cache for 1 minute
                 }
