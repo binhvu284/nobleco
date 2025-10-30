@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { logout, getCurrentUser } from '../../auth';
 import { IconUser, IconSettings, IconLogout, IconDashboard, IconUsers, IconBox, IconWallet, IconShoppingBag, IconBook, IconMenu, IconAddressBook } from '../../admin/components/icons';
@@ -19,6 +19,7 @@ export default function UserHeader({ title, mobileMenuOpen, onMobileMenuToggle }
     const [profileOpen, setProfileOpen] = useModalState(false);
     const [settingOpen, setSettingOpen] = useModalState(false);
     const [userName, setUserName] = useState('User');
+    const menuRef = useRef<HTMLDivElement | null>(null);
     
     useEffect(() => {
         // Initial load
@@ -33,8 +34,16 @@ export default function UserHeader({ title, mobileMenuOpen, onMobileMenuToggle }
         
         window.addEventListener('storage', handleStorageChange);
         
+        // Handle click outside dropdown
+        const onDocClick = (e: MouseEvent) => {
+            if (!menuRef.current) return;
+            if (!menuRef.current.contains(e.target as Node)) setOpen(false);
+        };
+        document.addEventListener('click', onDocClick);
+        
         return () => {
             window.removeEventListener('storage', handleStorageChange);
+            document.removeEventListener('click', onDocClick);
         };
     }, []);
     
@@ -70,13 +79,13 @@ export default function UserHeader({ title, mobileMenuOpen, onMobileMenuToggle }
                 {iconForRoute()}
                 <span>{title}</span>
             </div>
-            <div className="admin-actions">
+            <div className="admin-actions" ref={menuRef}>
                 <button className="admin-user" onClick={() => setOpen((v) => !v)}>
                     <img className="avatar" src={user.avatar} alt="avatar" />
                     <span>{user.name}</span>
                 </button>
                 {open && (
-                    <div className="dropdown" onMouseLeave={() => setOpen(false)}>
+                    <div className="dropdown">
                         <a href="#profile" onClick={(e) => { e.preventDefault(); setOpen(false); setProfileOpen(true); }}>
                             <IconUser /> Profile
                         </a>

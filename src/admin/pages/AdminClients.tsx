@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import AdminLayout from '../components/AdminLayout';
+import ClientDetailModal from '../components/ClientDetailModal';
 import { 
     IconEye, 
     IconTrash2, 
@@ -14,84 +15,113 @@ import {
 interface Client {
     id: number;
     name: string;
-    phone: string;
-    ordersMade: number;
-    madeBy: string;
-    createDate: string;
+    phone: string | null;
+    email: string | null;
+    birthday: string | null;
+    location: string | null;
+    description: string | null;
+    order_count: number;
+    created_by: number | null;
+    created_by_user: {
+        id: number;
+        name: string;
+        refer_code: string;
+    } | null;
+    created_at: string;
+    updated_at: string;
 }
 
 export default function AdminClients() {
-    const [clients, setClients] = useState<Client[]>([
-        {
-            id: 1,
-            name: 'John Smith',
-            phone: '+1 (555) 123-4567',
-            ordersMade: 5,
-            madeBy: 'Alice Johnson',
-            createDate: '2024-01-15'
-        },
-        {
-            id: 2,
-            name: 'Sarah Wilson',
-            phone: '+1 (555) 987-6543',
-            ordersMade: 12,
-            madeBy: 'Bob Brown',
-            createDate: '2024-01-20'
-        },
-        {
-            id: 3,
-            name: 'Michael Davis',
-            phone: '+1 (555) 456-7890',
-            ordersMade: 3,
-            madeBy: 'Alice Johnson',
-            createDate: '2024-02-01'
-        },
-        {
-            id: 4,
-            name: 'Emily Chen',
-            phone: '+1 (555) 321-0987',
-            ordersMade: 8,
-            madeBy: 'Charlie Wilson',
-            createDate: '2024-02-10'
-        },
-        {
-            id: 5,
-            name: 'David Rodriguez',
-            phone: '+1 (555) 654-3210',
-            ordersMade: 15,
-            madeBy: 'Bob Brown',
-            createDate: '2024-02-15'
-        }
-    ]);
-
+    const [clients, setClients] = useState<Client[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedClient, setSelectedClient] = useState<Client | null>(null);
+    const [showDetailModal, setShowDetailModal] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [clientToDelete, setClientToDelete] = useState<Client | null>(null);
+    const [deleteLoading, setDeleteLoading] = useState(false);
     const [activeDropdown, setActiveDropdown] = useState<number | null>(null);
     const [viewMode, setViewMode] = useState<'table' | 'card'>('table');
     const [isMobile, setIsMobile] = useState(false);
 
-    const filteredClients = clients.filter(client =>
-        client.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        client.phone.includes(searchQuery) ||
-        client.madeBy.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-
-    const handleViewDetail = (client: Client) => {
-        setSelectedClient(client);
+    const fetchClients = async () => {
+        try {
+            setLoading(true);
+            setError(null);
+            const response = await fetch('/api/clients');
+            if (!response.ok) {
+                throw new Error('Failed to fetch clients');
+            }
+            const data = await response.json();
+            setClients(data || []);
+        } catch (err) {
+            console.error('Error fetching clients:', err);
+            setError(err instanceof Error ? err.message : 'Failed to fetch clients');
+        } finally {
+            setLoading(false);
+        }
     };
 
-    const handleDeleteClick = (client: Client) => {
+    useEffect(() => {
+        fetchClients();
+    }, []);
+
+    const filteredClients = clients.filter(client =>
+        client.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (client.phone && client.phone.includes(searchQuery)) ||
+        (client.email && client.email.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (client.created_by_user && client.created_by_user.name.toLowerCase().includes(searchQuery.toLowerCase()))
+    );
+
+    const handleClientClick = (client: Client) => {
+        setSelectedClient(client);
+        setShowDetailModal(true);
+    };
+
+    const handleViewDetail = (client: Client, e?: React.MouseEvent) => {
+        if (e) {
+            e.stopPropagation();
+        }
+        setSelectedClient(client);
+        setShowDetailModal(true);
+    };
+
+    const handleCloseDetail = () => {
+        setShowDetailModal(false);
+        setSelectedClient(null);
+    };
+
+    const handleDeleteClick = (client: Client, e?: React.MouseEvent) => {
+        if (e) {
+            e.stopPropagation();
+        }
         setClientToDelete(client);
         setShowDeleteModal(true);
     };
 
-    const handleDeleteConfirm = () => {
-        if (clientToDelete) {
-            setClients(clients.filter(client => client.id !== clientToDelete.id));
+    const handleDeleteConfirm = async () => {
+        if (!clientToDelete) return;
+
+        try {
+            setDeleteLoading(true);
+            const response = await fetch(`/api/clients?id=${clientToDelete.id}`, {
+                method: 'DELETE'
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to delete client');
+            }
+
+            // Refresh clients list
+            await fetchClients();
             setShowDeleteModal(false);
             setClientToDelete(null);
+        } catch (err) {
+            console.error('Error deleting client:', err);
+            alert('Failed to delete client. Please try again.');
+        } finally {
+            setDeleteLoading(false);
         }
     };
 
@@ -108,7 +138,8 @@ export default function AdminClients() {
         setActiveDropdown(null);
     };
 
-    const formatDate = (dateString: string) => {
+    const formatDate = (dateString: string | null) => {
+        if (!dateString) return 'N/A';
         return new Date(dateString).toLocaleDateString('en-US', {
             year: 'numeric',
             month: 'short',
@@ -224,61 +255,97 @@ export default function AdminClients() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {filteredClients.map((client) => (
-                                    <tr key={client.id}>
-                                        <td>
-                                            <span className="client-name">{client.name}</span>
-                                        </td>
-                                        <td>{client.phone}</td>
-                                        <td>
-                                            <span className="orders-badge">{client.ordersMade}</span>
-                                        </td>
-                                        <td>
-                                            <div className="made-by">
-                                                <div className="creator-avatar">
-                                                    {client.madeBy.split(' ').map(n => n[0]).join('').toUpperCase()}
-                                                </div>
-                                                <span>{client.madeBy}</span>
-                                            </div>
-                                        </td>
-                                        <td>{formatDate(client.createDate)}</td>
-                                        <td>
-                                            <div className={`unified-dropdown ${activeDropdown === client.id ? 'active' : ''}`}>
-                                                <button 
-                                                    className="unified-more-btn"
-                                                    onClick={() => handleDropdownToggle(client.id)}
-                                                    title="More Actions"
-                                                >
-                                                    <IconMoreVertical />
-                                                </button>
-                                                {activeDropdown === client.id && (
-                                                    <div className="unified-dropdown-menu">
-                                                        <button 
-                                                            className="unified-dropdown-item"
-                                                            onClick={() => {
-                                                                handleViewDetail(client);
-                                                                handleDropdownClose();
-                                                            }}
-                                                        >
-                                                            <IconEye />
-                                                            View Details
-                                                        </button>
-                                                        <button 
-                                                            className="unified-dropdown-item danger"
-                                                            onClick={() => {
-                                                                handleDeleteClick(client);
-                                                                handleDropdownClose();
-                                                            }}
-                                                        >
-                                                            <IconTrash2 />
-                                                            Delete
-                                                        </button>
-                                                    </div>
-                                                )}
-                                            </div>
+                                {loading ? (
+                                    <tr>
+                                        <td colSpan={6} style={{ textAlign: 'center', padding: '40px' }}>
+                                            Loading clients...
                                         </td>
                                     </tr>
-                                ))}
+                                ) : error ? (
+                                    <tr>
+                                        <td colSpan={6} style={{ textAlign: 'center', padding: '40px', color: 'var(--error)' }}>
+                                            {error}
+                                        </td>
+                                    </tr>
+                                ) : filteredClients.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={6} style={{ textAlign: 'center', padding: '40px' }}>
+                                            No clients found
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    filteredClients.map((client) => (
+                                        <tr 
+                                            key={client.id} 
+                                            className="client-row-clickable"
+                                            onClick={() => handleClientClick(client)}
+                                        >
+                                            <td>
+                                                <span className="client-name">{client.name}</span>
+                                            </td>
+                                            <td>{client.phone || 'N/A'}</td>
+                                            <td>
+                                                <span className="orders-badge">{client.order_count}</span>
+                                            </td>
+                                            <td>
+                                                <div className="made-by">
+                                                    {client.created_by_user ? (
+                                                        <>
+                                                            <div className="creator-avatar">
+                                                                {client.created_by_user.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                                                            </div>
+                                                            <span>{client.created_by_user.name}</span>
+                                                        </>
+                                                    ) : (
+                                                        <span>N/A</span>
+                                                    )}
+                                                </div>
+                                            </td>
+                                            <td>{formatDate(client.created_at)}</td>
+                                            <td>
+                                                <div 
+                                                    className={`unified-dropdown ${activeDropdown === client.id ? 'active' : ''}`}
+                                                    onClick={(e) => e.stopPropagation()}
+                                                >
+                                                    <button 
+                                                        className="unified-more-btn"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleDropdownToggle(client.id);
+                                                        }}
+                                                        title="More Actions"
+                                                    >
+                                                        <IconMoreVertical />
+                                                    </button>
+                                                    {activeDropdown === client.id && (
+                                                        <div className="unified-dropdown-menu">
+                                                            <button 
+                                                                className="unified-dropdown-item"
+                                                                onClick={(e) => {
+                                                                    handleViewDetail(client, e);
+                                                                    handleDropdownClose();
+                                                                }}
+                                                            >
+                                                                <IconEye />
+                                                                View Details
+                                                            </button>
+                                                            <button 
+                                                                className="unified-dropdown-item danger"
+                                                                onClick={(e) => {
+                                                                    handleDeleteClick(client, e);
+                                                                    handleDropdownClose();
+                                                                }}
+                                                            >
+                                                                <IconTrash2 />
+                                                                Delete
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
                             </tbody>
                         </table>
                     </div>
@@ -286,29 +353,47 @@ export default function AdminClients() {
                 ) : (
                     /* Card View */
                     <div className="clients-grid clients-grid-2">
-                        {filteredClients.length === 0 ? (
+                        {loading ? (
+                            <div className="empty-state">
+                                <p>Loading clients...</p>
+                            </div>
+                        ) : error ? (
+                            <div className="empty-state">
+                                <p style={{ color: 'var(--error)' }}>{error}</p>
+                            </div>
+                        ) : filteredClients.length === 0 ? (
                             <div className="empty-state">
                                 <p>No clients found</p>
                             </div>
                         ) : (
                             filteredClients.map((client) => (
-                                <div key={client.id} className="client-card">
+                                <div 
+                                    key={client.id} 
+                                    className="client-card client-card-clickable"
+                                    onClick={() => handleClientClick(client)}
+                                >
                                     <div className="card-header">
                                         <div className="client-avatar">
                                             {client.name.split(' ').map(n => n[0]).join('').toUpperCase()}
                                         </div>
                                         <div className="card-info">
                                             <h3>{client.name}</h3>
-                                            <p className="client-phone">{client.phone}</p>
+                                            <p className="client-phone">{client.phone || 'N/A'}</p>
                                         </div>
                                         <div className="card-meta">
-                                            <span className="orders-badge">{client.ordersMade} orders</span>
-                                            <span className="created-date">{formatDate(client.createDate)}</span>
+                                            <span className="orders-badge">{client.order_count} orders</span>
+                                            <span className="created-date">{formatDate(client.created_at)}</span>
                                         </div>
-                                        <div className="unified-dropdown">
+                                        <div 
+                                            className="unified-dropdown"
+                                            onClick={(e) => e.stopPropagation()}
+                                        >
                                             <button
                                                 className="unified-more-btn"
-                                                onClick={() => handleDropdownToggle(client.id)}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleDropdownToggle(client.id);
+                                                }}
                                             >
                                                 <IconMoreVertical />
                                             </button>
@@ -316,8 +401,8 @@ export default function AdminClients() {
                                                 <div className="unified-dropdown-menu">
                                                     <button 
                                                         className="unified-dropdown-item"
-                                                        onClick={() => {
-                                                            handleViewDetail(client);
+                                                        onClick={(e) => {
+                                                            handleViewDetail(client, e);
                                                             handleDropdownClose();
                                                         }}
                                                     >
@@ -326,8 +411,8 @@ export default function AdminClients() {
                                                     </button>
                                                     <button 
                                                         className="unified-dropdown-item danger"
-                                                        onClick={() => {
-                                                            handleDeleteClick(client);
+                                                        onClick={(e) => {
+                                                            handleDeleteClick(client, e);
                                                             handleDropdownClose();
                                                         }}
                                                     >
@@ -342,10 +427,16 @@ export default function AdminClients() {
                                         <div className="card-detail">
                                             <span className="detail-label">Made By:</span>
                                             <div className="made-by-compact">
-                                                <div className="creator-avatar-small">
-                                                    {client.madeBy.split(' ').map(n => n[0]).join('').toUpperCase()}
-                                                </div>
-                                                <span className="detail-value">{client.madeBy}</span>
+                                                {client.created_by_user ? (
+                                                    <>
+                                                        <div className="creator-avatar-small">
+                                                            {client.created_by_user.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                                                        </div>
+                                                        <span className="detail-value">{client.created_by_user.name}</span>
+                                                    </>
+                                                ) : (
+                                                    <span className="detail-value">N/A</span>
+                                                )}
                                             </div>
                                         </div>
                                     </div>
@@ -365,53 +456,11 @@ export default function AdminClients() {
                 )}
 
                 {/* Client Detail Modal */}
-                {selectedClient && (
-                    <div className="modal-overlay" onClick={() => setSelectedClient(null)}>
-                        <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-                            <div className="modal-header">
-                                <h2>Client Details</h2>
-                                <button 
-                                    className="modal-close"
-                                    onClick={() => setSelectedClient(null)}
-                                >
-                                    ×
-                                </button>
-                            </div>
-                            <div className="modal-body">
-                                <div className="client-detail-info">
-                                    <div className="detail-row">
-                                        <label>Name:</label>
-                                        <span>{selectedClient.name}</span>
-                                    </div>
-                                    <div className="detail-row">
-                                        <label>Phone:</label>
-                                        <span>{selectedClient.phone}</span>
-                                    </div>
-                                    <div className="detail-row">
-                                        <label>Orders Made:</label>
-                                        <span className="orders-badge">{selectedClient.ordersMade}</span>
-                                    </div>
-                                    <div className="detail-row">
-                                        <label>Created By:</label>
-                                        <span>{selectedClient.madeBy}</span>
-                                    </div>
-                                    <div className="detail-row">
-                                        <label>Create Date:</label>
-                                        <span>{formatDate(selectedClient.createDate)}</span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="modal-footer">
-                                <button 
-                                    className="btn-secondary"
-                                    onClick={() => setSelectedClient(null)}
-                                >
-                                    Close
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                )}
+                <ClientDetailModal
+                    open={showDetailModal}
+                    onClose={handleCloseDetail}
+                    client={selectedClient}
+                />
 
                 {/* Delete Confirmation Modal */}
                 {showDeleteModal && clientToDelete && (
@@ -440,8 +489,9 @@ export default function AdminClients() {
                                 <button 
                                     className="btn-danger"
                                     onClick={handleDeleteConfirm}
+                                    disabled={deleteLoading}
                                 >
-                                    Delete
+                                    {deleteLoading ? 'Deleting...' : 'Delete'}
                                 </button>
                             </div>
                         </div>

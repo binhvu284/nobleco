@@ -302,75 +302,85 @@ export default function AdminUsers() {
                                     <td colSpan={8} className="muted">No users found</td>
                                 </tr>
                             ) : (
-                                filteredRows.map((r) => (
-                                    <tr key={String(r.id)}>
-                                        <td><code>{r.id}</code></td>
-                                        <td>{r.name}</td>
-                                        <td>{r.email}</td>
-                                        <td>
-                                            <span className={`badge ${`badge-level-${r.level.replace(/\s+/g, '-')}`}`}>{
-                                                r.level === 'unit manager' ? 'Unit Manager' : r.level === 'brand manager' ? 'Brand Manager' : r.level === 'member' ? 'Member' : 'Guest'
-                                            }</span>
-                                        </td>
-                                        <td>{r.points}</td>
-                                        <td>
-                                            <span className={`badge ${r.status === 'active' ? 'badge-success' : 'badge-muted'}`}>{r.status}</span>
-                                        </td>
-                                        <td>{r.createdAt}</td>
-                                        <td className="row-actions">
-                                            <button
-                                                className="more-btn"
-                                                aria-label="More actions"
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    setMenuOpenId((prev) => prev === r.id ? null : r.id);
-                                                }}
-                                            >
-                                                ⋯
-                                            </button>
-                                            {menuOpenId === r.id && (
-                                                <div className="menu">
-                                                    <button 
-                                                        className="menu-item" 
-                                                        onClick={() => {
-                                                            const user = users.find(u => u.id === r.id);
-                                                            if (user) {
-                                                                setSelectedUserForDetail(user);
-                                                                setMenuOpenId(null);
-                                                            }
-                                                        }}
-                                                    >
-                                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                                                            <circle cx="12" cy="12" r="3" />
-                                                        </svg>
-                                                        View Detail
-                                                    </button>
-                                                    <button 
-                                                        className="menu-item" 
-                                                        onClick={() => updateUserStatus(r.id, r.status === 'active' ? 'inactive' : 'active')}
-                                                        disabled={isUpdatingStatus}
-                                                    >
-                                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                            {r.status === 'active' ? (
-                                                                <path d="M18 6L6 18M6 6l12 12" />
-                                                            ) : (
-                                                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14M22 4L12 14.01l-3-3" />
-                                                            )}
-                                                        </svg>
-                                                        {r.status === 'active' ? 'Deactivate' : 'Activate'}
-                                                    </button>
-                                                    <button className="menu-item danger" onClick={() => openDeleteModal(r.id, r.email)}>
-                                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                            <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6" />
-                                                        </svg>
-                                                        Delete
-                                                    </button>
-                                                </div>
-                                            )}
-                                        </td>
-                                    </tr>
-                                ))
+                                filteredRows.map((r) => {
+                                    const user = users.find(u => u.id === r.id);
+                                    return (
+                                        <tr 
+                                            key={String(r.id)} 
+                                            className="user-row-clickable"
+                                            onClick={() => {
+                                                if (user) {
+                                                    setSelectedUserForDetail(user);
+                                                }
+                                            }}
+                                        >
+                                            <td><code>{r.id}</code></td>
+                                            <td>{r.name}</td>
+                                            <td>{r.email}</td>
+                                            <td>
+                                                <span className={`badge ${`badge-level-${r.level.replace(/\s+/g, '-')}`}`}>{
+                                                    r.level === 'unit manager' ? 'Unit Manager' : r.level === 'brand manager' ? 'Brand Manager' : r.level === 'member' ? 'Member' : 'Guest'
+                                                }</span>
+                                            </td>
+                                            <td className="points-value">{r.points}</td>
+                                            <td>
+                                                <span className={`badge ${r.status === 'active' ? 'badge-success' : 'badge-muted'}`}>{r.status}</span>
+                                            </td>
+                                            <td>{r.createdAt}</td>
+                                            <td className="row-actions">
+                                                <button
+                                                    className="more-btn"
+                                                    aria-label="More actions"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setMenuOpenId((prev) => prev === r.id ? null : r.id);
+                                                    }}
+                                                >
+                                                    ⋯
+                                                </button>
+                                                {menuOpenId === r.id && (
+                                                    <div className="menu" onClick={(e) => e.stopPropagation()}>
+                                                        <button 
+                                                            className="menu-item" 
+                                                            onClick={() => {
+                                                                if (user) {
+                                                                    setSelectedUserForDetail(user);
+                                                                    setMenuOpenId(null);
+                                                                }
+                                                            }}
+                                                        >
+                                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                                                                <circle cx="12" cy="12" r="3" />
+                                                            </svg>
+                                                            View Detail
+                                                        </button>
+                                                        <button 
+                                                            className="menu-item" 
+                                                            onClick={() => updateUserStatus(r.id, r.status === 'active' ? 'inactive' : 'active')}
+                                                            disabled={isUpdatingStatus}
+                                                        >
+                                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                                {r.status === 'active' ? (
+                                                                    <path d="M18 6L6 18M6 6l12 12" />
+                                                                ) : (
+                                                                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14M22 4L12 14.01l-3-3" />
+                                                                )}
+                                                            </svg>
+                                                            {r.status === 'active' ? 'Deactivate' : 'Activate'}
+                                                        </button>
+                                                        <button className="menu-item danger" onClick={() => openDeleteModal(r.id, r.email)}>
+                                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                                <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6" />
+                                                            </svg>
+                                                            Delete
+                                                        </button>
+                                                    </div>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    );
+                                })
                             )}
                         </tbody>
                     </table>
@@ -403,7 +413,15 @@ export default function AdminUsers() {
                             filteredRows.map((r) => {
                                 const user = users.find(u => u.id === r.id);
                                 return (
-                                    <div key={String(r.id)} className="user-card">
+                                    <div 
+                                        key={String(r.id)} 
+                                        className="user-card user-card-clickable"
+                                        onClick={() => {
+                                            if (user) {
+                                                setSelectedUserForDetail(user);
+                                            }
+                                        }}
+                                    >
                                         <div className="card-header">
                                             <div className="user-avatar">
                                                 {r.name.charAt(0).toUpperCase()}
@@ -419,12 +437,15 @@ export default function AdminUsers() {
                                             <div className="unified-dropdown">
                                                 <button
                                                     className="unified-more-btn"
-                                                    onClick={() => setMenuOpenId((prev) => prev === r.id ? null : r.id)}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setMenuOpenId((prev) => prev === r.id ? null : r.id);
+                                                    }}
                                                 >
                                                     <IconMoreVertical />
                                                 </button>
                                                 {menuOpenId === r.id && (
-                                                    <div className="unified-dropdown-menu">
+                                                    <div className="unified-dropdown-menu" onClick={(e) => e.stopPropagation()}>
                                                         <button 
                                                             className="unified-dropdown-item" 
                                                             onClick={() => {
@@ -491,7 +512,7 @@ export default function AdminUsers() {
                                             </div>
                                             <div className="card-detail">
                                                 <span className="detail-label">Points:</span>
-                                                <span className="detail-value">{r.points}</span>
+                                                <span className="detail-value points-value">{r.points}</span>
                                             </div>
                                         </div>
                                     </div>
