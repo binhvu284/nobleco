@@ -77,6 +77,12 @@ export default function AddProductModal({ open, onClose, onSuccess, product }: A
     // Load product data when editing
     useEffect(() => {
         if (open && product) {
+            // Map product status to form status (only 'active' or 'inactive' allowed in form)
+            const formStatus: 'active' | 'inactive' = 
+                product.status === 'active' || product.status === 'inactive' 
+                    ? product.status 
+                    : 'active'; // Default 'draft' and 'archived' to 'active'
+            
             setFormData({
                 name: product.name || '',
                 short_description: product.short_description || '',
@@ -85,7 +91,7 @@ export default function AddProductModal({ open, onClose, onSuccess, product }: A
                 price: product.price?.toString() || '',
                 cost_price: product.cost_price?.toString() || '',
                 stock: product.stock?.toString() || '0',
-                status: product.status || 'active',
+                status: formStatus,
                 images: []
             });
         }
