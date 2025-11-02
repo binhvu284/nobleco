@@ -13748,22 +13748,25 @@ input:focus {
     font-weight: 500;
 }
 
-.price-value {
-    font-size: 1.75rem;
+.product-pricing-section .price-value {
+    font-size: 1.25rem !important;
     font-weight: 700;
     color: var(--primary);
+    white-space: nowrap;
 }
 
-.cost-price-value {
-    font-size: 1.5rem;
+.product-pricing-section .cost-price-value {
+    font-size: 0.75rem !important;
     font-weight: 600;
     color: var(--text-secondary);
+    white-space: nowrap;
 }
 
-.stock-value {
-    font-size: 1.5rem;
+.product-pricing-section .stock-value {
+    font-size: 1.15rem !important;
     font-weight: 600;
     color: var(--success);
+    white-space: nowrap;
 }
 
 .stock-value.out-of-stock {
