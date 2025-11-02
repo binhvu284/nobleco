@@ -1,6 +1,81 @@
 import { getSupabase } from '../_db.js';
 
 /**
+ * Generate a URL-friendly slug from a string
+ */
+function generateSlug(name) {
+  return name
+    .toLowerCase()
+    .trim()
+    .replace(/[^\w\s-]/g, '') // Remove special characters
+    .replace(/[\s_-]+/g, '-') // Replace spaces and underscores with hyphens
+    .replace(/^-+|-+$/g, ''); // Remove leading/trailing hyphens
+}
+
+/**
+ * Generate a unique SKU
+ * Format: PRD-{sequential number padded to 8 digits}
+ */
+async function generateSKU() {
+  const supabase = getSupabase();
+  
+  // Get the count of existing products to generate a unique sequential number
+  const { count } = await supabase
+    .from('products')
+    .select('id', { count: 'exact', head: true });
+  
+  let productNumber = (count || 0) + 1;
+  let sku = `PRD-${productNumber.toString().padStart(8, '0')}`;
+  
+  // Check if SKU already exists and increment if needed
+  let attempts = 0;
+  while (attempts < 100) {
+    const { data: existing } = await supabase
+      .from('products')
+      .select('id')
+      .eq('sku', sku)
+      .maybeSingle();
+    
+    if (!existing) {
+      return sku;
+    }
+    
+    // If SKU exists, try next number
+    productNumber++;
+    sku = `PRD-${productNumber.toString().padStart(8, '0')}`;
+    attempts++;
+  }
+  
+  // Fallback: add timestamp if we couldn't find a unique sequential number
+  const timestamp = Date.now().toString().slice(-6);
+  return `PRD-${productNumber.toString().padStart(8, '0')}-${timestamp}`;
+}
+
+/**
+ * Generate a unique slug, appending a number if the slug already exists
+ */
+async function generateUniqueSlug(baseSlug) {
+  const supabase = getSupabase();
+  let slug = baseSlug;
+  let counter = 1;
+  
+  while (true) {
+    const { data: existing } = await supabase
+      .from('products')
+      .select('id')
+      .eq('slug', slug)
+      .maybeSingle();
+    
+    if (!existing) {
+      return slug;
+    }
+    
+    slug = `${baseSlug}-${counter}`;
+    counter++;
+  }
+}
+
+/**
  * Normalize product data from database
  */
 function normalize(p) {
@@ -156,18 +231,31 @@ export async function getProductById(productId) {
 export async function createProduct(productData, userId) {
   const supabase = getSupabase();
 
+  // Generate slug if not provided
+  const slug = productData.slug || await generateUniqueSlug(generateSlug(productData.name));
+  
+  // Generate SKU if not provided
+  const sku = productData.sku || await generateSKU();
+  
+  // Ensure short_description is not empty (required field)
+  const shortDescription = productData.short_description && productData.short_description.trim() 
+    ? productData.short_description.trim() 
+    : 'No description available';
+
   const { data: product, error } = await supabase
     .from('products')
     .insert([{
-      name: productData.name,
-      slug: productData.slug,
-      sku: productData.sku || null,
-      short_description: productData.short_description,
-      long_description: productData.long_description || null,
+      name: productData.name.trim(),
+      slug: slug,
+      sku: sku,
+      short_description: shortDescription,
+      long_description: productData.long_description && productData.long_description.trim() 
+        ? productData.long_description.trim() 
+        : null,
       price: productData.price,
       cost_price: productData.cost_price || null,
       stock: productData.stock || 0,
-      status: productData.status || 'draft',
+      status: productData.status || 'active',
       is_featured: productData.is_featured || false,
       created_by: userId,
       updated_by: userId
@@ -188,21 +276,44 @@ export async function createProduct(productData, userId) {
 export async function updateProduct(productId, productData, userId) {
   const supabase = getSupabase();
 
+  // Build update object with only provided fields
+  const updateData = {
+    name: productData.name.trim(),
+    short_description: productData.short_description && productData.short_description.trim() 
+      ? productData.short_description.trim() 
+      : 'No description available',
+    long_description: productData.long_description && productData.long_description.trim() 
+      ? productData.long_description.trim() 
+      : null,
+    price: productData.price,
+    cost_price: productData.cost_price || null,
+    stock: productData.stock || 0,
+    status: productData.status || 'active',
+    updated_by: userId
+  };
+
+  // Only update slug if provided (usually we don't change slug on edit)
+  if (productData.slug) {
+    updateData.slug = productData.slug;
+  } else if (productData.name) {
+    // Generate new slug if name changed
+    const baseSlug = generateSlug(productData.name);
+    updateData.slug = await generateUniqueSlug(baseSlug);
+  }
+
+  // Only update SKU if provided (usually we don't change SKU on edit)
+  if (productData.sku !== undefined) {
+    updateData.sku = productData.sku || null;
+  }
+
+  // Only update is_featured if provided
+  if (productData.is_featured !== undefined) {
+    updateData.is_featured = productData.is_featured;
+  }
+
   const { data: product, error } = await supabase
     .from('products')
-    .update({
-      name: productData.name,
-      slug: productData.slug,
-      sku: productData.sku || null,
-      short_description: productData.short_description,
-      long_description: productData.long_description || null,
-      price: productData.price,
-      cost_price: productData.cost_price || null,
-      stock: productData.stock,
-      status: productData.status,
-      is_featured: productData.is_featured,
-      updated_by: userId
-    })
+    .update(updateData)
     .eq('id', productId)
     .select()
     .single();

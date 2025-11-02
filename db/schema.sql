@@ -17,6 +17,21 @@ CREATE TABLE public.categories (
   CONSTRAINT categories_pkey PRIMARY KEY (id),
   CONSTRAINT categories_parent_id_fkey FOREIGN KEY (parent_id) REFERENCES public.categories(id)
 );
+CREATE TABLE public.clients (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  name text NOT NULL,
+  phone text,
+  email text,
+  birthday date,
+  location text,
+  description text,
+  order_count integer DEFAULT 0 CHECK (order_count >= 0),
+  created_by bigint,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT clients_pkey PRIMARY KEY (id),
+  CONSTRAINT clients_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id)
+);
 CREATE TABLE public.product_categories (
   id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
   product_id bigint NOT NULL,
@@ -31,12 +46,12 @@ CREATE TABLE public.product_categories (
 CREATE TABLE public.products (
   id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
   name text NOT NULL,
-  slug text NOT NULL UNIQUE,
+  slug text UNIQUE,
   sku text UNIQUE,
   short_description text NOT NULL,
   long_description text,
-  price numeric NOT NULL CHECK (price >= 0::numeric),
-  cost_price numeric CHECK (cost_price >= 0::numeric),
+  price numeric(20, 0) NOT NULL CHECK (price >= 0::numeric),
+  cost_price numeric(20, 0) CHECK (cost_price >= 0::numeric),
   stock integer NOT NULL DEFAULT 0 CHECK (stock >= 0),
   status text NOT NULL DEFAULT 'draft'::text CHECK (status = ANY (ARRAY['draft'::text, 'active'::text, 'inactive'::text, 'archived'::text])),
   is_featured boolean DEFAULT false,

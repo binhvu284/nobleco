@@ -4,6 +4,7 @@ import { IconPlus, IconSearch, IconFilter, IconList, IconGrid, IconMoreVertical,
 import ProductDetailModal from '../components/ProductDetailModal';
 import ConfirmModal from '../components/ConfirmModal';
 import StockManagementModal from '../components/StockManagementModal';
+import AddProductModal from '../components/AddProductModal';
 
 interface Category {
     id: number;
@@ -33,6 +34,11 @@ interface Product {
     category_names: string[];
 }
 
+// Format number as VND currency
+const formatVND = (amount: number): string => {
+    return new Intl.NumberFormat('vi-VN').format(amount) + ' ₫';
+};
+
 export default function AdminProducts() {
     const [products, setProducts] = useState<Product[]>([]);
     const [loading, setLoading] = useState(true);
@@ -51,6 +57,8 @@ export default function AdminProducts() {
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [productToDelete, setProductToDelete] = useState<{ id: number, name: string } | null>(null);
     const [showStockManagement, setShowStockManagement] = useState(false);
+    const [showAddProductModal, setShowAddProductModal] = useState(false);
+    const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
     const filteredProducts = products.filter(product =>
         product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -243,6 +251,12 @@ export default function AdminProducts() {
         return statusMap[status] || 'status-draft';
     };
 
+    const handleEditProduct = (product: Product) => {
+        setActiveDropdown(null);
+        setEditingProduct(product);
+        setShowAddProductModal(true);
+    };
+
     const handleStatusChange = async (productId: number, productName: string, newStatus: 'active' | 'inactive') => {
         setActiveDropdown(null);
         
@@ -385,7 +399,11 @@ export default function AdminProducts() {
                             )}
                         </div>
                         
-                        <button className="btn-create-product-compact" title="Create Product">
+                        <button 
+                            className="btn-create-product-compact" 
+                            title="Create Product"
+                            onClick={() => setShowAddProductModal(true)}
+                        >
                             <IconPlus />
                             <span className="desktop-only">Create Product</span>
                         </button>
@@ -525,7 +543,6 @@ export default function AdminProducts() {
                                                         }}
                                                     >
                                                         {cat.name}
-                                                        {cat.is_primary && ' ⭐'}
                                                     </span>
                                                 ))}
                                                 {product.categories.length === 0 && (
@@ -536,7 +553,7 @@ export default function AdminProducts() {
                                             </div>
                                         </td>
                                         <td>
-                                            <span className="price">${product.price.toFixed(2)}</span>
+                                            <span className="price">{formatVND(product.price)}</span>
                                         </td>
                                         <td>
                                             <span className="stock-amount">{product.stock}</span>
@@ -566,7 +583,13 @@ export default function AdminProducts() {
                                                             <IconEye />
                                                             View Details
                                                         </button>
-                                                        <button className="unified-dropdown-item">
+                                                        <button 
+                                                            className="unified-dropdown-item"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                handleEditProduct(product);
+                                                            }}
+                                                        >
                                                             <IconEdit />
                                                             Edit
                                                         </button>
@@ -635,7 +658,13 @@ export default function AdminProducts() {
                                                         <IconEye />
                                                         View Details
                                                     </button>
-                                                    <button className="unified-dropdown-item">
+                                                    <button 
+                                                        className="unified-dropdown-item"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleEditProduct(product);
+                                                        }}
+                                                    >
                                                         <IconEdit />
                                                         Edit
                                                     </button>
@@ -688,7 +717,6 @@ export default function AdminProducts() {
                                                 }}
                                             >
                                                 {cat.name}
-                                                {cat.is_primary && ' ⭐'}
                                             </span>
                                         ))}
                                         {product.categories.length === 0 && (
@@ -698,7 +726,7 @@ export default function AdminProducts() {
                                         )}
                                     </div>
                                     <div className="product-card-footer">
-                                        <span className="price">${product.price.toFixed(2)}</span>
+                                        <span className="price">{formatVND(product.price)}</span>
                                         <span className="product-card-stock">Stock: {product.stock}</span>
                                     </div>
                                 </div>
@@ -721,6 +749,28 @@ export default function AdminProducts() {
                 open={showDetailModal}
                 onClose={handleCloseDetail}
                 product={selectedProduct}
+                onEdit={handleEditProduct}
+            />
+
+            {/* Add/Edit Product Modal */}
+            <AddProductModal
+                open={showAddProductModal}
+                onClose={() => {
+                    setShowAddProductModal(false);
+                    setEditingProduct(null);
+                }}
+                onSuccess={() => {
+                    fetchProducts();
+                    setNotification({
+                        type: 'success',
+                        message: editingProduct 
+                            ? 'Product updated successfully!'
+                            : 'Product created successfully!'
+                    });
+                    setTimeout(() => setNotification(null), 3000);
+                    setEditingProduct(null);
+                }}
+                product={editingProduct}
             />
 
             {/* Stock Management Modal */}

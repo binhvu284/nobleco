@@ -50,6 +50,11 @@ interface CartItem {
     quantity: number;
 }
 
+// Format number as VND currency
+const formatVND = (amount: number): string => {
+    return new Intl.NumberFormat('vi-VN').format(amount) + ' ₫';
+};
+
 export default function UserProduct() {
     const [products, setProducts] = useState<Product[]>([]);
     const [categories, setCategories] = useState<Category[]>([]);
@@ -403,7 +408,7 @@ export default function UserProduct() {
                                             </div>
                                             <div className="product-footer">
                                                 <div className="product-price">
-                                                    ${product.price.toFixed(2)}
+                                                    {formatVND(product.price)}
                                                 </div>
                                                 <button
                                                     className={`add-to-cart-btn ${addingToCart === product.id ? 'adding' : ''}`}
@@ -456,7 +461,7 @@ export default function UserProduct() {
                                                     </div>
                                                     <div className="cart-item-details">
                                                         <h4>{item.product.name}</h4>
-                                                        <p>${item.product.price.toFixed(2)}</p>
+                                                        <p>{formatVND(item.product.price)}</p>
                                                         <div className="quantity-controls">
                                                             <button
                                                                 onClick={() => updateCartQuantity(item.product.id, item.quantity - 1)}
@@ -484,7 +489,7 @@ export default function UserProduct() {
                                         <div className="cart-footer">
                                             <div className="cart-total">
                                                 <span>Total:</span>
-                                                <span className="total-price">${getTotalPrice().toFixed(2)}</span>
+                                                <span className="total-price">{formatVND(getTotalPrice())}</span>
                                             </div>
                                             <button className="checkout-btn">
                                                 Proceed to Checkout
@@ -549,7 +554,7 @@ export default function UserProduct() {
                                     <p className="product-modal-short-desc">{selectedProduct.short_description}</p>
                                     <div className="product-modal-price-section">
                                         <span className="product-modal-price-label">Price:</span>
-                                        <span className="product-modal-price-value">${selectedProduct.price.toFixed(2)}</span>
+                                        <span className="product-modal-price-value">{formatVND(selectedProduct.price)}</span>
                                     </div>
                                     <button
                                         className="product-modal-add-to-cart"
