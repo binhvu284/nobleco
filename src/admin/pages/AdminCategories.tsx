@@ -48,6 +48,61 @@ export default function AdminCategories() {
     type: 'success' | 'error';
     message: string;
   } | null>(null);
+  
+  // Form state for creating/editing category
+  const [formData, setFormData] = useState({
+    name: '',
+    description: '',
+    color: '#3B82F6'
+  });
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [showUnsavedConfirm, setShowUnsavedConfirm] = useState(false);
+  const [pendingClose, setPendingClose] = useState<(() => void) | null>(null);
+  
+  const isEditMode = !!editingCategory;
+  
+  // Check if form has unsaved changes
+  const hasUnsavedChanges = (): boolean => {
+    if (!isEditMode || !editingCategory) return false;
+    
+    return (
+      formData.name.trim() !== editingCategory.name ||
+      formData.description.trim() !== (editingCategory.description || '') ||
+      formData.color !== editingCategory.color
+    );
+  };
+  
+  // Handle close with unsaved changes check
+  const handleCloseRequest = (closeAction: () => void) => {
+    if (isEditMode && hasUnsavedChanges()) {
+      setPendingClose(() => closeAction);
+      setShowUnsavedConfirm(true);
+    } else {
+      closeAction();
+    }
+  };
+  
+  // Confirm discard changes
+  const handleDiscardChanges = () => {
+    if (pendingClose) {
+      pendingClose();
+      setPendingClose(null);
+    }
+    setShowUnsavedConfirm(false);
+    setEditingCategory(null);
+    setFormData({
+      name: '',
+      description: '',
+      color: '#3B82F6'
+    });
+  };
+  
+  // Cancel discard (go back to editing)
+  const handleCancelDiscard = () => {
+    setShowUnsavedConfirm(false);
+    setPendingClose(null);
+  };
 
   // Fetch categories from database
   const fetchCategories = async () => {
@@ -156,12 +211,135 @@ export default function AdminCategories() {
   };
 
   const handleEdit = (category: Category) => {
-    console.log('Edit category:', category);
+    setEditingCategory(category);
+    setFormData({
+      name: category.name,
+      description: category.description || '',
+      color: category.color || '#3B82F6'
+    });
+    setShowCreateModal(true);
+    setActiveDropdown(null);
   };
 
   const handleCreateCategory = () => {
+    setEditingCategory(null);
+    setFormData({
+      name: '',
+      description: '',
+      color: '#3B82F6'
+    });
     setShowCreateModal(true);
   };
+
+  // Handle form submission
+  const handleSubmitCategory = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!formData.name.trim()) {
+      setNotification({
+        type: 'error',
+        message: 'Category name is required'
+      });
+      setTimeout(() => setNotification(null), 3000);
+      return;
+    }
+
+    // Validate hex color
+    const hexColorRegex = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/;
+    if (!hexColorRegex.test(formData.color)) {
+      setNotification({
+        type: 'error',
+        message: 'Please enter a valid hex color (e.g., #3B82F6)'
+      });
+      setTimeout(() => setNotification(null), 3000);
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      
+      let response;
+      
+      if (isEditMode && editingCategory) {
+        // Update existing category
+        // Generate new slug if name changed
+        const slug = formData.name.toLowerCase() !== editingCategory.name.toLowerCase()
+          ? formData.name
+              .toLowerCase()
+              .replace(/[^a-z0-9]+/g, '-')
+              .replace(/(^-|-$)/g, '')
+          : editingCategory.slug;
+
+        response = await fetch(`/api/categories?id=${editingCategory.id}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            name: formData.name.trim(),
+            slug: slug,
+            description: formData.description.trim() || null,
+            color: formData.color
+          })
+        });
+      } else {
+        // Create new category
+        // Generate slug from name
+        const slug = formData.name
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/(^-|-$)/g, '');
+
+        response = await fetch('/api/categories', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            name: formData.name.trim(),
+            slug: slug,
+            description: formData.description.trim() || null,
+            color: formData.color,
+            status: 'active'
+          })
+        });
+      }
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ 
+          error: isEditMode ? 'Failed to update category' : 'Failed to create category' 
+        }));
+        throw new Error(errorData.error || (isEditMode ? 'Failed to update category' : 'Failed to create category'));
+      }
+
+      // Show success notification
+      setNotification({
+        type: 'success',
+        message: isEditMode ? 'Category updated successfully' : 'Category created successfully'
+      });
+      setTimeout(() => setNotification(null), 3000);
+
+      // Close modal and refresh
+      setShowCreateModal(false);
+      setEditingCategory(null);
+      setFormData({
+        name: '',
+        description: '',
+        color: '#3B82F6'
+      });
+      fetchCategories();
+    } catch (err) {
+      console.error(`Error ${isEditMode ? 'updating' : 'creating'} category:`, err);
+      setNotification({
+        type: 'error',
+        message: err instanceof Error ? err.message : (isEditMode ? 'Failed to update category' : 'Failed to create category')
+      });
+      setTimeout(() => setNotification(null), 3000);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
 
   const handleMoreClick = (categoryId: number, event: React.MouseEvent) => {
     event.stopPropagation();
@@ -413,26 +591,49 @@ export default function AdminCategories() {
           </div>
         )}
 
-        {/* Create Modal */}
+        {/* Create/Edit Modal */}
         {showCreateModal && (
-          <div className="modal-overlay">
-            <div className="modal">
+          <div className="modal-overlay" onClick={() => {
+            handleCloseRequest(() => {
+              setShowCreateModal(false);
+              setEditingCategory(null);
+              setFormData({
+                name: '',
+                description: '',
+                color: '#3B82F6'
+              });
+            });
+          }}>
+            <div className="modal" onClick={(e) => e.stopPropagation()}>
               <div className="modal-header">
-                <h2>Create New Category</h2>
+                <h2>{isEditMode ? 'Edit Category' : 'Create New Category'}</h2>
                 <button 
                   className="close-btn"
-                  onClick={() => setShowCreateModal(false)}
+                  onClick={() => {
+                    handleCloseRequest(() => {
+                      setShowCreateModal(false);
+                      setEditingCategory(null);
+                      setFormData({
+                        name: '',
+                        description: '',
+                        color: '#3B82F6'
+                      });
+                    });
+                  }}
                 >
                   ×
                 </button>
               </div>
               <div className="modal-body">
-                <form>
+                <form onSubmit={handleSubmitCategory}>
                   <div className="form-group">
-                    <label>Category Name</label>
+                    <label>Category Name <span className="required">*</span></label>
                     <input 
                       type="text" 
                       placeholder="Enter category name"
+                      value={formData.name}
+                      onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                      required
                     />
                   </div>
                   <div className="form-group">
@@ -440,27 +641,61 @@ export default function AdminCategories() {
                     <textarea 
                       placeholder="Enter category description"
                       rows={3}
+                      value={formData.description}
+                      onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                     />
                   </div>
                   <div className="form-group">
-                    <label>Color</label>
-                    <input 
-                      type="color" 
-                      defaultValue="#3B82F6"
-                    />
+                    <label>Color <span className="required">*</span></label>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      <input 
+                        type="text" 
+                        placeholder="#3B82F6"
+                        value={formData.color}
+                        onChange={(e) => setFormData(prev => ({ ...prev, color: e.target.value }))}
+                        style={{ flex: 1 }}
+                        pattern="^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$"
+                        required
+                      />
+                      <input 
+                        type="color" 
+                        value={formData.color}
+                        onChange={(e) => setFormData(prev => ({ ...prev, color: e.target.value }))}
+                        style={{ width: '50px', height: '38px', cursor: 'pointer' }}
+                        title="Color picker"
+                      />
+                    </div>
+                  </div>
+                  <div className="modal-footer">
+                    <button 
+                      type="button"
+                      className="btn-secondary"
+                      onClick={() => {
+                        handleCloseRequest(() => {
+                          setShowCreateModal(false);
+                          setEditingCategory(null);
+                          setFormData({
+                            name: '',
+                            description: '',
+                            color: '#3B82F6'
+                          });
+                        });
+                      }}
+                      disabled={submitting}
+                    >
+                      Cancel
+                    </button>
+                    <button 
+                      type="submit"
+                      className="btn-primary"
+                      disabled={submitting}
+                    >
+                      {submitting 
+                        ? (isEditMode ? 'Saving...' : 'Creating...') 
+                        : (isEditMode ? 'Save Category' : 'Create Category')}
+                    </button>
                   </div>
                 </form>
-              </div>
-              <div className="modal-footer">
-                <button 
-                  className="btn-secondary"
-                  onClick={() => setShowCreateModal(false)}
-                >
-                  Cancel
-                </button>
-                <button className="btn-primary">
-                  Create Category
-                </button>
               </div>
             </div>
           </div>
@@ -471,6 +706,7 @@ export default function AdminCategories() {
           open={showDetailModal}
           onClose={handleCloseDetail}
           category={selectedCategory}
+          onEdit={handleEdit}
         />
 
         {/* Delete Confirmation Modal */}
@@ -488,6 +724,19 @@ export default function AdminCategories() {
           cancelText="Cancel"
           type="danger"
           loading={deleteLoading}
+        />
+
+        {/* Unsaved Changes Confirmation Modal */}
+        <ConfirmModal
+          open={showUnsavedConfirm}
+          onClose={handleCancelDiscard}
+          onConfirm={handleDiscardChanges}
+          title="Unsaved Changes"
+          message="You have unsaved changes. Are you sure you want to discard them?"
+          confirmText="Discard Changes"
+          cancelText="Go Back"
+          type="warning"
+          loading={false}
         />
 
         {/* Notification Toast */}

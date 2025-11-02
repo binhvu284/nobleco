@@ -201,5 +201,19 @@ INSERT INTO public.clients (
 ON CONFLICT DO NOTHING;
 
 -- ============================================
+-- FIX PRICE COLUMNS FOR VND CURRENCY
+-- Update price and cost_price columns to support large VND values
+-- ============================================
+
+-- Alter price column to support larger values (numeric(20, 0) = 20 digits, 0 decimal places)
+-- This supports VND values up to 99,999,999,999,999,999,999
+ALTER TABLE public.products 
+ALTER COLUMN price TYPE numeric(20, 0);
+
+-- Alter cost_price column to support larger values
+ALTER TABLE public.products 
+ALTER COLUMN cost_price TYPE numeric(20, 0);
+
+-- ============================================
 -- SETUP COMPLETE!
 -- ============================================

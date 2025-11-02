@@ -39,7 +39,7 @@ export default function ConfirmModal({
 
     return (
         <>
-            <div className="modal-overlay" onClick={handleCancel}></div>
+            <div className="confirm-modal-overlay" onClick={handleCancel}></div>
             <div className="confirm-modal">
                 <div className="confirm-modal-header">
                     <div className={`confirm-modal-icon ${type}`}>

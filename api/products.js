@@ -44,15 +44,38 @@ export default async function handler(req, res) {
 
     if (method === 'POST') {
       // POST /api/products - Create new product
-      const { product, categoryIds, primaryCategoryId, userId } = req.body;
+      // Support both old format (product object) and new format (flat fields)
+      let productData, categoryIds, primaryCategoryId, userId;
+      
+      if (req.body.product) {
+        // Old format: { product: {...}, categoryIds: [...], userId: ... }
+        productData = req.body.product;
+        categoryIds = req.body.categoryIds;
+        primaryCategoryId = req.body.primaryCategoryId;
+        userId = req.body.userId;
+      } else {
+        // New format: flat fields from AddProductModal
+        productData = {
+          name: req.body.name,
+          short_description: req.body.short_description || 'No description available',
+          long_description: req.body.long_description || null,
+          price: req.body.price,
+          cost_price: req.body.cost_price || null,
+          stock: req.body.stock || 0,
+          status: req.body.status || 'active'
+        };
+        categoryIds = req.body.category_ids || req.body.categoryIds || [];
+        primaryCategoryId = categoryIds.length > 0 ? categoryIds[0] : null;
+        userId = req.body.userId || null; // Can be null if not authenticated
+      }
 
-      if (!product || !product.name || !product.slug || !product.short_description || product.price === undefined) {
+      if (!productData || !productData.name || productData.price === undefined) {
         return res.status(400).json({ 
-          error: 'Missing required fields: name, slug, short_description, price' 
+          error: 'Missing required fields: name and price' 
         });
       }
 
-      const newProduct = await createProduct(product, userId);
+      const newProduct = await createProduct(productData, userId);
 
       // Add categories if provided
       if (categoryIds && categoryIds.length > 0) {

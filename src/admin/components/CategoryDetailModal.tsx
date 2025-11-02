@@ -31,9 +31,10 @@ interface CategoryDetailModalProps {
     open: boolean;
     onClose: () => void;
     category: Category | null;
+    onEdit?: (category: Category) => void;
 }
 
-export default function CategoryDetailModal({ open, onClose, category }: CategoryDetailModalProps) {
+export default function CategoryDetailModal({ open, onClose, category, onEdit }: CategoryDetailModalProps) {
     const [products, setProducts] = useState<ProductInCategory[]>([]);
     const [loadingProducts, setLoadingProducts] = useState(false);
 
@@ -175,7 +176,7 @@ export default function CategoryDetailModal({ open, onClose, category }: Categor
                                                 {product.short_description}
                                             </p>
                                             <div className="product-meta-mini">
-                                                <span className="product-price">${product.price.toFixed(2)}</span>
+                                                <span className="product-price">{new Intl.NumberFormat('vi-VN').format(product.price)} ₫</span>
                                                 <span className="product-stock">
                                                     Stock: {product.stock}
                                                 </span>
@@ -197,7 +198,15 @@ export default function CategoryDetailModal({ open, onClose, category }: Categor
                     <button className="btn-secondary" onClick={onClose}>
                         Close
                     </button>
-                    <button className="btn-primary">
+                    <button 
+                        className="btn-primary"
+                        onClick={() => {
+                            if (onEdit && category) {
+                                onEdit(category);
+                                onClose();
+                            }
+                        }}
+                    >
                         Edit Category
                     </button>
                 </div>

@@ -32,9 +32,10 @@ interface ProductDetailModalProps {
     open: boolean;
     onClose: () => void;
     product: Product | null;
+    onEdit?: (product: Product) => void;
 }
 
-export default function ProductDetailModal({ open, onClose, product }: ProductDetailModalProps) {
+export default function ProductDetailModal({ open, onClose, product, onEdit }: ProductDetailModalProps) {
     if (!open || !product) return null;
 
     const formatDate = (dateString: string) => {
@@ -122,12 +123,12 @@ export default function ProductDetailModal({ open, onClose, product }: ProductDe
                         <div className="product-pricing-section">
                             <div className="pricing-item">
                                 <label>Price</label>
-                                <div className="price-value">${product.price.toFixed(2)}</div>
+                                <div className="price-value">{new Intl.NumberFormat('vi-VN').format(product.price)} ₫</div>
                             </div>
                             {product.cost_price && (
                                 <div className="pricing-item">
                                     <label>Cost Price</label>
-                                    <div className="cost-price-value">${product.cost_price.toFixed(2)}</div>
+                                    <div className="cost-price-value">{new Intl.NumberFormat('vi-VN').format(product.cost_price)} ₫</div>
                                 </div>
                             )}
                             <div className="pricing-item">
@@ -192,7 +193,15 @@ export default function ProductDetailModal({ open, onClose, product }: ProductDe
                     <button className="btn-secondary" onClick={onClose}>
                         Close
                     </button>
-                    <button className="btn-primary">
+                    <button 
+                        className="btn-primary"
+                        onClick={() => {
+                            if (onEdit && product) {
+                                onEdit(product);
+                                onClose();
+                            }
+                        }}
+                    >
                         Edit Product
                     </button>
                 </div>
