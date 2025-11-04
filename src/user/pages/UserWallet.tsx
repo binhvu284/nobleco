@@ -172,26 +172,46 @@ export default function UserWallet() {
                         <div className="balance-info">
                             <p className="balance-label">Available Balance</p>
                             <div className="balance-amount-row">
-                                <h1 className="balance-amount">
-                                    {balanceVisible ? `$${currentBalance.toFixed(2)}` : '••••••'}
-                                </h1>
-                                <button 
-                                    className="balance-toggle-btn"
-                                    onClick={() => setBalanceVisible(!balanceVisible)}
-                                    title={balanceVisible ? "Hide balance" : "Show balance"}
-                                >
-                                    {balanceVisible ? (
-                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                            <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
-                                            <line x1="1" y1="1" x2="23" y2="23"/>
-                                        </svg>
-                                    ) : (
-                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                                            <circle cx="12" cy="12" r="3"/>
-                                        </svg>
+                                <div className="balance-amount-section">
+                                    <div className="balance-amount-with-toggle">
+                                        <h1 className="balance-amount">
+                                            {balanceVisible ? (
+                                                <>
+                                                    {currentBalance.toLocaleString()}
+                                                    <span className="points-label">
+                                                        <span className="points-text">point</span>
+                                                        <svg className="points-star-icon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+                                                            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                                                        </svg>
+                                                    </span>
+                                                </>
+                                            ) : '••••••'}
+                                        </h1>
+                                        <button 
+                                            className="balance-toggle-btn"
+                                            onClick={() => setBalanceVisible(!balanceVisible)}
+                                            title={balanceVisible ? "Hide balance" : "Show balance"}
+                                        >
+                                            {balanceVisible ? (
+                                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+                                                    <line x1="1" y1="1" x2="23" y2="23"/>
+                                                </svg>
+                                            ) : (
+                                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                                    <circle cx="12" cy="12" r="3"/>
+                                                </svg>
+                                            )}
+                                        </button>
+                                    </div>
+                                    {balanceVisible && (
+                                        <div className="balance-vnd-conversion">
+                                            <span className="vnd-label">≈</span>
+                                            <span className="vnd-amount">{currentBalance.toLocaleString('vi-VN')} VND</span>
+                                        </div>
                                     )}
-                                </button>
+                                </div>
                             </div>
                             <p className="balance-description">
                                 Points you can withdraw to real money
@@ -295,7 +315,13 @@ export default function UserWallet() {
                                 </div>
                                 <div className="transaction-right">
                                     <p className={`transaction-amount ${transaction.amount > 0 ? 'positive' : 'negative'}`}>
-                                        {transaction.amount > 0 ? '+' : ''}${Math.abs(transaction.amount).toFixed(2)}
+                                        {transaction.amount > 0 ? '+' : ''}{Math.abs(transaction.amount).toLocaleString()}
+                                        <span className="points-label-small">
+                                            <span className="points-text-small">point</span>
+                                            <svg className="points-star-icon-small" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+                                                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                                            </svg>
+                                        </span>
                                     </p>
                                     {transaction.status && (
                                         <span className={`transaction-status status-${transaction.status}`}>
@@ -332,10 +358,10 @@ export default function UserWallet() {
                                 </div>
 
                                 <div className="form-group">
-                                    <label>Withdrawal Amount (USD)</label>
+                                    <label>Withdrawal Amount (Points)</label>
                                     <input
                                         type="number"
-                                        step="0.01"
+                                        step="1"
                                         min="1"
                                         max={currentBalance}
                                         value={withdrawAmount}
@@ -343,7 +369,7 @@ export default function UserWallet() {
                                         placeholder="Enter amount"
                                         required
                                     />
-                                    <span className="input-hint">Available: ${currentBalance.toFixed(2)}</span>
+                                    <span className="input-hint">Available: {currentBalance.toLocaleString()} points ({currentBalance.toLocaleString('vi-VN')} VND)</span>
                                 </div>
 
                                 <div className="form-group">
@@ -398,7 +424,7 @@ export default function UserWallet() {
                                 {showInfoModal === 'points' ? (
                                     <>
                                         <h3>What are Points?</h3>
-                                        <p>Points represent real money that you've earned through commissions. Each point equals $1 USD.</p>
+                                        <p>Points represent real money that you've earned through commissions. Each point equals 1 VND (Vietnamese Dong).</p>
                                         
                                         <h3>How to Earn Points?</h3>
                                         <ul>
@@ -424,7 +450,7 @@ export default function UserWallet() {
                                         </ul>
 
                                         <h3>Example:</h3>
-                                        <p>If someone you referred (Level 1) makes a $100 purchase, and your Level 1 rate is 2%, you earn $2 in points.</p>
+                                        <p>If someone you referred (Level 1) makes a 100,000 VND purchase, and your Level 1 rate is 2%, you earn 2,000 points.</p>
                                         
                                         <h3>Level Up:</h3>
                                         <p>Build your network and increase your sales to level up and unlock higher commission rates!</p>

@@ -215,5 +215,38 @@ ALTER TABLE public.products
 ALTER COLUMN cost_price TYPE numeric(20, 0);
 
 -- ============================================
+-- COMMISSION RATES TABLE
+-- SQL script to create the commission_rates table
+-- ============================================
+
+CREATE TABLE IF NOT EXISTS public.commission_rates (
+  id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+  user_level text NOT NULL UNIQUE CHECK (user_level = ANY (ARRAY['guest'::text, 'member'::text, 'unit manager'::text, 'brand manager'::text])),
+  self_commission numeric(5, 2) NOT NULL DEFAULT 0 CHECK (self_commission >= 0 AND self_commission <= 100),
+  level_1_down numeric(5, 2) NOT NULL DEFAULT 0 CHECK (level_1_down >= 0 AND level_1_down <= 100),
+  level_2_down numeric(5, 2) NOT NULL DEFAULT 0 CHECK (level_2_down >= 0 AND level_2_down <= 100),
+  created_at timestamp with time zone DEFAULT now() NOT NULL,
+  updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+-- Index for commission_rates
+CREATE INDEX IF NOT EXISTS idx_commission_rates_user_level ON public.commission_rates(user_level);
+
+-- Apply updated_at trigger to commission_rates
+DROP TRIGGER IF EXISTS update_commission_rates_updated_at ON public.commission_rates;
+CREATE TRIGGER update_commission_rates_updated_at 
+BEFORE UPDATE ON public.commission_rates
+FOR EACH ROW 
+EXECUTE FUNCTION update_updated_at_column();
+
+-- Insert default commission rates
+INSERT INTO public.commission_rates (user_level, self_commission, level_1_down, level_2_down) VALUES
+  ('guest', 5.00, 0.00, 0.00),
+  ('member', 10.00, 2.00, 0.00),
+  ('unit manager', 15.00, 5.00, 2.00),
+  ('brand manager', 20.00, 8.00, 5.00)
+ON CONFLICT (user_level) DO NOTHING;
+
+-- ============================================
 -- SETUP COMPLETE!
 -- ============================================

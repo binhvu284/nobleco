@@ -4,6 +4,7 @@ import QRCode from 'qrcode';
 
 export default function UserProfileModal({ open, onClose }: { open: boolean; onClose: () => void }) {
     const [user, setUser] = useState<User | null>(null);
+    const [isLoading, setIsLoading] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [error, setError] = useState('');
@@ -19,16 +20,27 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
     useEffect(() => {
         if (open) {
             loadFreshUserData();
+        } else {
+            // Reset state when modal closes
+            setUser(null);
+            setIsLoading(false);
+            setIsEditing(false);
+            setError('');
         }
     }, [open]);
 
     const loadFreshUserData = async () => {
+        setIsLoading(true);
+        setError('');
         try {
             const currentUser = getCurrentUser();
-            if (!currentUser?.id) return;
+            if (!currentUser?.id) {
+                setIsLoading(false);
+                return;
+            }
 
             // Fetch fresh data from database
-            const response = await fetch(`/api/users/${currentUser.id}`);
+            const response = await fetch(`/api/users?id=${currentUser.id}`);
             if (response.ok) {
                 const data = await response.json();
                 const freshUser = data.user;
@@ -80,6 +92,7 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
                 }
             }
         } finally {
+            setIsLoading(false);
             setIsEditing(false);
             setError('');
         }
@@ -127,7 +140,7 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
         setError('');
         
         try {
-            const response = await fetch('/api/users/profile', {
+            const response = await fetch('/api/users', {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -142,6 +155,7 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
 
             if (!response.ok) {
                 setError(data.error || 'Failed to update profile');
+                setIsSaving(false);
                 return;
             }
 
@@ -192,16 +206,26 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
 
     return (
         <>
-            {open && user && !showQrModal && (
-        <>
-            <div className="modal-overlay" onClick={onClose} />
+            {open && !showQrModal && (
+                <>
+                    <div className="modal-overlay" onClick={onClose} />
                     <div className="profile-modal-card" role="dialog" aria-modal="true">
-                <div className="modal-header">
-                    <span>Your Profile</span>
-                    <button className="modal-close" aria-label="Close" onClick={onClose}>✕</button>
-                </div>
-                
-                <div className="profile-content">
+                        <div className="modal-header">
+                            <span>Your Profile</span>
+                            <button className="modal-close" aria-label="Close" onClick={onClose}>✕</button>
+                        </div>
+                        
+                        {isLoading ? (
+                            <div className="profile-loading">
+                                <div className="loading-spinner">
+                                    <div className="spinner-ring"></div>
+                                    <div className="spinner-ring"></div>
+                                    <div className="spinner-ring"></div>
+                                </div>
+                                <p>Loading profile...</p>
+                            </div>
+                        ) : user ? (
+                            <div className="profile-content">
                     {/* Avatar Section */}
                     <div className="profile-avatar-section">
                         <div className="profile-avatar-wrapper">
@@ -362,19 +386,27 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
                         </div>
                     )}
 
-                    {/* Action Buttons */}
-                    {isEditing && (
-                        <div className="profile-actions">
-                            <button className="btn-secondary" onClick={handleCancel} disabled={isSaving}>
-                                Cancel
-                            </button>
-                            <button className="btn-primary" onClick={handleSave} disabled={isSaving}>
-                                {isSaving ? 'Saving...' : 'Save Changes'}
-                            </button>
-                        </div>
-                    )}
-                </div>
-            </div>
+                                {/* Action Buttons */}
+                                {isEditing && (
+                                    <div className="profile-actions">
+                                        <button className="btn-secondary" onClick={handleCancel} disabled={isSaving}>
+                                            Cancel
+                                        </button>
+                                        <button className="btn-primary" onClick={handleSave} disabled={isSaving}>
+                                            {isSaving ? 'Saving...' : 'Save Changes'}
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        ) : (
+                            <div className="profile-error">
+                                <p>Failed to load profile data. Please try again.</p>
+                                <button className="btn-primary" onClick={loadFreshUserData}>
+                                    Retry
+                                </button>
+                            </div>
+                        )}
+                    </div>
                 </>
             )}
 

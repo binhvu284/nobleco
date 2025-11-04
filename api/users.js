@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs';
 import { listUsers, createUser, deleteUser, updateUserStatus, listAdminUsers, listCoworkers } from './_repo/users.js';
 import { getSupabase } from './_db.js';
+import { getCommissionRateByLevel } from './_repo/commissionRates.js';
 
 export default async function handler(req, res) {
   // Set CORS headers
@@ -135,7 +136,35 @@ export default async function handler(req, res) {
           return res.status(404).json({ error: 'User not found' });
         }
 
-        const commissionRates = getCommissionRates(user.level);
+        // Fetch commission rates from database based on user level
+        let commissionRates;
+        try {
+          // Normalize user level to match database format (lowercase)
+          const normalizedLevel = (user.level || 'guest').toLowerCase().trim();
+          console.log('Fetching commission rates for level:', normalizedLevel);
+          
+          const rateData = await getCommissionRateByLevel(normalizedLevel);
+          console.log('Commission rate data from DB:', rateData);
+          
+          if (rateData) {
+            commissionRates = {
+              self: rateData.self_commission || 0,
+              level1: rateData.level_1_down || 0,
+              level2: rateData.level_2_down || 0
+            };
+            console.log('Mapped commission rates:', commissionRates);
+          } else {
+            console.warn('No commission rate found for level:', normalizedLevel, ', using fallback');
+            // Fallback to default rates if not found in database
+            commissionRates = getCommissionRates(normalizedLevel);
+          }
+        } catch (error) {
+          console.error('Error fetching commission rates:', error);
+          // Fallback to default rates on error
+          const normalizedLevel = (user.level || 'guest').toLowerCase().trim();
+          commissionRates = getCommissionRates(normalizedLevel);
+        }
+        
         const transactions = await getTransactionHistory(userId);
 
         res.setHeader('Cache-Control', 'public, max-age=60, s-maxage=60');
@@ -181,7 +210,42 @@ export default async function handler(req, res) {
 
     if (req.method === 'PATCH') {
       const body = req.body || await readBody(req);
-      const { id, status, name, phone, address } = body || {};
+      const { id, status, name, phone, address, level } = body || {};
+      
+      // Handle level updates
+      if (level !== undefined) {
+        if (!id) {
+          return res.status(400).json({ error: 'User ID is required' });
+        }
+
+        // Validate level value
+        const validLevels = ['guest', 'member', 'unit manager', 'brand manager'];
+        if (!validLevels.includes(level)) {
+          return res.status(400).json({ error: `Invalid level. Must be one of: ${validLevels.join(', ')}` });
+        }
+
+        try {
+          const supabase = getSupabase();
+          const { data: userData, error: userError } = await supabase
+            .from('users')
+            .update({ level })
+            .eq('id', id)
+            .select('id, email, name, role, points, level, status, refer_code, commission, phone, address, created_at, referred_by')
+            .single();
+
+          if (userError) {
+            console.error('Error updating user level:', userError);
+            return res.status(500).json({ error: 'Failed to update user level' });
+          }
+
+          return res.status(200).json({
+            success: true,
+            user: userData,
+          });
+        } catch (e) {
+          return res.status(500).json({ error: e.message });
+        }
+      }
       
       // Handle profile updates
       if (name !== undefined || phone !== undefined || address !== undefined) {
