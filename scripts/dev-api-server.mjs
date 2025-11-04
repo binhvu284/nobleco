@@ -7,6 +7,7 @@ import diagnosticsHandler from '../api/diagnostics.js';
 import productsHandler from '../api/products.js';
 import categoriesHandler from '../api/categories.js';
 import clientsHandler from '../api/clients.js';
+import commissionRatesHandler from '../api/commission-rates.js';
 
 const app = express();
 app.use(express.json());
@@ -38,6 +39,7 @@ app.all('/api/users/wallet', (req, res) => {
 app.all('/api/products', toRoute(productsHandler));
 app.all('/api/categories', toRoute(categoriesHandler));
 app.all('/api/clients', toRoute(clientsHandler));
+app.all('/api/commission-rates', toRoute(commissionRatesHandler));
 app.all('/api/check-tables', (req, res) => {
   req.query = { ...req.query, endpoint: 'tables' };
   return diagnosticsHandler(req, res);

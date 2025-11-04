@@ -80,3 +80,13 @@ CREATE TABLE public.users (
   referred_by text,
   CONSTRAINT users_pkey PRIMARY KEY (id)
 );
+CREATE TABLE public.commission_rates (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  user_level text NOT NULL UNIQUE CHECK (user_level = ANY (ARRAY['guest'::text, 'member'::text, 'unit manager'::text, 'brand manager'::text])),
+  self_commission numeric(5, 2) NOT NULL DEFAULT 0 CHECK (self_commission >= 0 AND self_commission <= 100),
+  level_1_down numeric(5, 2) NOT NULL DEFAULT 0 CHECK (level_1_down >= 0 AND level_1_down <= 100),
+  level_2_down numeric(5, 2) NOT NULL DEFAULT 0 CHECK (level_2_down >= 0 AND level_2_down <= 100),
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT commission_rates_pkey PRIMARY KEY (id)
+);

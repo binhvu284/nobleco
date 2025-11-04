@@ -23,14 +23,21 @@ export default async function handler(req, res) {
     if (method === 'GET') {
       // GET /api/clients - List all clients
       // GET /api/clients?id=123 - Get single client
+      // GET /api/clients?userId=123 - List clients by user
       try {
-        const { id } = req.query;
+        const { id, userId } = req.query;
 
         if (id) {
           const client = await getClientById(id);
           return res.status(200).json(client);
         } else {
-          const clients = await listClients();
+          // For user client page, userId is required to filter clients
+          // Ensure userId is properly converted to number
+          const userIdNum = userId ? (typeof userId === 'string' ? parseInt(userId, 10) : userId) : null;
+          
+          // If userId is provided, filter by it; otherwise return empty array for user pages
+          // (Admin pages can call without userId to get all clients)
+          const clients = await listClients(userIdNum);
           return res.status(200).json(clients);
         }
       } catch (error) {
@@ -56,22 +63,46 @@ export default async function handler(req, res) {
     if (method === 'PATCH') {
       // PATCH /api/clients - Update client
       const { id } = req.query;
-      const clientData = req.body;
+      const { clientData, userId } = req.body;
 
       if (!id) {
         return res.status(400).json({ error: 'Client ID is required' });
       }
 
-      const updatedClient = await updateClient(parseInt(id), clientData);
+      // Verify that the client belongs to the user (if userId is provided)
+      if (userId) {
+        try {
+          const existingClient = await getClientById(parseInt(id));
+          if (existingClient.created_by !== parseInt(userId)) {
+            return res.status(403).json({ error: 'You can only update your own clients' });
+          }
+        } catch (error) {
+          return res.status(404).json({ error: 'Client not found' });
+        }
+      }
+
+      const updatedClient = await updateClient(parseInt(id), clientData || req.body);
       return res.status(200).json(updatedClient);
     }
 
     if (method === 'DELETE') {
       // DELETE /api/clients?id=123 - Delete client
-      const { id } = req.query;
+      const { id, userId } = req.query;
 
       if (!id) {
         return res.status(400).json({ error: 'Client ID is required' });
+      }
+
+      // Verify that the client belongs to the user (if userId is provided)
+      if (userId) {
+        try {
+          const existingClient = await getClientById(parseInt(id));
+          if (existingClient.created_by !== parseInt(userId)) {
+            return res.status(403).json({ error: 'You can only delete your own clients' });
+          }
+        } catch (error) {
+          return res.status(404).json({ error: 'Client not found' });
+        }
       }
 
       await deleteClient(id);

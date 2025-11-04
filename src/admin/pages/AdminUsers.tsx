@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useRef } from 'react';
 import AdminLayout from '../components/AdminLayout';
 import UserDetailModal from '../components/UserDetailModal';
 import { 
@@ -67,6 +67,20 @@ export default function AdminUsers() {
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
     const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+    
+    // Edit level modal states
+    const [editLevelModal, setEditLevelModal] = useState<{ show: boolean; userId: string | number | null; userName: string; currentLevel: string }>({
+        show: false,
+        userId: null,
+        userName: '',
+        currentLevel: ''
+    });
+    const [availableLevels, setAvailableLevels] = useState<Level[]>([]);
+    const [selectedLevel, setSelectedLevel] = useState<Level>('guest');
+    const [isUpdatingLevel, setIsUpdatingLevel] = useState(false);
+    const [isLevelDropdownOpen, setIsLevelDropdownOpen] = useState(false);
+    const dropdownRef = useRef<HTMLDivElement>(null);
+    const dropdownToggleRef = useRef<HTMLButtonElement>(null);
 
     const fetchUsers = async () => {
         try {
@@ -85,9 +99,70 @@ export default function AdminUsers() {
         let cancelled = false;
         (async () => {
             await fetchUsers();
+            await fetchAvailableLevels();
         })();
         return () => { cancelled = true; };
     }, []);
+
+    // Close level dropdown when clicking outside
+    useEffect(() => {
+        if (!isLevelDropdownOpen) return;
+
+        const handleClickOutside = (event: MouseEvent) => {
+            const target = event.target as Element;
+            if (!target.closest('.user-level-custom-dropdown')) {
+                setIsLevelDropdownOpen(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [isLevelDropdownOpen]);
+
+    // Adjust dropdown max-height to prevent cutoff (always opens downward)
+    useEffect(() => {
+        if (!isLevelDropdownOpen || !dropdownRef.current || !dropdownToggleRef.current) return;
+
+        const adjustMaxHeight = () => {
+            const dropdown = dropdownRef.current;
+            const toggle = dropdownToggleRef.current;
+            if (!dropdown || !toggle) return;
+
+            const toggleRect = toggle.getBoundingClientRect();
+            // Calculate available space below the button
+            const spaceBelow = window.innerHeight - toggleRect.bottom - 20;
+            
+            // Set max-height to fit available space, with a minimum of 150px
+            dropdown.style.maxHeight = `${Math.max(150, Math.min(300, spaceBelow))}px`;
+        };
+
+        // Adjust on mount and window resize
+        adjustMaxHeight();
+        window.addEventListener('resize', adjustMaxHeight);
+        window.addEventListener('scroll', adjustMaxHeight, true);
+
+        return () => {
+            window.removeEventListener('resize', adjustMaxHeight);
+            window.removeEventListener('scroll', adjustMaxHeight, true);
+        };
+    }, [isLevelDropdownOpen]);
+
+    const fetchAvailableLevels = async () => {
+        try {
+            const res = await fetch('/api/commission-rates');
+            if (!res.ok) throw new Error('Failed to load commission rates');
+            const data = await res.json();
+            // Extract user_level values from commission rates
+            const levels = data.map((rate: any) => rate.user_level as Level);
+            setAvailableLevels(levels);
+        } catch (e: any) {
+            console.error('Error loading available levels:', e);
+            // Fallback to default levels if API fails
+            setAvailableLevels(['guest', 'member', 'unit manager', 'brand manager']);
+        }
+    };
 
     // Mobile detection and view mode management
     useEffect(() => {
@@ -142,6 +217,71 @@ export default function AdminUsers() {
             setTimeout(() => setErrorMessage(null), 4000);
         } finally {
             setIsUpdatingStatus(false);
+        }
+    };
+
+    const openEditLevelModal = (userId: string | number, userName: string, currentLevel: string) => {
+        setEditLevelModal({
+            show: true,
+            userId,
+            userName,
+            currentLevel: currentLevel || 'guest'
+        });
+        setSelectedLevel((currentLevel as Level) || 'guest');
+        setMenuOpenId(null);
+    };
+
+    const closeEditLevelModal = () => {
+        setEditLevelModal({ show: false, userId: null, userName: '', currentLevel: '' });
+        setSelectedLevel('guest');
+        setIsLevelDropdownOpen(false);
+    };
+
+    const getLevelLabel = (level: Level): string => {
+        const labels: Record<Level, string> = {
+            'guest': 'Guest',
+            'member': 'Member',
+            'unit manager': 'Unit Manager',
+            'brand manager': 'Brand Manager'
+        };
+        return labels[level];
+    };
+
+    const getLevelColor = (level: Level): string => {
+        const colors: Record<Level, string> = {
+            'guest': '#94a3b8',
+            'member': '#3b82f6',
+            'unit manager': '#8b5cf6',
+            'brand manager': '#f59e0b'
+        };
+        return colors[level];
+    };
+
+    const updateUserLevel = async () => {
+        if (!editLevelModal.userId) return;
+
+        setIsUpdatingLevel(true);
+        try {
+            const res = await fetch('/api/users', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: editLevelModal.userId, level: selectedLevel }),
+            });
+
+            if (!res.ok) {
+                const errorData = await res.json();
+                throw new Error(errorData.error || 'Failed to update user level');
+            }
+
+            setSuccessMessage(`User level updated to ${selectedLevel} successfully`);
+            setTimeout(() => setSuccessMessage(null), 3000);
+            closeEditLevelModal();
+            await fetchUsers();
+        } catch (e: any) {
+            setErrorMessage(`Error updating level: ${e.message}`);
+            setTimeout(() => setErrorMessage(null), 4000);
+        } finally {
+            setIsUpdatingLevel(false);
         }
     };
 
@@ -357,6 +497,16 @@ export default function AdminUsers() {
                                                         </button>
                                                         <button 
                                                             className="menu-item" 
+                                                            onClick={() => openEditLevelModal(r.id, r.name, r.level)}
+                                                        >
+                                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                                                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                                                            </svg>
+                                                            Edit Level
+                                                        </button>
+                                                        <button 
+                                                            className="menu-item" 
                                                             onClick={() => updateUserStatus(r.id, r.status === 'active' ? 'inactive' : 'active')}
                                                             disabled={isUpdatingStatus}
                                                         >
@@ -460,6 +610,16 @@ export default function AdminUsers() {
                                                                 <circle cx="12" cy="12" r="3" />
                                                             </svg>
                                                             View Detail
+                                                        </button>
+                                                        <button 
+                                                            className="unified-dropdown-item" 
+                                                            onClick={() => openEditLevelModal(r.id, r.name, r.level)}
+                                                        >
+                                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                                                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                                                            </svg>
+                                                            Edit Level
                                                         </button>
                                                         {r.status === 'active' ? (
                                                             <button 
@@ -647,6 +807,112 @@ export default function AdminUsers() {
                         </div>
                     </div>
                 </>
+            )}
+
+            {/* Edit Level Modal */}
+            {editLevelModal.show && (
+                <div className="modal-overlay" onClick={closeEditLevelModal}>
+                    <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <h3 className="modal-title">Edit User Level</h3>
+                            <button className="modal-close" onClick={closeEditLevelModal}>×</button>
+                        </div>
+                        <div className="modal-body">
+                            <p className="modal-message" style={{ marginBottom: '20px' }}>
+                                Select a new level for <strong>{editLevelModal.userName || 'this user'}</strong>
+                            </p>
+                            <div className="form-group">
+                                <label className="form-label">User Level</label>
+                                <div className="user-level-custom-dropdown">
+                                    <button
+                                        ref={dropdownToggleRef}
+                                        type="button"
+                                        className={`user-level-dropdown-toggle ${isLevelDropdownOpen ? 'active' : ''}`}
+                                        onClick={() => {
+                                            if (!isUpdatingLevel) {
+                                                setIsLevelDropdownOpen(!isLevelDropdownOpen);
+                                            }
+                                        }}
+                                        disabled={isUpdatingLevel}
+                                    >
+                                        <div className="user-level-selected">
+                                            <div 
+                                                className="level-indicator-small" 
+                                                style={{ backgroundColor: getLevelColor(selectedLevel) }}
+                                            />
+                                            <span>{getLevelLabel(selectedLevel)}</span>
+                                        </div>
+                                        <svg 
+                                            className={`dropdown-arrow ${isLevelDropdownOpen ? 'rotated' : ''}`}
+                                            width="16" 
+                                            height="16" 
+                                            viewBox="0 0 16 16" 
+                                            fill="none" 
+                                            stroke="currentColor" 
+                                            strokeWidth="2"
+                                        >
+                                            <path d="M4 6l4 4 4-4" />
+                                        </svg>
+                                    </button>
+                                    {isLevelDropdownOpen && (
+                                        <div 
+                                            ref={dropdownRef}
+                                            className="user-level-dropdown-menu"
+                                        >
+                                            {availableLevels.map((level) => (
+                                                <button
+                                                    key={level}
+                                                    type="button"
+                                                    className={`user-level-option ${selectedLevel === level ? 'selected' : ''}`}
+                                                    onClick={() => {
+                                                        setSelectedLevel(level);
+                                                        setIsLevelDropdownOpen(false);
+                                                    }}
+                                                >
+                                                    <div 
+                                                        className="level-indicator-small" 
+                                                        style={{ backgroundColor: getLevelColor(level) }}
+                                                    />
+                                                    <span>{getLevelLabel(level)}</span>
+                                                    {selectedLevel === level && (
+                                                        <svg 
+                                                            width="16" 
+                                                            height="16" 
+                                                            viewBox="0 0 16 16" 
+                                                            fill="none" 
+                                                            stroke="currentColor" 
+                                                            strokeWidth="2"
+                                                        >
+                                                            <polyline points="4 8 6 10 12 4" />
+                                                        </svg>
+                                                    )}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                            {editLevelModal.currentLevel && (
+                                <div style={{ marginTop: '12px', padding: '12px', background: '#f3f4f6', borderRadius: '8px' }}>
+                                    <span style={{ fontSize: '0.875rem', color: '#6b7280' }}>Current Level: </span>
+                                    <span style={{ fontSize: '0.875rem', fontWeight: '500', color: '#1d2939' }}>
+                                        {editLevelModal.currentLevel === 'unit manager' ? 'Unit Manager' : 
+                                         editLevelModal.currentLevel === 'brand manager' ? 'Brand Manager' : 
+                                         editLevelModal.currentLevel === 'member' ? 'Member' : 'Guest'}
+                                    </span>
+                                </div>
+                            )}
+                        </div>
+                        <div className="modal-footer">
+                            <button className="btn-secondary" onClick={closeEditLevelModal} disabled={isUpdatingLevel}>
+                                Cancel
+                            </button>
+                            <button className="btn-primary" onClick={updateUserLevel} disabled={isUpdatingLevel}>
+                                {isUpdatingLevel ? 'Updating...' : 'Save Changes'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
             )}
 
             {/* User Detail Modal */}

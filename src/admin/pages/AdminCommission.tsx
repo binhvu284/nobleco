@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import AdminLayout from '../components/AdminLayout';
 
 type Level = 'guest' | 'member' | 'unit manager' | 'brand manager';
@@ -10,16 +10,79 @@ type CommissionRate = {
     level2Commission: number;    // Commission from 2 levels down
 };
 
-export default function AdminCommission() {
-    const [commissionRates, setCommissionRates] = useState<CommissionRate[]>([
-        { level: 'guest', selfCommission: 5, level1Commission: 0, level2Commission: 0 },
-        { level: 'member', selfCommission: 10, level1Commission: 2, level2Commission: 0 },
-        { level: 'unit manager', selfCommission: 15, level1Commission: 5, level2Commission: 2 },
-        { level: 'brand manager', selfCommission: 20, level1Commission: 8, level2Commission: 5 },
-    ]);
+type DatabaseCommissionRate = {
+    id: number;
+    user_level: string;
+    self_commission: number;
+    level_1_down: number;
+    level_2_down: number;
+    created_at: string;
+    updated_at: string;
+};
 
+export default function AdminCommission() {
+    const [commissionRates, setCommissionRates] = useState<CommissionRate[]>([]);
+    const [originalRates, setOriginalRates] = useState<CommissionRate[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
     const [isEditing, setIsEditing] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+    useEffect(() => {
+        loadCommissionRates();
+    }, []);
+
+    const loadCommissionRates = async () => {
+        try {
+            setIsLoading(true);
+            setErrorMessage(null);
+            const response = await fetch('/api/commission-rates');
+            
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+                console.error('API Error Response:', response.status, errorData);
+                throw new Error(errorData.error || `Failed to load commission rates (${response.status})`);
+            }
+            
+            const data: DatabaseCommissionRate[] = await response.json();
+            console.log('Fetched commission rates:', data);
+            
+            if (!data || data.length === 0) {
+                console.warn('No commission rates found in database');
+                setErrorMessage('No commission rates found. Please ensure the database table has been created and populated.');
+                setCommissionRates([]);
+                setOriginalRates([]);
+                return;
+            }
+            
+            // Map database format to component format
+            const mappedRates: CommissionRate[] = data.map(rate => ({
+                level: rate.user_level as Level,
+                selfCommission: parseFloat(rate.self_commission) || 0,
+                level1Commission: parseFloat(rate.level_1_down) || 0,
+                level2Commission: parseFloat(rate.level_2_down) || 0
+            }));
+
+            // Sort by level order
+            const levelOrder: Level[] = ['guest', 'member', 'unit manager', 'brand manager'];
+            const sortedRates = mappedRates.sort((a, b) => 
+                levelOrder.indexOf(a.level) - levelOrder.indexOf(b.level)
+            );
+
+            console.log('Mapped and sorted rates:', sortedRates);
+            setCommissionRates(sortedRates);
+            setOriginalRates(sortedRates);
+        } catch (error) {
+            console.error('Error loading commission rates:', error);
+            setErrorMessage(error instanceof Error ? error.message : 'Failed to load commission rates. Please refresh the page.');
+            // Set empty array on error to prevent rendering issues
+            setCommissionRates([]);
+            setOriginalRates([]);
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     const getLevelLabel = (level: Level) => {
         const labels: Record<Level, string> = {
@@ -50,42 +113,84 @@ export default function AdminCommission() {
         );
     };
 
-    const handleSave = () => {
-        // TODO: Save to database
-        setIsEditing(false);
-        setSuccessMessage('Commission rates updated successfully!');
-        setTimeout(() => setSuccessMessage(null), 3000);
+    const handleSave = async () => {
+        try {
+            setIsSaving(true);
+            setErrorMessage(null);
+            
+            // Map component format to database format
+            const ratesToSave = commissionRates.map(rate => ({
+                user_level: rate.level,
+                self_commission: rate.selfCommission,
+                level_1_down: rate.level1Commission,
+                level_2_down: rate.level2Commission
+            }));
+
+            const response = await fetch('/api/commission-rates', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ rates: ratesToSave })
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || 'Failed to update commission rates');
+            }
+
+            const result = await response.json();
+            
+            // Update original rates to current values
+            setOriginalRates([...commissionRates]);
+            setIsEditing(false);
+            setSuccessMessage('Commission rates updated successfully!');
+            setTimeout(() => setSuccessMessage(null), 3000);
+        } catch (error) {
+            console.error('Error saving commission rates:', error);
+            setErrorMessage(error instanceof Error ? error.message : 'Failed to save commission rates. Please try again.');
+        } finally {
+            setIsSaving(false);
+        }
     };
 
     const handleCancel = () => {
-        // Reset to original values (TODO: fetch from database)
+        // Reset to original values from database
+        setCommissionRates([...originalRates]);
         setIsEditing(false);
+        setErrorMessage(null);
     };
+
+    if (isLoading) {
+        return (
+            <AdminLayout title="Commission Management">
+                <div className="commission-page">
+                    <div className="commission-loading">
+                        <div className="loading-spinner">
+                            <div className="spinner-ring"></div>
+                            <div className="spinner-ring"></div>
+                            <div className="spinner-ring"></div>
+                        </div>
+                        <p>Loading commission rates...</p>
+                    </div>
+                </div>
+            </AdminLayout>
+        );
+    }
 
     return (
         <AdminLayout title="Commission Management">
             <div className="commission-page">
-                {/* Header Section */}
-                <div className="commission-header">
-                    <div className="commission-header-content">
-                        <div className="commission-header-text">
-                            <h2 className="commission-title">Commission Rate Settings</h2>
-                            <p className="commission-description">
-                                Configure commission rates for each user level. Users earn commissions from their own sales 
-                                and from their network (1 and 2 levels down).
-                            </p>
-                        </div>
-                        {!isEditing && (
-                            <button className="btn-primary" onClick={() => setIsEditing(true)}>
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                                </svg>
-                                Edit Rates
-                            </button>
-                        )}
+                {/* Error Message */}
+                {errorMessage && (
+                    <div className="notification notification-error">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                            <line x1="12" y1="9" x2="12" y2="13" />
+                            <line x1="12" y1="17" x2="12.01" y2="17" />
+                        </svg>
+                        <span>{errorMessage}</span>
+                        <button className="notification-close" onClick={() => setErrorMessage(null)}>×</button>
                     </div>
-                </div>
+                )}
 
                 {/* Info Cards */}
                 <div className="commission-info-cards">
@@ -132,6 +237,18 @@ export default function AdminCommission() {
 
                 {/* Commission Table */}
                 <div className="commission-table-container">
+                    <div className="commission-table-header">
+                        <h3 className="commission-table-title">Current commission rate</h3>
+                        {!isEditing && (
+                            <button className="btn-primary" onClick={() => setIsEditing(true)}>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                                </svg>
+                                Edit Rates
+                            </button>
+                        )}
+                    </div>
                     <table className="commission-table">
                         <thead>
                             <tr>
@@ -139,11 +256,30 @@ export default function AdminCommission() {
                                 <th>Self Commission</th>
                                 <th>Level 1 Down</th>
                                 <th>Level 2 Down</th>
-                                <th style={{ width: '150px' }}>Total Potential</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {commissionRates.map((rate) => (
+                            {commissionRates.length === 0 ? (
+                                <tr>
+                                    <td colSpan={4} style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>
+                                        {errorMessage ? (
+                                            <div>
+                                                <p>{errorMessage}</p>
+                                                <button 
+                                                    className="btn-primary" 
+                                                    onClick={loadCommissionRates}
+                                                    style={{ marginTop: '12px' }}
+                                                >
+                                                    Retry
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <p>No commission rates found. Please ensure the database table has been created.</p>
+                                        )}
+                                    </td>
+                                </tr>
+                            ) : (
+                                commissionRates.map((rate) => (
                                 <tr key={rate.level}>
                                     <td>
                                         <div className="level-cell">
@@ -208,13 +344,9 @@ export default function AdminCommission() {
                                             <span className="commission-value">{rate.level2Commission}%</span>
                                         )}
                                     </td>
-                                    <td>
-                                        <span className="total-commission">
-                                            {rate.selfCommission + rate.level1Commission + rate.level2Commission}%
-                                        </span>
-                                    </td>
                                 </tr>
-                            ))}
+                                ))
+                            )}
                         </tbody>
                     </table>
                 </div>
@@ -222,16 +354,16 @@ export default function AdminCommission() {
                 {/* Action Buttons */}
                 {isEditing && (
                     <div className="commission-actions">
-                        <button className="btn-secondary" onClick={handleCancel}>
+                        <button className="btn-secondary" onClick={handleCancel} disabled={isSaving}>
                             Cancel
                         </button>
-                        <button className="btn-primary" onClick={handleSave}>
+                        <button className="btn-primary" onClick={handleSave} disabled={isSaving}>
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
                                 <polyline points="17 21 17 13 7 13 7 21" />
                                 <polyline points="7 3 7 8 15 8" />
                             </svg>
-                            Save Changes
+                            {isSaving ? 'Saving...' : 'Save Changes'}
                         </button>
                     </div>
                 )}

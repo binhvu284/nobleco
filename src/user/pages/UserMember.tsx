@@ -351,8 +351,8 @@ export default function UserMember() {
                                 <path d="M16 3.13a4 4 0 0 1 0 7.75" />
                             </svg>
                             <h2>My Superior</h2>
+                            <span className="section-subtitle">The person who referred you</span>
                         </div>
-                        <span className="section-subtitle">The person who referred you</span>
                     </div>
 
                     {superior ? (
@@ -401,14 +401,25 @@ export default function UserMember() {
                                 <path d="M16 3.13a4 4 0 0 1 0 7.75" />
                             </svg>
                             <h2>My Inferiors</h2>
+                            <span className="section-subtitle">People you have referred ({inferiors.length})</span>
                         </div>
-                        <span className="section-subtitle">People you have referred ({inferiors.length})</span>
                     </div>
 
                     {inferiors.length > 0 ? (
                         <div className="inferiors-list">
                             {inferiors.map((inferior) => (
-                                <div key={inferior.id} className="member-card-compact">
+                                <div 
+                                    key={inferior.id} 
+                                    className="member-card-compact"
+                                    onClick={(e) => {
+                                        // Don't trigger if clicking on dropdown button or dropdown menu
+                                        const target = e.target as HTMLElement;
+                                        if (!target.closest('.action-dropdown') && !target.closest('.btn-more')) {
+                                            handleDetailClick(inferior);
+                                        }
+                                    }}
+                                    style={{ cursor: 'pointer' }}
+                                >
                                     <div 
                                         className="member-avatar-compact member-avatar-default"
                                         style={{ backgroundColor: getAvatarColor(inferior.name) }}
@@ -430,7 +441,7 @@ export default function UserMember() {
                                             </span>
                                         </div>
                                     </div>
-                                    <div className="action-dropdown">
+                                    <div className="action-dropdown" onClick={(e) => e.stopPropagation()}>
                                         <button
                                             className="btn-more"
                                             onClick={() => handleDropdownToggle(inferior.id)}

@@ -23,10 +23,10 @@ function normalize(c) {
 /**
  * List all clients with creator information
  */
-export async function listClients() {
+export async function listClients(userId = null) {
   const supabase = getSupabase();
 
-  const { data, error } = await supabase
+  let query = supabase
     .from('clients')
     .select(`
       *,
@@ -35,8 +35,20 @@ export async function listClients() {
         name,
         refer_code
       )
-    `)
-    .order('created_at', { ascending: false });
+    `);
+
+  // Filter by user if userId is provided
+  if (userId !== null && userId !== undefined) {
+    // Ensure userId is converted to number for proper comparison
+    const userIdNum = typeof userId === 'string' ? parseInt(userId, 10) : Number(userId);
+    
+    // Only filter if userIdNum is a valid number
+    if (!isNaN(userIdNum)) {
+      query = query.eq('created_by', userIdNum);
+    }
+  }
+
+  const { data, error } = await query.order('created_at', { ascending: false });
 
   if (error) {
     // Check if table doesn't exist
