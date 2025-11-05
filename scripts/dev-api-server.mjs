@@ -12,6 +12,7 @@ import productImagesHandler from '../api/product-images.js';
 import syncHandler from '../api/integrations/sync.js';
 import testHandler from '../api/integrations/test.js';
 import listHandler from '../api/integrations/list.js';
+import supabaseConfigHandler from '../api/supabase-config.js';
 
 const app = express();
 app.use(express.json());
@@ -48,6 +49,7 @@ app.all('/api/product-images', toRoute(productImagesHandler));
 app.all('/api/integrations/sync', toRoute(syncHandler));
 app.all('/api/integrations/test', toRoute(testHandler));
 app.all('/api/integrations/list', toRoute(listHandler));
+app.all('/api/supabase-config', toRoute(supabaseConfigHandler));
 app.all('/api/check-tables', (req, res) => {
   req.query = { ...req.query, endpoint: 'tables' };
   return diagnosticsHandler(req, res);

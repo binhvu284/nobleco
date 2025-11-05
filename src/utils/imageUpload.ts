@@ -34,7 +34,7 @@ export async function uploadProductImage(
     isFeatured = false
   } = options;
 
-  const supabase = getSupabaseClient();
+  const supabase = await getSupabaseClient();
 
   // Compress image if requested (optimized for quality preservation)
   let fileToUpload = file;
@@ -141,7 +141,7 @@ export async function uploadProductImage(
  * Delete product image (both Storage file and database record)
  */
 export async function deleteProductImage(imageId: number, storagePath: string): Promise<void> {
-  const supabase = getSupabaseClient();
+  const supabase = await getSupabaseClient();
 
   // Delete database record first
   const response = await fetch(`/api/product-images?imageId=${imageId}`, {

@@ -626,10 +626,6 @@ export default function UserProduct() {
                                         <h3>Product Specifications</h3>
                                         <div className="kiotviet-fields-grid">
                                             <div className="kiotviet-field">
-                                                <label>3RD PARTY ID</label>
-                                                <span>{selectedProduct.kiotviet_id ?? 'null'}</span>
-                                            </div>
-                                            <div className="kiotviet-field">
                                                 <label>Supplier ID</label>
                                                 <span>{selectedProduct.supplier_id ?? 'null'}</span>
                                             </div>

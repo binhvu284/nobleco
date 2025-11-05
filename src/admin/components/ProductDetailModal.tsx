@@ -222,10 +222,6 @@ export default function ProductDetailModal({ open, onClose, product, onEdit }: P
                             <label className="section-label">Product Specifications</label>
                             <div className="kiotviet-fields-grid">
                                 <div className="kiotviet-field">
-                                    <label>3RD PARTY ID</label>
-                                    <span>{product.kiotviet_id ?? 'null'}</span>
-                                </div>
-                                <div className="kiotviet-field">
                                     <label>Supplier ID</label>
                                     <span>{product.supplier_id ?? 'null'}</span>
                                 </div>
