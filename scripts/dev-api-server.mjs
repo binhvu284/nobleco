@@ -50,6 +50,7 @@ app.all('/api/integrations/sync', toRoute(syncHandler));
 app.all('/api/integrations/test', toRoute(testHandler));
 app.all('/api/integrations/list', toRoute(listHandler));
 app.all('/api/supabase-config', toRoute(supabaseConfigHandler));
+app.all('/api/test-supabase-config', toRoute((await import('../api/test-supabase-config.js')).default));
 app.all('/api/check-tables', (req, res) => {
   req.query = { ...req.query, endpoint: 'tables' };
   return diagnosticsHandler(req, res);

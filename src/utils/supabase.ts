@@ -30,13 +30,25 @@ async function getSupabaseConfig(): Promise<{ url: string; anonKey: string }> {
   }
 
   // Fetch from API endpoint (for Vercel production)
-  configPromise = fetch('/api/supabase-config')
+  configPromise = fetch('/api/supabase-config', {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json'
+    }
+  })
     .then(async (response) => {
       if (!response.ok) {
-        throw new Error(`Failed to fetch Supabase config: ${response.statusText}`);
+        const errorData = await response.json().catch(() => ({ message: response.statusText }));
+        console.error('Supabase config API error:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorData
+        });
+        throw new Error(`Failed to fetch Supabase config (${response.status}): ${errorData.message || errorData.error || response.statusText}`);
       }
       const config = await response.json();
       if (!config.url || !config.anonKey) {
+        console.error('Invalid config received:', config);
         throw new Error('Invalid Supabase configuration received from API');
       }
       cachedConfig = { url: config.url, anonKey: config.anonKey };
@@ -44,6 +56,7 @@ async function getSupabaseConfig(): Promise<{ url: string; anonKey: string }> {
     })
     .catch((error) => {
       configPromise = null; // Reset promise on error so we can retry
+      console.error('Error fetching Supabase config:', error);
       const isVercel = typeof window !== 'undefined' && window.location.hostname.includes('vercel.app');
       const errorMessage = isVercel
         ? 'Missing Supabase environment variables. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY (or SUPABASE_URL and SUPABASE_ANON_KEY) in Vercel Project Settings > Environment Variables, then redeploy.'

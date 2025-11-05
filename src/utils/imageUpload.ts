@@ -77,7 +77,8 @@ export async function uploadProductImage(
     });
 
   if (uploadError) {
-    throw new Error(`Failed to upload image: ${uploadError.message}`);
+    console.error('Supabase storage upload error:', uploadError);
+    throw new Error(`Failed to upload image to storage: ${uploadError.message || uploadError}`);
   }
 
   // Get public URL
