@@ -25,15 +25,30 @@ export default async function handler(req, res) {
     // This handles all the fallback logic for different env var names
     const { url: supabaseUrl } = getSupabaseEnv();
     
-    // For anon key, we need to check multiple sources
-    // getSupabaseEnv() prefers service_role, but we need anon for client-side
-    const supabaseAnonKey = 
-      process.env.VITE_SUPABASE_ANON_KEY || 
+    // For anon key, check ALL possible variations (including prefixed ones)
+    const allEnvKeys = Object.keys(process.env);
+    const allSupabaseKeys = allEnvKeys.filter(k => k.includes('SUPABASE'));
+    const anonKeyCandidates = allSupabaseKeys.filter(k => 
+      k.includes('ANON') && 
+      !k.includes('SERVICE') && 
+      !k.includes('JWT')
+    );
+    
+    console.log('Available SUPABASE keys:', allSupabaseKeys);
+    console.log('Anon key candidates:', anonKeyCandidates);
+    
+    // Try standard names first, then any candidate
+    let supabaseAnonKey = 
       process.env.SUPABASE_ANON_KEY ||
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-      // Fallback: if service_role is set but anon isn't, log a warning
-      // but don't use service_role (it's too powerful for client-side)
-      null;
+      process.env.VITE_SUPABASE_ANON_KEY || 
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    
+    // If not found, try any candidate that contains ANON_KEY
+    if (!supabaseAnonKey && anonKeyCandidates.length > 0) {
+      // Try the first candidate
+      supabaseAnonKey = process.env[anonKeyCandidates[0]];
+      console.log(`Using prefixed anon key: ${anonKeyCandidates[0]}`);
+    }
 
     // Check if we have both required values
     if (!supabaseUrl) {
