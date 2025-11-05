@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import UserLayout from '../components/UserLayout';
+import ImageGallery from '../../components/ImageGallery';
 import {
     IconSearch,
     IconShoppingBag,
@@ -17,6 +18,15 @@ import {
     IconMinimize
 } from '../../admin/components/icons';
 
+// Product image interface
+interface ProductImage {
+    id: number;
+    url: string;
+    alt_text?: string;
+    is_featured: boolean;
+    sort_order: number;
+}
+
 // Product interface for user view
 interface Product {
     id: number;
@@ -33,6 +43,15 @@ interface Product {
         name: string;
         color: string;
     }[];
+    images?: ProductImage[];
+    // KiotViet integration fields
+    center_stone_size_mm?: number | null;
+    shape?: string | null;
+    dimensions?: string | null;
+    stone_count?: number | null;
+    carat_weight_ct?: number | null;
+    gold_purity?: string | null;
+    product_weight_g?: number | null;
 }
 
 // Category interface
@@ -96,7 +115,7 @@ export default function UserProduct() {
     const fetchProducts = async () => {
         try {
             setLoading(true);
-            const response = await fetch('/api/products');
+            const response = await fetch('/api/products?includeImages=true');
             if (response.ok) {
                 const data = await response.json();
                 // Filter out only inactive products (show active, draft, archived even if stock is 0)
@@ -373,9 +392,17 @@ export default function UserProduct() {
                                     <div key={product.id} className="product-card" onClick={() => handleProductClick(product)}>
                                         {/* Product Image */}
                                         <div className="product-image">
-                                            <div className="image-placeholder">
-                                                <IconPackage />
-                                            </div>
+                                            {product.images && product.images.length > 0 ? (
+                                                <img 
+                                                    src={product.images[0].url} 
+                                                    alt={product.images[0].alt_text || product.name}
+                                                    loading="lazy"
+                                                />
+                                            ) : (
+                                                <div className="image-placeholder">
+                                                    <IconPackage />
+                                                </div>
+                                            )}
                                             {product.stock === 0 && (
                                                 <span className="stock-badge out">Out of Stock</span>
                                             )}
@@ -457,7 +484,15 @@ export default function UserProduct() {
                                             {cart.map(item => (
                                                 <div key={item.product.id} className="cart-item">
                                                     <div className="cart-item-image">
-                                                        <IconPackage />
+                                                        {item.product.images && item.product.images.length > 0 ? (
+                                                            <img 
+                                                                src={item.product.images[0].url} 
+                                                                alt={item.product.images[0].alt_text || item.product.name}
+                                                                loading="lazy"
+                                                            />
+                                                        ) : (
+                                                            <IconPackage />
+                                                        )}
                                                     </div>
                                                     <div className="cart-item-details">
                                                         <h4>{item.product.name}</h4>
@@ -519,20 +554,28 @@ export default function UserProduct() {
                             </div>
                             <div className="product-modal-body">
                                 <div className="product-modal-image-section">
-                                    <div className="product-modal-image">
-                                        <IconPackage />
-                                    </div>
-                                    <div className="product-modal-thumbnails">
-                                        <div className="product-modal-thumbnail active">
+                                    {selectedProduct.images && selectedProduct.images.length > 0 ? (
+                                        <ImageGallery
+                                            images={selectedProduct.images.map(img => ({
+                                                id: img.id,
+                                                url: img.url,
+                                                storage_path: '',
+                                                alt_text: img.alt_text,
+                                                sort_order: img.sort_order,
+                                                is_featured: img.is_featured,
+                                                file_size: undefined,
+                                                width: undefined,
+                                                height: undefined,
+                                                mime_type: undefined
+                                            }))}
+                                            showThumbnails={true}
+                                            className="product-modal-gallery"
+                                        />
+                                    ) : (
+                                        <div className="product-modal-image">
                                             <IconPackage />
                                         </div>
-                                        <div className="product-modal-thumbnail">
-                                            <IconPackage />
-                                        </div>
-                                        <div className="product-modal-thumbnail">
-                                            <IconPackage />
-                                        </div>
-                                    </div>
+                                    )}
                                 </div>
                                 <div className="product-modal-info-section">
                                     <div className="product-modal-categories">
@@ -572,6 +615,45 @@ export default function UserProduct() {
                                         <div className="product-modal-description-section">
                                             <h3>Description</h3>
                                             <p>{selectedProduct.long_description}</p>
+                                        </div>
+                                    )}
+                                    {/* Jewelry Specifications */}
+                                    {(selectedProduct.center_stone_size_mm != null || selectedProduct.shape != null || 
+                                      selectedProduct.dimensions != null || selectedProduct.stone_count != null || 
+                                      selectedProduct.carat_weight_ct != null || selectedProduct.gold_purity != null || 
+                                      selectedProduct.product_weight_g != null) && (
+                                        <div className="product-modal-description-section">
+                                            <h3>Jewelry Specifications</h3>
+                                            <div className="kiotviet-fields-grid">
+                                                <div className="kiotviet-field">
+                                                    <label>Center Stone Size (mm)</label>
+                                                    <span>{selectedProduct.center_stone_size_mm != null ? `${selectedProduct.center_stone_size_mm} mm` : 'null'}</span>
+                                                </div>
+                                                <div className="kiotviet-field">
+                                                    <label>Shape</label>
+                                                    <span>{selectedProduct.shape ?? 'null'}</span>
+                                                </div>
+                                                <div className="kiotviet-field">
+                                                    <label>Dimensions</label>
+                                                    <span>{selectedProduct.dimensions ?? 'null'}</span>
+                                                </div>
+                                                <div className="kiotviet-field">
+                                                    <label>Stone Count</label>
+                                                    <span>{selectedProduct.stone_count != null ? selectedProduct.stone_count : 'null'}</span>
+                                                </div>
+                                                <div className="kiotviet-field">
+                                                    <label>Carat Weight (ct)</label>
+                                                    <span>{selectedProduct.carat_weight_ct != null ? `${selectedProduct.carat_weight_ct} ct` : 'null'}</span>
+                                                </div>
+                                                <div className="kiotviet-field">
+                                                    <label>Gold Purity</label>
+                                                    <span>{selectedProduct.gold_purity ?? 'null'}</span>
+                                                </div>
+                                                <div className="kiotviet-field">
+                                                    <label>Product Weight (g)</label>
+                                                    <span>{selectedProduct.product_weight_g != null ? `${selectedProduct.product_weight_g} g` : 'null'}</span>
+                                                </div>
+                                            </div>
                                         </div>
                                     )}
                                 </div>

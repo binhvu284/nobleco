@@ -26,14 +26,16 @@ export default async function handler(req, res) {
     if (method === 'GET') {
       // GET /api/products - List all products
       // GET /api/products?id=123 - Get single product
+      // GET /api/products?includeImages=true - Include images in response
       try {
-        const { id } = req.query;
+        const { id, includeImages } = req.query;
+        const shouldIncludeImages = includeImages === 'true' || includeImages === true;
 
         if (id) {
-          const product = await getProductById(id);
+          const product = await getProductById(id, shouldIncludeImages);
           return res.status(200).json(product);
         } else {
-          const products = await listProducts();
+          const products = await listProducts(shouldIncludeImages);
           return res.status(200).json(products);
         }
       } catch (error) {

@@ -14,6 +14,9 @@ CREATE TABLE public.categories (
   product_count integer DEFAULT 0,
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  kiotviet_id text UNIQUE,
+  last_synced_at timestamp with time zone,
+  sync_status text DEFAULT 'pending'::text CHECK (sync_status = ANY (ARRAY['pending'::text, 'synced'::text, 'failed'::text, 'syncing'::text])),
   CONSTRAINT categories_pkey PRIMARY KEY (id),
   CONSTRAINT categories_parent_id_fkey FOREIGN KEY (parent_id) REFERENCES public.categories(id)
 );
@@ -32,6 +35,16 @@ CREATE TABLE public.clients (
   CONSTRAINT clients_pkey PRIMARY KEY (id),
   CONSTRAINT clients_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id)
 );
+CREATE TABLE public.commission_rates (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  user_level text NOT NULL UNIQUE CHECK (user_level = ANY (ARRAY['guest'::text, 'member'::text, 'unit manager'::text, 'brand manager'::text])),
+  self_commission numeric NOT NULL DEFAULT 0 CHECK (self_commission >= 0::numeric AND self_commission <= 100::numeric),
+  level_1_down numeric NOT NULL DEFAULT 0 CHECK (level_1_down >= 0::numeric AND level_1_down <= 100::numeric),
+  level_2_down numeric NOT NULL DEFAULT 0 CHECK (level_2_down >= 0::numeric AND level_2_down <= 100::numeric),
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT commission_rates_pkey PRIMARY KEY (id)
+);
 CREATE TABLE public.product_categories (
   id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
   product_id bigint NOT NULL,
@@ -43,6 +56,23 @@ CREATE TABLE public.product_categories (
   CONSTRAINT product_categories_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(id),
   CONSTRAINT product_categories_category_id_fkey FOREIGN KEY (category_id) REFERENCES public.categories(id)
 );
+CREATE TABLE public.product_images (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  product_id bigint NOT NULL,
+  storage_path text NOT NULL,
+  url text NOT NULL,
+  alt_text text,
+  sort_order integer DEFAULT 0,
+  is_featured boolean DEFAULT false,
+  file_size integer,
+  width integer,
+  height integer,
+  mime_type text,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT product_images_pkey PRIMARY KEY (id),
+  CONSTRAINT product_images_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(id)
+);
 CREATE TABLE public.products (
   id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
   name text NOT NULL,
@@ -50,18 +80,73 @@ CREATE TABLE public.products (
   sku text UNIQUE,
   short_description text NOT NULL,
   long_description text,
-  price numeric(20, 0) NOT NULL CHECK (price >= 0::numeric),
-  cost_price numeric(20, 0) CHECK (cost_price >= 0::numeric),
-  stock integer NOT NULL DEFAULT 0 CHECK (stock >= 0),
+  price numeric NOT NULL CHECK (price >= 0::numeric),
+  cost_price numeric CHECK (cost_price >= 0::numeric),
+  stock integer CHECK (stock >= 0),
   status text NOT NULL DEFAULT 'draft'::text CHECK (status = ANY (ARRAY['draft'::text, 'active'::text, 'inactive'::text, 'archived'::text])),
   is_featured boolean DEFAULT false,
   created_by bigint,
   updated_by bigint,
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  kiotviet_id text UNIQUE,
+  serial_number text,
+  supplier_id text,
+  center_stone_size_mm numeric,
+  shape text,
+  dimensions text,
+  stone_count integer,
+  carat_weight_ct numeric,
+  gold_purity text,
+  product_weight_g numeric,
+  inventory_value numeric,
+  last_synced_at timestamp with time zone,
+  sync_status text DEFAULT 'pending'::text CHECK (sync_status = ANY (ARRAY['pending'::text, 'synced'::text, 'failed'::text, 'syncing'::text])),
   CONSTRAINT products_pkey PRIMARY KEY (id),
   CONSTRAINT products_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id),
   CONSTRAINT products_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES public.users(id)
+);
+CREATE TABLE public.sync_logs (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  integration_id bigint,
+  sync_type text NOT NULL CHECK (sync_type = ANY (ARRAY['full'::text, 'incremental'::text, 'manual'::text])),
+  status text NOT NULL CHECK (status = ANY (ARRAY['running'::text, 'completed'::text, 'failed'::text, 'partial'::text])),
+  products_synced integer DEFAULT 0,
+  products_created integer DEFAULT 0,
+  products_updated integer DEFAULT 0,
+  products_failed integer DEFAULT 0,
+  categories_synced integer DEFAULT 0,
+  categories_created integer DEFAULT 0,
+  categories_updated integer DEFAULT 0,
+  categories_failed integer DEFAULT 0,
+  error_message text,
+  error_details jsonb,
+  started_at timestamp with time zone NOT NULL DEFAULT now(),
+  completed_at timestamp with time zone,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT sync_logs_pkey PRIMARY KEY (id),
+  CONSTRAINT sync_logs_integration_id_fkey FOREIGN KEY (integration_id) REFERENCES public.third_party_integrations(id)
+);
+CREATE TABLE public.third_party_integrations (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  name text NOT NULL UNIQUE,
+  display_name text NOT NULL,
+  api_url text NOT NULL,
+  token_url text,
+  client_id text,
+  client_secret text,
+  retailer text,
+  access_token text,
+  refresh_token text,
+  token_expires_at timestamp with time zone,
+  is_active boolean DEFAULT true,
+  is_default boolean DEFAULT false,
+  sync_enabled boolean DEFAULT true,
+  last_sync_at timestamp with time zone,
+  sync_interval_minutes integer DEFAULT 60,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT third_party_integrations_pkey PRIMARY KEY (id)
 );
 CREATE TABLE public.users (
   id bigint NOT NULL DEFAULT nextval('users_id_seq'::regclass),
@@ -79,14 +164,4 @@ CREATE TABLE public.users (
   address text,
   referred_by text,
   CONSTRAINT users_pkey PRIMARY KEY (id)
-);
-CREATE TABLE public.commission_rates (
-  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
-  user_level text NOT NULL UNIQUE CHECK (user_level = ANY (ARRAY['guest'::text, 'member'::text, 'unit manager'::text, 'brand manager'::text])),
-  self_commission numeric(5, 2) NOT NULL DEFAULT 0 CHECK (self_commission >= 0 AND self_commission <= 100),
-  level_1_down numeric(5, 2) NOT NULL DEFAULT 0 CHECK (level_1_down >= 0 AND level_1_down <= 100),
-  level_2_down numeric(5, 2) NOT NULL DEFAULT 0 CHECK (level_2_down >= 0 AND level_2_down <= 100),
-  created_at timestamp with time zone NOT NULL DEFAULT now(),
-  updated_at timestamp with time zone NOT NULL DEFAULT now(),
-  CONSTRAINT commission_rates_pkey PRIMARY KEY (id)
 );

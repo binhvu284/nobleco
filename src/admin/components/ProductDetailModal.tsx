@@ -1,4 +1,7 @@
+import { useState, useEffect } from 'react';
 import { IconX } from '../components/icons';
+import ImageGallery from '../../components/ImageGallery';
+import { UploadedImage } from '../../utils/imageUpload';
 
 interface Category {
     id: number;
@@ -26,6 +29,21 @@ interface Product {
     updated_at: string;
     categories: Category[];
     category_names: string[];
+    images?: UploadedImage[];
+    // KiotViet integration fields
+    kiotviet_id?: string | null;
+    serial_number?: string | null;
+    supplier_id?: string | null;
+    center_stone_size_mm?: number | null;
+    shape?: string | null;
+    dimensions?: string | null;
+    stone_count?: number | null;
+    carat_weight_ct?: number | null;
+    gold_purity?: string | null;
+    product_weight_g?: number | null;
+    inventory_value?: number | null;
+    last_synced_at?: string | null;
+    sync_status?: string | null;
 }
 
 interface ProductDetailModalProps {
@@ -36,6 +54,34 @@ interface ProductDetailModalProps {
 }
 
 export default function ProductDetailModal({ open, onClose, product, onEdit }: ProductDetailModalProps) {
+    const [images, setImages] = useState<UploadedImage[]>([]);
+    const [loadingImages, setLoadingImages] = useState(false);
+
+    // Load product images when modal opens
+    useEffect(() => {
+        if (open && product) {
+            loadProductImages(product.id);
+        } else {
+            setImages([]);
+        }
+    }, [open, product]);
+
+    const loadProductImages = async (productId: number) => {
+        try {
+            setLoadingImages(true);
+            const response = await fetch(`/api/product-images?productId=${productId}`);
+            if (response.ok) {
+                const imageData = await response.json();
+                setImages(imageData || []);
+            }
+        } catch (error) {
+            console.error('Error loading product images:', error);
+            setImages([]);
+        } finally {
+            setLoadingImages(false);
+        }
+    };
+
     if (!open || !product) return null;
 
     const formatDate = (dateString: string) => {
@@ -74,22 +120,20 @@ export default function ProductDetailModal({ open, onClose, product, onEdit }: P
                 </div>
 
                 <div className="product-modal-content">
-                    {/* Product Images Section - Placeholder for now */}
+                    {/* Product Images Section */}
                     <div className="product-images-section">
-                        <div className="main-product-image">
-                            <div className="image-placeholder">
-                                📦
-                                <p>Product Image</p>
-                                <span className="image-note">Multiple images will be displayed here</span>
+                        {loadingImages ? (
+                            <div className="image-loading">
+                                <div className="loading-spinner"></div>
+                                <p>Loading images...</p>
                             </div>
-                        </div>
-                        <div className="product-thumbnails">
-                            {[1, 2, 3, 4].map((i) => (
-                                <div key={i} className="thumbnail-placeholder">
-                                    <span>📷</span>
-                                </div>
-                            ))}
-                        </div>
+                        ) : (
+                            <ImageGallery
+                                images={images}
+                                showThumbnails={true}
+                                className="product-detail-gallery"
+                            />
+                        )}
                     </div>
 
                     {/* Product Information */}
@@ -172,6 +216,74 @@ export default function ProductDetailModal({ open, onClose, product, onEdit }: P
                             </div>
                         </div>
 
+                        {/* Product Specifications */}
+                        {(product.kiotviet_id || product.serial_number != null || product.supplier_id != null || 
+                          product.inventory_value != null) && (
+                            <div className="product-section">
+                                <label className="section-label">Product Specifications</label>
+                                <div className="kiotviet-fields-grid">
+                                    {product.kiotviet_id && (
+                                        <div className="kiotviet-field">
+                                            <label>3RD PARTY ID</label>
+                                            <span>{product.kiotviet_id}</span>
+                                        </div>
+                                    )}
+                                    <div className="kiotviet-field">
+                                        <label>Serial Number</label>
+                                        <span>{product.serial_number ?? 'null'}</span>
+                                    </div>
+                                    <div className="kiotviet-field">
+                                        <label>Supplier ID</label>
+                                        <span>{product.supplier_id ?? 'null'}</span>
+                                    </div>
+                                    <div className="kiotviet-field">
+                                        <label>Inventory Value</label>
+                                        <span>{product.inventory_value != null ? new Intl.NumberFormat('vi-VN').format(product.inventory_value) + ' ₫' : 'null'}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Jewelry Specifications */}
+                        {(product.center_stone_size_mm != null || product.shape != null || 
+                          product.dimensions != null || product.stone_count != null || 
+                          product.carat_weight_ct != null || product.gold_purity != null || 
+                          product.product_weight_g != null) && (
+                            <div className="product-section">
+                                <label className="section-label">Jewelry Specifications</label>
+                                <div className="kiotviet-fields-grid">
+                                    <div className="kiotviet-field">
+                                        <label>Center Stone Size (mm)</label>
+                                        <span>{product.center_stone_size_mm != null ? `${product.center_stone_size_mm} mm` : 'null'}</span>
+                                    </div>
+                                    <div className="kiotviet-field">
+                                        <label>Shape</label>
+                                        <span>{product.shape ?? 'null'}</span>
+                                    </div>
+                                    <div className="kiotviet-field">
+                                        <label>Dimensions</label>
+                                        <span>{product.dimensions ?? 'null'}</span>
+                                    </div>
+                                    <div className="kiotviet-field">
+                                        <label>Stone Count</label>
+                                        <span>{product.stone_count != null ? product.stone_count : 'null'}</span>
+                                    </div>
+                                    <div className="kiotviet-field">
+                                        <label>Carat Weight (ct)</label>
+                                        <span>{product.carat_weight_ct != null ? `${product.carat_weight_ct} ct` : 'null'}</span>
+                                    </div>
+                                    <div className="kiotviet-field">
+                                        <label>Gold Purity</label>
+                                        <span>{product.gold_purity ?? 'null'}</span>
+                                    </div>
+                                    <div className="kiotviet-field">
+                                        <label>Product Weight (g)</label>
+                                        <span>{product.product_weight_g != null ? `${product.product_weight_g} g` : 'null'}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
                         {/* Additional Information */}
                         <div className="product-meta-section">
                             <div className="meta-row">
@@ -183,6 +295,20 @@ export default function ProductDetailModal({ open, onClose, product, onEdit }: P
                                     <label>Updated At</label>
                                     <span>{formatDate(product.updated_at)}</span>
                                 </div>
+                                {product.last_synced_at && (
+                                    <div className="meta-item">
+                                        <label>Last Synced</label>
+                                        <span>{formatDate(product.last_synced_at)}</span>
+                                    </div>
+                                )}
+                                {product.sync_status && (
+                                    <div className="meta-item">
+                                        <label>Sync Status</label>
+                                        <span className={`sync-status-badge ${product.sync_status}`}>
+                                            {product.sync_status}
+                                        </span>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>

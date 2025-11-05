@@ -98,14 +98,31 @@ function normalize(p) {
     updated_at: p.updated_at,
     // Categories will be included when joined
     categories: p.categories ?? [],
-    category_names: p.category_names ?? []
+    category_names: p.category_names ?? [],
+    // Images will be included when joined
+    images: p.images ?? [],
+    // KiotViet integration fields
+    kiotviet_id: p.kiotviet_id ?? null,
+    serial_number: p.serial_number ?? null,
+    supplier_id: p.supplier_id ?? null,
+    center_stone_size_mm: p.center_stone_size_mm ? parseFloat(p.center_stone_size_mm) : null,
+    shape: p.shape ?? null,
+    dimensions: p.dimensions ?? null,
+    stone_count: p.stone_count ?? null,
+    carat_weight_ct: p.carat_weight_ct ? parseFloat(p.carat_weight_ct) : null,
+    gold_purity: p.gold_purity ?? null,
+    product_weight_g: p.product_weight_g ? parseFloat(p.product_weight_g) : null,
+    inventory_value: p.inventory_value ? parseFloat(p.inventory_value) : null,
+    last_synced_at: p.last_synced_at ?? null,
+    sync_status: p.sync_status ?? null
   };
 }
 
 /**
  * List all products with their categories
+ * @param {boolean} includeImages - Whether to include images (default: false for performance)
  */
-export async function listProducts() {
+export async function listProducts(includeImages = false) {
   const supabase = getSupabase();
   
   // Get all products
@@ -147,9 +164,33 @@ export async function listProducts() {
     // If table doesn't exist, just return products without categories
     if (pcError.code === '42P01') {
       console.warn('Product_categories table does not exist. Returning products without categories.');
-      return products.map(p => normalize({ ...p, categories: [], category_names: [] }));
+      return products.map(p => normalize({ ...p, categories: [], category_names: [], images: [] }));
     }
     throw new Error(`Error fetching product categories: ${pcError.message}`);
+  }
+
+  // Get product images if requested
+  let productImagesMap = {};
+  if (includeImages) {
+    try {
+      const { getProductImages } = await import('./productImages.js');
+      const productIds = products.map(p => p.id);
+      const imagesPromises = productIds.map(async (id) => {
+        try {
+          const images = await getProductImages(id);
+          return { productId: id, images };
+        } catch (error) {
+          return { productId: id, images: [] };
+        }
+      });
+      const imagesResults = await Promise.all(imagesPromises);
+      productImagesMap = imagesResults.reduce((acc, { productId, images }) => {
+        acc[productId] = images;
+        return acc;
+      }, {});
+    } catch (error) {
+      console.warn('Could not fetch product images:', error.message);
+    }
   }
 
   // Map categories to products
@@ -167,7 +208,8 @@ export async function listProducts() {
     return normalize({
       ...product,
       categories: productCats,
-      category_names: productCats.map(c => c.name)
+      category_names: productCats.map(c => c.name),
+      images: productImagesMap[product.id] || []
     });
   });
 
@@ -175,9 +217,9 @@ export async function listProducts() {
 }
 
 /**
- * Get a single product by ID with categories
+ * Get a single product by ID with categories and images
  */
-export async function getProductById(productId) {
+export async function getProductById(productId, includeImages = false) {
   const supabase = getSupabase();
 
   const { data: product, error: productError } = await supabase
@@ -218,10 +260,23 @@ export async function getProductById(productId) {
     is_primary: pc.is_primary
   }));
 
+  // Get product images if requested
+  let images = [];
+  if (includeImages) {
+    try {
+      const { getProductImages } = await import('./productImages.js');
+      images = await getProductImages(productId);
+    } catch (error) {
+      // If images table doesn't exist or error, just continue without images
+      console.warn('Could not fetch product images:', error.message);
+    }
+  }
+
   return normalize({
     ...product,
     categories,
-    category_names: categories.map(c => c.name)
+    category_names: categories.map(c => c.name),
+    images
   });
 }
 

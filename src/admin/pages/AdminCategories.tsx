@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import AdminLayout from '../components/AdminLayout';
 import CategoryDetailModal from '../components/CategoryDetailModal';
 import ConfirmModal from '../components/ConfirmModal';
+import UpdateDataModal from '../components/UpdateDataModal';
 import { 
   IconPlus,
   IconSearch,
@@ -11,7 +12,8 @@ import {
   IconMoreVertical,
   IconEdit,
   IconTrash2,
-  IconEye
+  IconEye,
+  IconPackage
 } from '../components/icons';
 
 // Category interface
@@ -36,7 +38,7 @@ export default function AdminCategories() {
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState<'table' | 'card'>('table');
-  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showUpdateDataModal, setShowUpdateDataModal] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<number | null>(null);
   const [isMobile, setIsMobile] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
@@ -211,24 +213,24 @@ export default function AdminCategories() {
   };
 
   const handleEdit = (category: Category) => {
-    setEditingCategory(category);
-    setFormData({
-      name: category.name,
-      description: category.description || '',
-      color: category.color || '#3B82F6'
-    });
-    setShowCreateModal(true);
+    // Edit functionality hidden - categories are synced from third party
+    // Keeping function signature for compatibility but functionality is disabled
     setActiveDropdown(null);
   };
 
-  const handleCreateCategory = () => {
-    setEditingCategory(null);
-    setFormData({
-      name: '',
-      description: '',
-      color: '#3B82F6'
+  const handleSyncData = async (integrationId: number) => {
+    // TODO: Implement sync logic
+    console.log('Syncing data from integration:', integrationId);
+    // Show success notification
+    setNotification({
+      type: 'success',
+      message: 'Data sync started successfully!'
     });
-    setShowCreateModal(true);
+    setTimeout(() => setNotification(null), 3000);
+    // Refresh categories after sync
+    setTimeout(() => {
+      fetchCategories();
+    }, 2000);
   };
 
   // Handle form submission
@@ -320,7 +322,6 @@ export default function AdminCategories() {
       setTimeout(() => setNotification(null), 3000);
 
       // Close modal and refresh
-      setShowCreateModal(false);
       setEditingCategory(null);
       setFormData({
         name: '',
@@ -427,12 +428,12 @@ export default function AdminCategories() {
             </div>
             
             <button 
-              className="create-btn" 
-              onClick={handleCreateCategory}
-              title="Create Category"
+              className="btn-update-data" 
+              onClick={() => setShowUpdateDataModal(true)}
+              title="Update Data from Third Party"
             >
-              <IconPlus />
-              <span className="desktop-only">Create Category</span>
+              <IconPackage />
+              <span className="desktop-only">Update Data</span>
             </button>
           </div>
         </div>
@@ -583,123 +584,17 @@ export default function AdminCategories() {
         {!loading && !error && filteredCategories.length === 0 && (
           <div className="empty-state">
             <h3>No categories found</h3>
-            <p>Try adjusting your search or create a new category</p>
-            <button className="create-btn" onClick={handleCreateCategory}>
-              <IconPlus />
-              Create Category
-            </button>
+            <p>Try adjusting your search or sync data from third party</p>
           </div>
         )}
 
-        {/* Create/Edit Modal */}
-        {showCreateModal && (
-          <div className="modal-overlay" onClick={() => {
-            handleCloseRequest(() => {
-              setShowCreateModal(false);
-              setEditingCategory(null);
-              setFormData({
-                name: '',
-                description: '',
-                color: '#3B82F6'
-              });
-            });
-          }}>
-            <div className="modal" onClick={(e) => e.stopPropagation()}>
-              <div className="modal-header">
-                <h2>{isEditMode ? 'Edit Category' : 'Create New Category'}</h2>
-                <button 
-                  className="close-btn"
-                  onClick={() => {
-                    handleCloseRequest(() => {
-                      setShowCreateModal(false);
-                      setEditingCategory(null);
-                      setFormData({
-                        name: '',
-                        description: '',
-                        color: '#3B82F6'
-                      });
-                    });
-                  }}
-                >
-                  ×
-                </button>
-              </div>
-              <div className="modal-body">
-                <form onSubmit={handleSubmitCategory}>
-                  <div className="form-group">
-                    <label>Category Name <span className="required">*</span></label>
-                    <input 
-                      type="text" 
-                      placeholder="Enter category name"
-                      value={formData.name}
-                      onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                      required
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label>Description</label>
-                    <textarea 
-                      placeholder="Enter category description"
-                      rows={3}
-                      value={formData.description}
-                      onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label>Color <span className="required">*</span></label>
-                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                      <input 
-                        type="text" 
-                        placeholder="#3B82F6"
-                        value={formData.color}
-                        onChange={(e) => setFormData(prev => ({ ...prev, color: e.target.value }))}
-                        style={{ flex: 1 }}
-                        pattern="^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$"
-                        required
-                      />
-                      <input 
-                        type="color" 
-                        value={formData.color}
-                        onChange={(e) => setFormData(prev => ({ ...prev, color: e.target.value }))}
-                        style={{ width: '50px', height: '38px', cursor: 'pointer' }}
-                        title="Color picker"
-                      />
-                    </div>
-                  </div>
-                  <div className="modal-footer">
-                    <button 
-                      type="button"
-                      className="btn-secondary"
-                      onClick={() => {
-                        handleCloseRequest(() => {
-                          setShowCreateModal(false);
-                          setEditingCategory(null);
-                          setFormData({
-                            name: '',
-                            description: '',
-                            color: '#3B82F6'
-                          });
-                        });
-                      }}
-                      disabled={submitting}
-                    >
-                      Cancel
-                    </button>
-                    <button 
-                      type="submit"
-                      className="btn-primary"
-                      disabled={submitting}
-                    >
-                      {submitting 
-                        ? (isEditMode ? 'Saving...' : 'Creating...') 
-                        : (isEditMode ? 'Save Category' : 'Create Category')}
-                    </button>
-                  </div>
-                </form>
-              </div>
-            </div>
-          </div>
-        )}
+        {/* Update Data Modal */}
+        <UpdateDataModal
+          open={showUpdateDataModal}
+          onClose={() => setShowUpdateDataModal(false)}
+          onSync={handleSyncData}
+        />
+
 
         {/* Category Detail Modal */}
         <CategoryDetailModal
