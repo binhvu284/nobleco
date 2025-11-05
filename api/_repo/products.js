@@ -106,12 +106,14 @@ function normalize(p) {
     serial_number: p.serial_number ?? null,
     supplier_id: p.supplier_id ?? null,
     center_stone_size_mm: p.center_stone_size_mm ? parseFloat(p.center_stone_size_mm) : null,
+    ni_tay: p.ni_tay ? parseFloat(p.ni_tay) : null,
     shape: p.shape ?? null,
     dimensions: p.dimensions ?? null,
     stone_count: p.stone_count ?? null,
     carat_weight_ct: p.carat_weight_ct ? parseFloat(p.carat_weight_ct) : null,
     gold_purity: p.gold_purity ?? null,
     product_weight_g: p.product_weight_g ? parseFloat(p.product_weight_g) : null,
+    type: p.type ?? null,
     inventory_value: p.inventory_value ? parseFloat(p.inventory_value) : null,
     last_synced_at: p.last_synced_at ?? null,
     sync_status: p.sync_status ?? null
@@ -302,16 +304,27 @@ export async function createProduct(productData, userId) {
     .insert([{
       name: productData.name.trim(),
       slug: slug,
-      sku: sku,
+      sku: productData.sku || sku,
       short_description: shortDescription,
       long_description: productData.long_description && productData.long_description.trim() 
         ? productData.long_description.trim() 
         : null,
       price: productData.price,
-      cost_price: productData.cost_price || null,
       stock: productData.stock || 0,
       status: productData.status || 'active',
       is_featured: productData.is_featured || false,
+      // Jewelry specification fields
+      serial_number: productData.serial_number || null,
+      supplier_id: productData.supplier_id || null,
+      center_stone_size_mm: productData.center_stone_size_mm || null,
+      ni_tay: productData.ni_tay || null,
+      shape: productData.shape || null,
+      dimensions: productData.dimensions || null,
+      stone_count: productData.stone_count || null,
+      carat_weight_ct: productData.carat_weight_ct || null,
+      gold_purity: productData.gold_purity || null,
+      product_weight_g: productData.product_weight_g || null,
+      inventory_value: productData.inventory_value || null,
       created_by: userId,
       updated_by: userId
     }])
@@ -341,9 +354,7 @@ export async function updateProduct(productId, productData, userId) {
       ? productData.long_description.trim() 
       : null,
     price: productData.price,
-    cost_price: productData.cost_price || null,
-    stock: productData.stock || 0,
-    status: productData.status || 'active',
+    stock: productData.stock !== undefined ? productData.stock : 0,
     updated_by: userId
   };
 
@@ -356,14 +367,54 @@ export async function updateProduct(productId, productData, userId) {
     updateData.slug = await generateUniqueSlug(baseSlug);
   }
 
-  // Only update SKU if provided (usually we don't change SKU on edit)
+  // Only update SKU if provided
   if (productData.sku !== undefined) {
     updateData.sku = productData.sku || null;
+  }
+
+  // Only update status if provided
+  if (productData.status !== undefined) {
+    updateData.status = productData.status;
   }
 
   // Only update is_featured if provided
   if (productData.is_featured !== undefined) {
     updateData.is_featured = productData.is_featured;
+  }
+
+  // Jewelry specification fields
+  if (productData.serial_number !== undefined) {
+    updateData.serial_number = productData.serial_number || null;
+  }
+  if (productData.supplier_id !== undefined) {
+    updateData.supplier_id = productData.supplier_id || null;
+  }
+  if (productData.center_stone_size_mm !== undefined) {
+    updateData.center_stone_size_mm = productData.center_stone_size_mm || null;
+  }
+  if (productData.ni_tay !== undefined) {
+    updateData.ni_tay = productData.ni_tay || null;
+  }
+  if (productData.shape !== undefined) {
+    updateData.shape = productData.shape || null;
+  }
+  if (productData.dimensions !== undefined) {
+    updateData.dimensions = productData.dimensions || null;
+  }
+  if (productData.stone_count !== undefined) {
+    updateData.stone_count = productData.stone_count || null;
+  }
+  if (productData.carat_weight_ct !== undefined) {
+    updateData.carat_weight_ct = productData.carat_weight_ct || null;
+  }
+  if (productData.gold_purity !== undefined) {
+    updateData.gold_purity = productData.gold_purity || null;
+  }
+  if (productData.product_weight_g !== undefined) {
+    updateData.product_weight_g = productData.product_weight_g || null;
+  }
+  if (productData.inventory_value !== undefined) {
+    updateData.inventory_value = productData.inventory_value || null;
   }
 
   const { data: product, error } = await supabase
@@ -386,6 +437,29 @@ export async function updateProduct(productId, productData, userId) {
 export async function deleteProduct(productId) {
   const supabase = getSupabase();
 
+  // First, delete all product images (database records and storage files)
+  const { deleteAllProductImages } = await import('./productImages.js');
+  
+  try {
+    const imageResult = await deleteAllProductImages(productId);
+    
+    // Delete image files from storage
+    if (imageResult.storage_paths && imageResult.storage_paths.length > 0) {
+      const { error: storageError } = await supabase.storage
+        .from('product-images')
+        .remove(imageResult.storage_paths);
+      
+      if (storageError) {
+        console.warn('Warning: Failed to delete some image files from storage:', storageError);
+        // Continue with product deletion even if storage deletion fails
+      }
+    }
+  } catch (imageError) {
+    console.warn('Warning: Failed to delete product images:', imageError);
+    // Continue with product deletion even if image deletion fails
+  }
+
+  // Delete product (cascade should handle product_categories and product_images, but we already deleted images)
   const { error } = await supabase
     .from('products')
     .delete()

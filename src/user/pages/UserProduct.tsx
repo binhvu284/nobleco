@@ -45,13 +45,17 @@ interface Product {
     }[];
     images?: ProductImage[];
     // KiotViet integration fields
+    kiotviet_id?: string | null;
+    supplier_id?: string | null;
     center_stone_size_mm?: number | null;
+    ni_tay?: number | null;
     shape?: string | null;
     dimensions?: string | null;
     stone_count?: number | null;
     carat_weight_ct?: number | null;
     gold_purity?: string | null;
     product_weight_g?: number | null;
+    type?: string | null;
 }
 
 // Category interface
@@ -617,45 +621,62 @@ export default function UserProduct() {
                                             <p>{selectedProduct.long_description}</p>
                                         </div>
                                     )}
-                                    {/* Jewelry Specifications */}
-                                    {(selectedProduct.center_stone_size_mm != null || selectedProduct.shape != null || 
-                                      selectedProduct.dimensions != null || selectedProduct.stone_count != null || 
-                                      selectedProduct.carat_weight_ct != null || selectedProduct.gold_purity != null || 
-                                      selectedProduct.product_weight_g != null) && (
-                                        <div className="product-modal-description-section">
-                                            <h3>Jewelry Specifications</h3>
-                                            <div className="kiotviet-fields-grid">
-                                                <div className="kiotviet-field">
-                                                    <label>Center Stone Size (mm)</label>
-                                                    <span>{selectedProduct.center_stone_size_mm != null ? `${selectedProduct.center_stone_size_mm} mm` : 'null'}</span>
-                                                </div>
-                                                <div className="kiotviet-field">
-                                                    <label>Shape</label>
-                                                    <span>{selectedProduct.shape ?? 'null'}</span>
-                                                </div>
-                                                <div className="kiotviet-field">
-                                                    <label>Dimensions</label>
-                                                    <span>{selectedProduct.dimensions ?? 'null'}</span>
-                                                </div>
-                                                <div className="kiotviet-field">
-                                                    <label>Stone Count</label>
-                                                    <span>{selectedProduct.stone_count != null ? selectedProduct.stone_count : 'null'}</span>
-                                                </div>
-                                                <div className="kiotviet-field">
-                                                    <label>Carat Weight (ct)</label>
-                                                    <span>{selectedProduct.carat_weight_ct != null ? `${selectedProduct.carat_weight_ct} ct` : 'null'}</span>
-                                                </div>
-                                                <div className="kiotviet-field">
-                                                    <label>Gold Purity</label>
-                                                    <span>{selectedProduct.gold_purity ?? 'null'}</span>
-                                                </div>
-                                                <div className="kiotviet-field">
-                                                    <label>Product Weight (g)</label>
-                                                    <span>{selectedProduct.product_weight_g != null ? `${selectedProduct.product_weight_g} g` : 'null'}</span>
-                                                </div>
+                                    {/* Product Specifications - Always display (excludes Inventory Value per requirements) */}
+                                    <div className="product-modal-description-section">
+                                        <h3>Product Specifications</h3>
+                                        <div className="kiotviet-fields-grid">
+                                            <div className="kiotviet-field">
+                                                <label>3RD PARTY ID</label>
+                                                <span>{selectedProduct.kiotviet_id ?? 'null'}</span>
+                                            </div>
+                                            <div className="kiotviet-field">
+                                                <label>Supplier ID</label>
+                                                <span>{selectedProduct.supplier_id ?? 'null'}</span>
                                             </div>
                                         </div>
-                                    )}
+                                    </div>
+                                    {/* Jewelry Specifications - Always display */}
+                                    <div className="product-modal-description-section">
+                                        <h3>Jewelry Specifications</h3>
+                                        <div className="kiotviet-fields-grid">
+                                            <div className="kiotviet-field">
+                                                <label>Center Stone Size (mm)</label>
+                                                <span>{selectedProduct.center_stone_size_mm != null ? `${selectedProduct.center_stone_size_mm} mm` : 'null'}</span>
+                                            </div>
+                                            <div className="kiotviet-field">
+                                                <label>Ni tay</label>
+                                                <span>{selectedProduct.ni_tay != null ? selectedProduct.ni_tay : 'null'}</span>
+                                            </div>
+                                            <div className="kiotviet-field">
+                                                <label>Shape</label>
+                                                <span>{selectedProduct.shape ?? 'null'}</span>
+                                            </div>
+                                            <div className="kiotviet-field">
+                                                <label>Dimensions</label>
+                                                <span>{selectedProduct.dimensions ?? 'null'}</span>
+                                            </div>
+                                            <div className="kiotviet-field">
+                                                <label>Stone Count</label>
+                                                <span>{selectedProduct.stone_count != null ? selectedProduct.stone_count : 'null'}</span>
+                                            </div>
+                                            <div className="kiotviet-field">
+                                                <label>Carat Weight (ct)</label>
+                                                <span>{selectedProduct.carat_weight_ct != null ? `${selectedProduct.carat_weight_ct} ct` : 'null'}</span>
+                                            </div>
+                                            <div className="kiotviet-field">
+                                                <label>Gold Purity</label>
+                                                <span>{selectedProduct.gold_purity ?? 'null'}</span>
+                                            </div>
+                                            <div className="kiotviet-field">
+                                                <label>Product Weight (g)</label>
+                                                <span>{selectedProduct.product_weight_g != null ? `${selectedProduct.product_weight_g} g` : 'null'}</span>
+                                            </div>
+                                            <div className="kiotviet-field">
+                                                <label>Type</label>
+                                                <span>{selectedProduct.type ?? 'null'}</span>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>

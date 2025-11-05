@@ -13,7 +13,8 @@ import {
   IconEdit,
   IconTrash2,
   IconEye,
-  IconPackage
+  IconPackage,
+  IconX
 } from '../components/icons';
 
 // Category interface
@@ -58,11 +59,13 @@ export default function AdminCategories() {
     color: '#3B82F6'
   });
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [showUnsavedConfirm, setShowUnsavedConfirm] = useState(false);
   const [pendingClose, setPendingClose] = useState<(() => void) | null>(null);
   
   const isEditMode = !!editingCategory;
+  const showCategoryModal = editingCategory !== null || showCreateModal;
   
   // Check if form has unsaved changes
   const hasUnsavedChanges = (): boolean => {
@@ -93,6 +96,7 @@ export default function AdminCategories() {
     }
     setShowUnsavedConfirm(false);
     setEditingCategory(null);
+    setShowCreateModal(false);
     setFormData({
       name: '',
       description: '',
@@ -213,9 +217,23 @@ export default function AdminCategories() {
   };
 
   const handleEdit = (category: Category) => {
-    // Edit functionality hidden - categories are synced from third party
-    // Keeping function signature for compatibility but functionality is disabled
     setActiveDropdown(null);
+    setEditingCategory(category);
+    setFormData({
+      name: category.name,
+      description: category.description || '',
+      color: category.color
+    });
+  };
+
+  const handleAddCategory = () => {
+    setEditingCategory(null);
+    setShowCreateModal(true);
+    setFormData({
+      name: '',
+      description: '',
+      color: '#3B82F6'
+    });
   };
 
   const handleSyncData = async (integrationId: number) => {
@@ -323,6 +341,7 @@ export default function AdminCategories() {
 
       // Close modal and refresh
       setEditingCategory(null);
+      setShowCreateModal(false);
       setFormData({
         name: '',
         description: '',
@@ -402,8 +421,23 @@ export default function AdminCategories() {
             <button className="btn-filter" title="Filter">
               <IconFilter />
             </button>
+            <button 
+              className="btn-update-data" 
+              onClick={() => setShowUpdateDataModal(true)}
+              title="Update Data from Third Party"
+            >
+              <IconPackage />
+              <span className="desktop-only">Update Data</span>
+            </button>
           </div>
           <div className="toolbar-right">
+            <button 
+              className="btn-add" 
+              onClick={handleAddCategory}
+            >
+              <IconPlus />
+              <span>Add Category</span>
+            </button>
             {/* Desktop view toggle */}
             <div className="view-toggle desktop-only">
               <button
@@ -426,15 +460,6 @@ export default function AdminCategories() {
             {/* Mobile column selector - hidden on categories since it's not needed */}
             <div className="mobile-column-selector mobile-only" style={{ display: 'none' }}>
             </div>
-            
-            <button 
-              className="btn-update-data" 
-              onClick={() => setShowUpdateDataModal(true)}
-              title="Update Data from Third Party"
-            >
-              <IconPackage />
-              <span className="desktop-only">Update Data</span>
-            </button>
           </div>
         </div>
 
@@ -595,6 +620,109 @@ export default function AdminCategories() {
           onSync={handleSyncData}
         />
 
+        {/* Category Create/Edit Modal */}
+        {showCategoryModal && (
+          <div 
+            className="modal-overlay"
+            onClick={() => handleCloseRequest(() => {
+              setEditingCategory(null);
+              setShowCreateModal(false);
+              setFormData({ name: '', description: '', color: '#3B82F6' });
+            })}
+          >
+            <div 
+              className="category-modal"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="category-modal-header">
+                <h2>{isEditMode ? 'Edit Category' : 'Add New Category'}</h2>
+                <button 
+                  className="category-modal-close"
+                  onClick={() => handleCloseRequest(() => {
+                    setEditingCategory(null);
+                    setShowCreateModal(false);
+                    setFormData({ name: '', description: '', color: '#3B82F6' });
+                  })}
+                >
+                  <IconX />
+                </button>
+              </div>
+
+              <form onSubmit={handleSubmitCategory} className="category-modal-form">
+                <div className="category-modal-body">
+                  <div className="form-group">
+                    <label htmlFor="category-name">
+                      Category Name <span className="required">*</span>
+                    </label>
+                    <input
+                      id="category-name"
+                      type="text"
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      placeholder="Enter category name"
+                      required
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label htmlFor="category-description">Description</label>
+                    <textarea
+                      id="category-description"
+                      value={formData.description}
+                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                      placeholder="Enter category description (optional)"
+                      rows={4}
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label htmlFor="category-color">Color</label>
+                    <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                      <input
+                        id="category-color"
+                        type="color"
+                        value={formData.color}
+                        onChange={(e) => setFormData({ ...formData, color: e.target.value })}
+                        style={{ width: '60px', height: '40px', borderRadius: '8px', border: '1px solid var(--border)', cursor: 'pointer' }}
+                      />
+                      <input
+                        type="text"
+                        value={formData.color}
+                        onChange={(e) => setFormData({ ...formData, color: e.target.value })}
+                        placeholder="#3B82F6"
+                        style={{ flex: 1, padding: '10px', borderRadius: '8px', border: '1px solid var(--border)' }}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="category-modal-footer">
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    onClick={() => handleCloseRequest(() => {
+                      setEditingCategory(null);
+                      setShowCreateModal(false);
+                      setFormData({ name: '', description: '', color: '#3B82F6' });
+                    })}
+                    disabled={submitting}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="btn-primary"
+                    disabled={submitting}
+                  >
+                    {submitting 
+                      ? (isEditMode ? 'Saving...' : 'Creating...') 
+                      : (isEditMode ? 'Save Category' : 'Create Category')}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
 
         {/* Category Detail Modal */}
         <CategoryDetailModal

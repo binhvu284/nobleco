@@ -42,13 +42,24 @@ export default function AddProductModal({ open, onClose, onSuccess, product }: A
     // Form state
     const [formData, setFormData] = useState({
         name: '',
+        sku: '',
         short_description: '',
         long_description: '',
         categories: [] as number[],
         price: '',
-        cost_price: '',
         stock: '0',
-        status: 'active' as 'active' | 'inactive'
+        status: 'active' as 'active' | 'inactive',
+        // Jewelry specification fields
+        supplier_id: '',
+        center_stone_size_mm: '',
+        ni_tay: '',
+        shape: '' as '' | 'Round' | 'Baguette',
+        dimensions: '',
+        stone_count: '',
+        carat_weight_ct: '',
+        gold_purity: '' as '' | '18k' | '14k',
+        product_weight_g: '',
+        inventory_value: ''
     });
     
     // Product images (stored separately, uploaded immediately)
@@ -94,13 +105,24 @@ export default function AddProductModal({ open, onClose, onSuccess, product }: A
             
             setFormData({
                 name: product.name || '',
+                sku: product.sku || '',
                 short_description: product.short_description || '',
                 long_description: product.long_description || '',
                 categories: product.categories ? product.categories.map(c => c.id) : [],
                 price: product.price?.toString() || '',
-                cost_price: product.cost_price?.toString() || '',
                 stock: product.stock?.toString() || '0',
-                status: formStatus
+                status: formStatus,
+                // Jewelry specification fields
+                supplier_id: (product as any).supplier_id || '',
+                center_stone_size_mm: (product as any).center_stone_size_mm?.toString() || '',
+                ni_tay: (product as any).ni_tay?.toString() || '',
+                shape: ((product as any).shape === 'Round' || (product as any).shape === 'Baguette') ? (product as any).shape : '',
+                dimensions: (product as any).dimensions || '',
+                stone_count: (product as any).stone_count?.toString() || '',
+                carat_weight_ct: (product as any).carat_weight_ct?.toString() || '',
+                gold_purity: ((product as any).gold_purity === '18k' || (product as any).gold_purity === '14k') ? (product as any).gold_purity : '',
+                product_weight_g: (product as any).product_weight_g?.toString() || '',
+                inventory_value: (product as any).inventory_value?.toString() || ''
             });
             
             // Set product ID for image uploads
@@ -136,13 +158,23 @@ export default function AddProductModal({ open, onClose, onSuccess, product }: A
         if (!open) {
             setFormData({
                 name: '',
+                sku: '',
                 short_description: '',
                 long_description: '',
                 categories: [],
                 price: '',
-                cost_price: '',
                 stock: '0',
-                status: 'active'
+                status: 'active',
+                supplier_id: '',
+                center_stone_size_mm: '',
+                ni_tay: '',
+                shape: '',
+                dimensions: '',
+                stone_count: '',
+                carat_weight_ct: '',
+                gold_purity: '',
+                product_weight_g: '',
+                inventory_value: ''
             });
             setProductImages([]);
             setTempProductId(null);
@@ -279,10 +311,61 @@ export default function AddProductModal({ open, onClose, onSuccess, product }: A
                 }
             }
             
-            if (formData.cost_price && formData.cost_price.trim()) {
-                const costPriceNum = parseFloat(formData.cost_price);
-                if (isNaN(costPriceNum) || costPriceNum < 0) {
-                    newErrors.cost_price = 'Cost price must be a valid positive number';
+            if (formData.stock && formData.stock.trim()) {
+                const stockNum = parseInt(formData.stock);
+                if (isNaN(stockNum) || stockNum < 0) {
+                    newErrors.stock = 'Stock must be a valid non-negative number';
+                }
+            }
+            
+            // Validate jewelry specification numeric fields
+            if (formData.center_stone_size_mm && formData.center_stone_size_mm.trim()) {
+                const value = parseFloat(formData.center_stone_size_mm);
+                if (isNaN(value) || value < 0) {
+                    newErrors.center_stone_size_mm = 'Center stone size must be a valid positive number';
+                }
+            }
+            
+            if (formData.ni_tay && formData.ni_tay.trim()) {
+                const value = parseFloat(formData.ni_tay);
+                if (isNaN(value) || value < 0) {
+                    newErrors.ni_tay = 'Ni tay must be a valid positive number';
+                }
+            }
+            
+            if (formData.stone_count && formData.stone_count.trim()) {
+                const value = parseInt(formData.stone_count);
+                if (isNaN(value) || value < 0) {
+                    newErrors.stone_count = 'Stone count must be a valid non-negative number';
+                }
+            }
+            
+            if (formData.carat_weight_ct && formData.carat_weight_ct.trim()) {
+                const value = parseFloat(formData.carat_weight_ct);
+                if (isNaN(value) || value < 0) {
+                    newErrors.carat_weight_ct = 'Carat weight must be a valid positive number';
+                }
+            }
+            
+            if (formData.product_weight_g && formData.product_weight_g.trim()) {
+                const value = parseFloat(formData.product_weight_g);
+                if (isNaN(value) || value < 0) {
+                    newErrors.product_weight_g = 'Product weight must be a valid positive number';
+                }
+            }
+            
+            if (formData.inventory_value && formData.inventory_value.trim()) {
+                const value = parseFloat(formData.inventory_value);
+                if (isNaN(value) || value < 0) {
+                    newErrors.inventory_value = 'Inventory value must be a valid positive number';
+                }
+            }
+        } else {
+            // Validation for edit mode - validate numeric fields
+            if (formData.price && formData.price.trim()) {
+                const priceNum = parseFloat(formData.price);
+                if (isNaN(priceNum) || priceNum < 0) {
+                    newErrors.price = 'Price must be a valid positive number';
                 }
             }
             
@@ -292,9 +375,49 @@ export default function AddProductModal({ open, onClose, onSuccess, product }: A
                     newErrors.stock = 'Stock must be a valid non-negative number';
                 }
             }
-        } else {
-            // Validation for edit mode - only validate descriptions (name is read-only)
-            // No additional validation needed for edit mode
+            
+            // Validate jewelry specification numeric fields
+            if (formData.center_stone_size_mm && formData.center_stone_size_mm.trim()) {
+                const value = parseFloat(formData.center_stone_size_mm);
+                if (isNaN(value) || value < 0) {
+                    newErrors.center_stone_size_mm = 'Center stone size must be a valid positive number';
+                }
+            }
+            
+            if (formData.ni_tay && formData.ni_tay.trim()) {
+                const value = parseFloat(formData.ni_tay);
+                if (isNaN(value) || value < 0) {
+                    newErrors.ni_tay = 'Ni tay must be a valid positive number';
+                }
+            }
+            
+            if (formData.stone_count && formData.stone_count.trim()) {
+                const value = parseInt(formData.stone_count);
+                if (isNaN(value) || value < 0) {
+                    newErrors.stone_count = 'Stone count must be a valid non-negative number';
+                }
+            }
+            
+            if (formData.carat_weight_ct && formData.carat_weight_ct.trim()) {
+                const value = parseFloat(formData.carat_weight_ct);
+                if (isNaN(value) || value < 0) {
+                    newErrors.carat_weight_ct = 'Carat weight must be a valid positive number';
+                }
+            }
+            
+            if (formData.product_weight_g && formData.product_weight_g.trim()) {
+                const value = parseFloat(formData.product_weight_g);
+                if (isNaN(value) || value < 0) {
+                    newErrors.product_weight_g = 'Product weight must be a valid positive number';
+                }
+            }
+            
+            if (formData.inventory_value && formData.inventory_value.trim()) {
+                const value = parseFloat(formData.inventory_value);
+                if (isNaN(value) || value < 0) {
+                    newErrors.inventory_value = 'Inventory value must be a valid positive number';
+                }
+            }
         }
         
         setErrors(newErrors);
@@ -320,37 +443,65 @@ export default function AddProductModal({ open, onClose, onSuccess, product }: A
             let createdProduct;
             
             if (isEditMode && product) {
-                // Update existing product - only send editable fields (descriptions, images are handled separately)
-                const productData = {
-                    name: formData.name.trim(), // Include name but API should ignore changes
+                // Update existing product - include all fields
+                const productData: any = {
+                    name: formData.name.trim(),
+                    sku: formData.sku.trim() || null,
                     short_description: formData.short_description.trim() || '',
-                    long_description: formData.long_description.trim() || null
-                    // Don't send price, stock, status, categories - those are synced from KiotViet
+                    long_description: formData.long_description.trim() || null,
+                    price: formData.price ? parseFloat(formData.price) : 0,
+                    stock: formData.stock ? parseInt(formData.stock) : 0,
+                    // Jewelry specification fields
+                    supplier_id: formData.supplier_id.trim() || null,
+                    center_stone_size_mm: formData.center_stone_size_mm ? parseFloat(formData.center_stone_size_mm) : null,
+                    ni_tay: formData.ni_tay ? parseFloat(formData.ni_tay) : null,
+                    shape: formData.shape || null,
+                    dimensions: formData.dimensions.trim() || null,
+                    stone_count: formData.stone_count ? parseInt(formData.stone_count) : null,
+                    carat_weight_ct: formData.carat_weight_ct ? parseFloat(formData.carat_weight_ct) : null,
+                    gold_purity: formData.gold_purity || null,
+                    product_weight_g: formData.product_weight_g ? parseFloat(formData.product_weight_g) : null,
+                    inventory_value: formData.inventory_value ? parseFloat(formData.inventory_value) : null
                 };
+                
+                const requestBody: any = {
+                    id: product.id,
+                    product: productData
+                };
+                
+                // Include categories if they exist
+                if (formData.categories.length > 0) {
+                    requestBody.categoryIds = formData.categories;
+                }
                 
                 response = await fetch('/api/products', {
                     method: 'PATCH',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({
-                        id: product.id,
-                        product: productData,
-                        categoryIds: [] // Don't update categories in edit mode
-                    })
+                    body: JSON.stringify(requestBody)
                 });
             } else {
                 // Create new product - include all fields
-                const productData = {
+                const productData: any = {
                     name: formData.name.trim(),
+                    sku: formData.sku.trim() || null,
                     short_description: formData.short_description.trim() || '',
                     long_description: formData.long_description.trim() || null,
                     price: parseFloat(formData.price),
-                    cost_price: formData.cost_price && formData.cost_price.trim() 
-                        ? parseFloat(formData.cost_price) 
-                        : null,
                     stock: parseInt(formData.stock) || 0,
                     status: formData.status,
+                    // Jewelry specification fields
+                    supplier_id: formData.supplier_id.trim() || null,
+                    center_stone_size_mm: formData.center_stone_size_mm ? parseFloat(formData.center_stone_size_mm) : null,
+                    ni_tay: formData.ni_tay ? parseFloat(formData.ni_tay) : null,
+                    shape: formData.shape || null,
+                    dimensions: formData.dimensions.trim() || null,
+                    stone_count: formData.stone_count ? parseInt(formData.stone_count) : null,
+                    carat_weight_ct: formData.carat_weight_ct ? parseFloat(formData.carat_weight_ct) : null,
+                    gold_purity: formData.gold_purity || null,
+                    product_weight_g: formData.product_weight_g ? parseFloat(formData.product_weight_g) : null,
+                    inventory_value: formData.inventory_value ? parseFloat(formData.inventory_value) : null,
                     category_ids: formData.categories.length > 0 ? formData.categories : []
                 };
                 
@@ -416,7 +567,7 @@ export default function AddProductModal({ open, onClose, onSuccess, product }: A
                 onClick={(e) => e.stopPropagation()}
             >
                 <div className="add-product-modal-header">
-                    <h2>{isEditMode ? 'Edit Product Images & Description' : 'Add New Product'}</h2>
+                    <h2>{isEditMode ? 'Edit Product' : 'Add New Product'}</h2>
                     <div className="add-product-modal-actions">
                         {!isMobile && (
                             <button 
@@ -439,67 +590,71 @@ export default function AddProductModal({ open, onClose, onSuccess, product }: A
 
                 <form onSubmit={handleSubmit} className="add-product-form">
                     <div className="add-product-form-body">
-                        {/* Product Name */}
-                        <div className="form-group">
-                            {isEditMode ? (
-                                <>
-                                    <label htmlFor="product-name">Product Name</label>
-                                    <div className="product-name-display">
-                                        {formData.name || 'N/A'}
-                                    </div>
-                                </>
-                            ) : (
-                                <>
-                                    <label htmlFor="product-name">
-                                        Product Name <span className="required">*</span>
-                                    </label>
-                                    <input
-                                        id="product-name"
-                                        type="text"
-                                        value={formData.name}
-                                        onChange={(e) => handleInputChange('name', e.target.value)}
-                                        placeholder="Enter product name"
-                                        className={errors.name ? 'error' : ''}
-                                    />
-                                    {errors.name && <span className="error-message">{errors.name}</span>}
-                                </>
-                            )}
-                        </div>
-
-                        {/* Short Description */}
-                        <div className="form-group">
-                            <label htmlFor="short-description">
-                                Short Description
-                                <span className="char-count">
-                                    {formData.short_description.length}/{SHORT_DESC_LIMIT}
-                                </span>
-                            </label>
-                            <textarea
-                                id="short-description"
-                                value={formData.short_description}
-                                onChange={(e) => handleInputChange('short_description', e.target.value)}
-                                placeholder="Brief description of the product"
-                                rows={3}
-                                maxLength={SHORT_DESC_LIMIT}
-                            />
-                        </div>
-
-                        {/* Long Description */}
-                        <div className="form-group">
-                            <label htmlFor="long-description">Long Description</label>
-                            <textarea
-                                id="long-description"
-                                value={formData.long_description}
-                                onChange={(e) => handleInputChange('long_description', e.target.value)}
-                                placeholder="Detailed description including size, material, color, etc."
-                                rows={6}
-                            />
-                        </div>
-
-                        {/* Categories - Hidden in edit mode */}
-                        {!isEditMode && (
+                        {/* First Section */}
+                        <div className="form-section">
+                            <h3 className="form-section-title">Product Information</h3>
+                            
+                            {/* Product Name */}
                             <div className="form-group">
-                                <label htmlFor="categories">Categories</label>
+                                <label htmlFor="product-name">
+                                    Name <span className="required">*</span>
+                                </label>
+                                <input
+                                    id="product-name"
+                                    type="text"
+                                    value={formData.name}
+                                    onChange={(e) => handleInputChange('name', e.target.value)}
+                                    placeholder="Enter product name"
+                                    className={errors.name ? 'error' : ''}
+                                    disabled={isEditMode}
+                                />
+                                {errors.name && <span className="error-message">{errors.name}</span>}
+                            </div>
+
+                            {/* Product ID (SKU) */}
+                            <div className="form-group">
+                                <label htmlFor="product-sku">Product ID (SKU)</label>
+                                <input
+                                    id="product-sku"
+                                    type="text"
+                                    value={formData.sku}
+                                    onChange={(e) => handleInputChange('sku', e.target.value)}
+                                    placeholder="Enter SKU"
+                                />
+                            </div>
+
+                            {/* Product Images */}
+                            <div className="form-group">
+                                {(tempProductId || isEditMode) ? (
+                                    <ImageUpload
+                                        productId={tempProductId || (product?.id ?? 0)}
+                                        maxImages={MAX_IMAGES}
+                                        existingImages={productImages}
+                                        onUploadSuccess={handleImageUploadSuccess}
+                                        onUploadError={handleImageUploadError}
+                                        onRemove={handleImageRemove}
+                                        onImagesChange={handleImagesChange}
+                                        disabled={submitting || loadingImages}
+                                    />
+                                ) : (
+                                    <div className="image-upload-placeholder">
+                                        <label>
+                                            Product Images
+                                            <span className="image-count">(0/{MAX_IMAGES})</span>
+                                        </label>
+                                        <p className="image-upload-hint">
+                                            Create the product first, then you can upload images.
+                                        </p>
+                                    </div>
+                                )}
+                                {errors.images && (
+                                    <span className="error-message">{errors.images}</span>
+                                )}
+                            </div>
+
+                            {/* Categories */}
+                            <div className="form-group">
+                                <label htmlFor="categories">Category</label>
                                 <div className="category-selector">
                                     <button
                                         type="button"
@@ -580,103 +735,205 @@ export default function AddProductModal({ open, onClose, onSuccess, product }: A
                                     </div>
                                 )}
                             </div>
-                        )}
-
-                        {/* Image Upload */}
-                        <div className="form-group">
-                            {(tempProductId || isEditMode) ? (
-                                <ImageUpload
-                                    productId={tempProductId || (product?.id ?? 0)}
-                                    maxImages={MAX_IMAGES}
-                                    existingImages={productImages}
-                                    onUploadSuccess={handleImageUploadSuccess}
-                                    onUploadError={handleImageUploadError}
-                                    onRemove={handleImageRemove}
-                                    onImagesChange={handleImagesChange}
-                                    disabled={submitting || loadingImages}
-                                />
-                            ) : (
-                                <div className="image-upload-placeholder">
-                                    <label>
-                                        Product Images
-                                        <span className="image-count">(0/{MAX_IMAGES})</span>
-                                    </label>
-                                    <p className="image-upload-hint">
-                                        Create the product first, then you can upload images.
-                                    </p>
-                                </div>
-                            )}
-                            {errors.images && (
-                                <span className="error-message">{errors.images}</span>
-                            )}
                         </div>
 
-                        {/* Price and Cost Price Row - Hidden in edit mode */}
+                        {/* Jewelry Specification Section */}
+                        <div className="form-section">
+                            <h3 className="form-section-title">Jewelry Specification</h3>
+                            
+                            <div className="form-row">
+                                <div className="form-group">
+                                    <label htmlFor="supplier-id">Supplier ID</label>
+                                    <input
+                                        id="supplier-id"
+                                        type="text"
+                                        value={formData.supplier_id}
+                                        onChange={(e) => handleInputChange('supplier_id', e.target.value)}
+                                        placeholder="Enter supplier ID"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="form-row">
+                                <div className="form-group">
+                                    <label htmlFor="center-stone-size">Center Stone Size (mm)</label>
+                                    <input
+                                        id="center-stone-size"
+                                        type="number"
+                                        step="0.01"
+                                        min="0"
+                                        value={formData.center_stone_size_mm}
+                                        onChange={(e) => handleInputChange('center_stone_size_mm', e.target.value)}
+                                        placeholder="0.00"
+                                    />
+                                </div>
+
+                                <div className="form-group">
+                                    <label htmlFor="ni-tay">Ni tay</label>
+                                    <input
+                                        id="ni-tay"
+                                        type="number"
+                                        step="0.01"
+                                        min="0"
+                                        value={formData.ni_tay}
+                                        onChange={(e) => handleInputChange('ni_tay', e.target.value)}
+                                        placeholder="0.00"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="form-row">
+                                <div className="form-group">
+                                    <label htmlFor="shape">Shape</label>
+                                    <select
+                                        id="shape"
+                                        value={formData.shape}
+                                        onChange={(e) => handleInputChange('shape', e.target.value as '' | 'Round' | 'Baguette')}
+                                    >
+                                        <option value="">Select shape</option>
+                                        <option value="Round">Round</option>
+                                        <option value="Baguette">Baguette</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div className="form-group">
+                                <label htmlFor="dimensions">Dimensions</label>
+                                <input
+                                    id="dimensions"
+                                    type="text"
+                                    value={formData.dimensions}
+                                    onChange={(e) => handleInputChange('dimensions', e.target.value)}
+                                    placeholder="Enter dimensions"
+                                />
+                            </div>
+
+                            <div className="form-row">
+                                <div className="form-group">
+                                    <label htmlFor="stone-count">Stone Count</label>
+                                    <input
+                                        id="stone-count"
+                                        type="number"
+                                        min="0"
+                                        value={formData.stone_count}
+                                        onChange={(e) => handleInputChange('stone_count', e.target.value)}
+                                        placeholder="0"
+                                    />
+                                </div>
+
+                                <div className="form-group">
+                                    <label htmlFor="carat-weight">Carat Weight (ct)</label>
+                                    <input
+                                        id="carat-weight"
+                                        type="number"
+                                        step="0.01"
+                                        min="0"
+                                        value={formData.carat_weight_ct}
+                                        onChange={(e) => handleInputChange('carat_weight_ct', e.target.value)}
+                                        placeholder="0.00"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="form-row">
+                                <div className="form-group">
+                                    <label htmlFor="gold-purity">Gold Purity</label>
+                                    <select
+                                        id="gold-purity"
+                                        value={formData.gold_purity}
+                                        onChange={(e) => handleInputChange('gold_purity', e.target.value as '' | '18k' | '14k')}
+                                    >
+                                        <option value="">Select gold purity</option>
+                                        <option value="18k">18k</option>
+                                        <option value="14k">14k</option>
+                                    </select>
+                                </div>
+
+                                <div className="form-group">
+                                    <label htmlFor="product-weight">Product Weight (g)</label>
+                                    <input
+                                        id="product-weight"
+                                        type="number"
+                                        step="0.01"
+                                        min="0"
+                                        value={formData.product_weight_g}
+                                        onChange={(e) => handleInputChange('product_weight_g', e.target.value)}
+                                        placeholder="0.00"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="form-row">
+                                <div className="form-group">
+                                    <label htmlFor="price">
+                                        Price (VND) <span className="required">*</span>
+                                    </label>
+                                    <input
+                                        id="price"
+                                        type="number"
+                                        step="1"
+                                        min="0"
+                                        value={formData.price}
+                                        onChange={(e) => handleInputChange('price', e.target.value)}
+                                        placeholder="0"
+                                        className={errors.price ? 'error' : ''}
+                                    />
+                                    {errors.price && <span className="error-message">{errors.price}</span>}
+                                </div>
+
+                                <div className="form-group">
+                                    <label htmlFor="stock">Stock</label>
+                                    <input
+                                        id="stock"
+                                        type="number"
+                                        min="0"
+                                        value={formData.stock}
+                                        onChange={(e) => handleInputChange('stock', e.target.value)}
+                                        placeholder="0"
+                                        className={errors.stock ? 'error' : ''}
+                                    />
+                                    {errors.stock && <span className="error-message">{errors.stock}</span>}
+                                </div>
+                            </div>
+
+                            <div className="form-group">
+                                <label htmlFor="inventory-value">Inventory Value (VND)</label>
+                                <input
+                                    id="inventory-value"
+                                    type="number"
+                                    step="1"
+                                    min="0"
+                                    value={formData.inventory_value}
+                                    onChange={(e) => handleInputChange('inventory_value', e.target.value)}
+                                    placeholder="0"
+                                />
+                            </div>
+
+                            <div className="form-group">
+                                <label htmlFor="description">Description</label>
+                                <textarea
+                                    id="description"
+                                    value={formData.long_description}
+                                    onChange={(e) => handleInputChange('long_description', e.target.value)}
+                                    placeholder="Enter product description"
+                                    rows={6}
+                                />
+                            </div>
+                        </div>
+
+                        {/* Status - Only shown in create mode */}
                         {!isEditMode && (
-                            <>
-                                <div className="form-row">
-                                    <div className="form-group">
-                                        <label htmlFor="price">
-                                            Price (VND) <span className="required">*</span>
-                                        </label>
-                                        <input
-                                            id="price"
-                                            type="number"
-                                            step="1"
-                                            min="0"
-                                            value={formData.price}
-                                            onChange={(e) => handleInputChange('price', e.target.value)}
-                                            placeholder="0"
-                                            className={errors.price ? 'error' : ''}
-                                        />
-                                        {errors.price && <span className="error-message">{errors.price}</span>}
-                                    </div>
-
-                                    <div className="form-group">
-                                        <label htmlFor="cost-price">Cost Price (VND)</label>
-                                        <input
-                                            id="cost-price"
-                                            type="number"
-                                            step="1"
-                                            min="0"
-                                            value={formData.cost_price}
-                                            onChange={(e) => handleInputChange('cost_price', e.target.value)}
-                                            placeholder="0"
-                                            className={errors.cost_price ? 'error' : ''}
-                                        />
-                                        {errors.cost_price && <span className="error-message">{errors.cost_price}</span>}
-                                    </div>
-                                </div>
-
-                                {/* Stock and Status Row */}
-                                <div className="form-row">
-                                    <div className="form-group">
-                                        <label htmlFor="stock">Stock</label>
-                                        <input
-                                            id="stock"
-                                            type="number"
-                                            min="0"
-                                            value={formData.stock}
-                                            onChange={(e) => handleInputChange('stock', e.target.value)}
-                                            placeholder="0"
-                                            className={errors.stock ? 'error' : ''}
-                                        />
-                                        {errors.stock && <span className="error-message">{errors.stock}</span>}
-                                    </div>
-
-                                    <div className="form-group">
-                                        <label htmlFor="status">Status</label>
-                                        <select
-                                            id="status"
-                                            value={formData.status}
-                                            onChange={(e) => handleInputChange('status', e.target.value as 'active' | 'inactive')}
-                                        >
-                                            <option value="active">Active</option>
-                                            <option value="inactive">Inactive</option>
-                                        </select>
-                                    </div>
-                                </div>
-                            </>
+                            <div className="form-group">
+                                <label htmlFor="status">Status</label>
+                                <select
+                                    id="status"
+                                    value={formData.status}
+                                    onChange={(e) => handleInputChange('status', e.target.value as 'active' | 'inactive')}
+                                >
+                                    <option value="active">Active</option>
+                                    <option value="inactive">Inactive</option>
+                                </select>
+                            </div>
                         )}
 
                         {errors.submit && (
