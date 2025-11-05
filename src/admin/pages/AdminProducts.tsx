@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import AdminLayout from '../components/AdminLayout';
-import { IconPlus, IconSearch, IconFilter, IconList, IconGrid, IconMoreVertical, IconEdit, IconTrash2, IconEye, IconPackage, IconLayout, IconChevronDown, IconCheck, IconX, IconImage } from '../components/icons';
+import { IconPlus, IconSearch, IconFilter, IconList, IconGrid, IconMoreVertical, IconEdit, IconTrash2, IconEye, IconPackage, IconLayout, IconChevronDown, IconChevronUp, IconCheck, IconX, IconImage } from '../components/icons';
 import ProductDetailModal from '../components/ProductDetailModal';
 import ConfirmModal from '../components/ConfirmModal';
 import UpdateDataModal from '../components/UpdateDataModal';
@@ -52,6 +52,7 @@ interface Product {
     carat_weight_ct?: number | null;
     gold_purity?: string | null;
     product_weight_g?: number | null;
+    type?: string | null;
     inventory_value?: number | null;
     last_synced_at?: string | null;
     sync_status?: string | null;
@@ -66,8 +67,10 @@ export default function AdminProducts() {
     const [products, setProducts] = useState<Product[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [viewMode, setViewMode] = useState<'table' | 'card'>('table');
-    const [mobileColumns, setMobileColumns] = useState<1 | 2 | 3>(3);
+    const [viewMode, setViewMode] = useState<'table' | 'card'>(
+        window.innerWidth <= 768 ? 'card' : 'table'
+    );
+    const [mobileColumns, setMobileColumns] = useState<1 | 2 | 3>(1);
     const [showColumnDropdown, setShowColumnDropdown] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const [activeDropdown, setActiveDropdown] = useState<number | null>(null);
@@ -84,11 +87,97 @@ export default function AdminProducts() {
         return saved === 'true';
     });
     const [isAutoSyncing, setIsAutoSyncing] = useState(false);
+    const [sortColumn, setSortColumn] = useState<'name' | 'sku' | 'stock' | 'price' | null>(null);
+    const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+    const [showFilterPopup, setShowFilterPopup] = useState(false);
+    const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
+    const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'inactive'>('all');
+    const [availableCategories, setAvailableCategories] = useState<Category[]>([]);
 
-    const filteredProducts = products.filter(product =>
-        product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        product.category_names.some(cat => cat.toLowerCase().includes(searchTerm.toLowerCase()))
-    );
+    // Fetch categories for filter
+    useEffect(() => {
+        const fetchCategories = async () => {
+            try {
+                const response = await fetch('/api/categories');
+                if (response.ok) {
+                    const data = await response.json();
+                    setAvailableCategories(data || []);
+                }
+            } catch (err) {
+                console.error('Error fetching categories:', err);
+            }
+        };
+        fetchCategories();
+    }, []);
+
+    const filteredProducts = products.filter(product => {
+        // Search filter
+        const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            product.category_names.some(cat => cat.toLowerCase().includes(searchTerm.toLowerCase()));
+        
+        // Category filter
+        const matchesCategory = selectedCategories.length === 0 || 
+            product.categories.some(cat => selectedCategories.includes(cat.id));
+        
+        // Status filter
+        const matchesStatus = filterStatus === 'all' || product.status === filterStatus;
+        
+        return matchesSearch && matchesCategory && matchesStatus;
+    });
+
+    // Sort products
+    const sortedProducts = [...filteredProducts].sort((a, b) => {
+        if (!sortColumn) return 0;
+        
+        let aValue: string | number;
+        let bValue: string | number;
+        
+        switch (sortColumn) {
+            case 'name':
+                aValue = a.name.toLowerCase();
+                bValue = b.name.toLowerCase();
+                break;
+            case 'sku':
+                aValue = (a.sku || '').toLowerCase();
+                bValue = (b.sku || '').toLowerCase();
+                break;
+            case 'stock':
+                aValue = a.stock ?? 0;
+                bValue = b.stock ?? 0;
+                break;
+            case 'price':
+                aValue = a.price ?? 0;
+                bValue = b.price ?? 0;
+                break;
+            default:
+                return 0;
+        }
+        
+        if (typeof aValue === 'string' && typeof bValue === 'string') {
+            if (sortDirection === 'asc') {
+                return aValue.localeCompare(bValue);
+            } else {
+                return bValue.localeCompare(aValue);
+            }
+        } else {
+            if (sortDirection === 'asc') {
+                return (aValue as number) - (bValue as number);
+            } else {
+                return (bValue as number) - (aValue as number);
+            }
+        }
+    });
+
+    const handleSort = (column: 'name' | 'sku' | 'stock' | 'price') => {
+        if (sortColumn === column) {
+            // Toggle direction if clicking the same column
+            setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+        } else {
+            // Set new column and default to ascending
+            setSortColumn(column);
+            setSortDirection('asc');
+        }
+    };
 
     // Fetch products from API
     useEffect(() => {
@@ -168,12 +257,17 @@ export default function AdminProducts() {
         }
     };
 
-    // Mobile columns set to 2 for card view
+    // Handle window resize to force card view on mobile
     useEffect(() => {
-        if (viewMode === 'card' && window.innerWidth <= 768) {
-            setMobileColumns(2);
-        }
-    }, [viewMode]);
+        const handleResize = () => {
+            if (window.innerWidth <= 768) {
+                setViewMode('card');
+            }
+        };
+
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
     // Handle click outside to close dropdown
     useEffect(() => {
@@ -370,6 +464,16 @@ export default function AdminProducts() {
                         </button>
                     </div>
                     <div className="toolbar-right">
+                        <button 
+                            className="btn-add" 
+                            onClick={() => {
+                                setEditingProduct(null);
+                                setShowAddProductModal(true);
+                            }}
+                        >
+                            <IconPlus />
+                            <span>Add Product</span>
+                        </button>
                         {/* Desktop view toggle */}
                         <div className="view-toggle desktop-only">
                             <button
@@ -523,30 +627,107 @@ export default function AdminProducts() {
                     </div>
                 )}
 
+                {/* Total Products Count */}
+                {!loading && !error && (
+                    <div className="products-count-bar">
+                        <span className="products-count-text">
+                            Total Products: <strong>{filteredProducts.length}</strong>
+                        </span>
+                    </div>
+                )}
+
                 {/* Content */}
                 {!loading && !error && viewMode === 'table' ? (
                     <div className="products-table-container">
                         <table className="products-table">
                             <thead>
                                 <tr>
-                                    <th>Product</th>
+                                    <th className="sortable-header">
+                                        <div className="th-content">
+                                            <span>Product</span>
+                                            <button 
+                                                className="sort-btn"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleSort('name');
+                                                }}
+                                            >
+                                                {sortColumn === 'name' ? (
+                                                    sortDirection === 'asc' ? <IconChevronUp /> : <IconChevronDown />
+                                                ) : (
+                                                    <IconChevronUp style={{ opacity: 0.3 }} />
+                                                )}
+                                            </button>
+                                        </div>
+                                    </th>
                                     <th>Category</th>
-                                    <th>SKU</th>
-                                    <th>Stock</th>
-                                    <th>Price</th>
+                                    <th className="sortable-header">
+                                        <div className="th-content">
+                                            <span>SKU</span>
+                                            <button 
+                                                className="sort-btn"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleSort('sku');
+                                                }}
+                                            >
+                                                {sortColumn === 'sku' ? (
+                                                    sortDirection === 'asc' ? <IconChevronUp /> : <IconChevronDown />
+                                                ) : (
+                                                    <IconChevronUp style={{ opacity: 0.3 }} />
+                                                )}
+                                            </button>
+                                        </div>
+                                    </th>
+                                    <th className="sortable-header">
+                                        <div className="th-content">
+                                            <span>Stock</span>
+                                            <button 
+                                                className="sort-btn"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleSort('stock');
+                                                }}
+                                            >
+                                                {sortColumn === 'stock' ? (
+                                                    sortDirection === 'asc' ? <IconChevronUp /> : <IconChevronDown />
+                                                ) : (
+                                                    <IconChevronUp style={{ opacity: 0.3 }} />
+                                                )}
+                                            </button>
+                                        </div>
+                                    </th>
+                                    <th className="sortable-header">
+                                        <div className="th-content">
+                                            <span>Price</span>
+                                            <button 
+                                                className="sort-btn"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleSort('price');
+                                                }}
+                                            >
+                                                {sortColumn === 'price' ? (
+                                                    sortDirection === 'asc' ? <IconChevronUp /> : <IconChevronDown />
+                                                ) : (
+                                                    <IconChevronUp style={{ opacity: 0.3 }} />
+                                                )}
+                                            </button>
+                                        </div>
+                                    </th>
                                     <th>Status</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {filteredProducts.length === 0 ? (
+                                {sortedProducts.length === 0 ? (
                                     <tr>
                                         <td colSpan={7} style={{ textAlign: 'center', padding: '40px' }}>
                                             No products found
                                         </td>
                                     </tr>
                                 ) : (
-                                    filteredProducts.map((product) => (
+                                    sortedProducts.map((product) => (
                                     <tr 
                                         key={product.id}
                                         onClick={() => handleViewDetail(product)}
@@ -598,8 +779,8 @@ export default function AdminProducts() {
                                             <span className="sku">{product.sku || 'N/A'}</span>
                                         </td>
                                         <td>
-                                            <span className={`stock ${product.stock === 0 ? 'out-of-stock' : ''}`}>
-                                                {product.stock}
+                                            <span className={`stock ${product.stock === 0 ? 'out-of-stock' : ''} ${product.stock == null ? 'stock-null' : ''}`}>
+                                                {product.stock != null ? product.stock : 'null'}
                                             </span>
                                         </td>
                                         <td>
@@ -637,8 +818,8 @@ export default function AdminProducts() {
                                                                 handleEditProduct(product);
                                                             }}
                                                         >
-                                                            <IconImage />
-                                                            Edit Image
+                                                            <IconEdit />
+                                                            Edit
                                                         </button>
                                                         {product.status === 'inactive' ? (
                                                             <button 
@@ -676,7 +857,7 @@ export default function AdminProducts() {
                     </div>
                 ) : !loading && !error ? (
                     <div className={`products-grid ${window.innerWidth <= 768 ? `mobile-cols-${mobileColumns}` : ''}`}>
-                        {filteredProducts.map((product) => (
+                        {sortedProducts.map((product) => (
                             <div 
                                 key={product.id} 
                                 className="product-card product-card-clickable"
@@ -720,8 +901,8 @@ export default function AdminProducts() {
                                                             handleEditProduct(product);
                                                         }}
                                                     >
-                                                        <IconImage />
-                                                        Edit Image
+                                                        <IconEdit />
+                                                        Edit
                                                     </button>
                                                     {product.status === 'inactive' ? (
                                                         <button 
@@ -781,6 +962,18 @@ export default function AdminProducts() {
                                         )}
                                     </div>
                                     <div className="product-card-footer">
+                                        <div className="product-card-sku-stock">
+                                            <div className="product-card-sku">
+                                                <span className="sku-label">SKU:</span>
+                                                <span className="sku-value">{product.sku || 'N/A'}</span>
+                                            </div>
+                                            <div className="product-card-stock">
+                                                <span className="stock-label">Stock:</span>
+                                                <span className={`stock-value ${product.stock === 0 ? 'out-of-stock' : ''}`}>
+                                                    {product.stock ?? 'null'}
+                                                </span>
+                                            </div>
+                                        </div>
                                         <span className="price">{formatVND(product.price)}</span>
                                     </div>
                                 </div>
@@ -848,6 +1041,97 @@ export default function AdminProducts() {
                     localStorage.setItem('autoSyncEnabled', enabled.toString());
                 }}
             />
+
+            {/* Filter Popup */}
+            {showFilterPopup && (
+                <>
+                    <div className="filter-popup-overlay active" onClick={() => setShowFilterPopup(false)} />
+                    <div className={`filter-popup ${showFilterPopup ? 'active' : ''}`}>
+                        <div className="filter-popup-header">
+                            <h3 className="filter-popup-title">Filters</h3>
+                            <button className="filter-popup-close" onClick={() => setShowFilterPopup(false)}>×</button>
+                        </div>
+                        <div className="filter-popup-body">
+                            <div className="filter-popup-group">
+                                <label className="filter-popup-label">Categories</label>
+                                <div className="filter-checkbox-group">
+                                    {availableCategories.map(category => (
+                                        <label key={category.id} className="filter-checkbox-item">
+                                            <input
+                                                type="checkbox"
+                                                checked={selectedCategories.includes(category.id)}
+                                                onChange={(e) => {
+                                                    if (e.target.checked) {
+                                                        setSelectedCategories([...selectedCategories, category.id]);
+                                                    } else {
+                                                        setSelectedCategories(selectedCategories.filter(id => id !== category.id));
+                                                    }
+                                                }}
+                                            />
+                                            <span>{category.name}</span>
+                                        </label>
+                                    ))}
+                                    {availableCategories.length === 0 && (
+                                        <span style={{ color: 'var(--muted)', fontSize: '0.875rem' }}>No categories available</span>
+                                    )}
+                                </div>
+                            </div>
+                            <div className="filter-popup-group">
+                                <label className="filter-popup-label">Status</label>
+                                <div className="filter-radio-group">
+                                    <label className="filter-radio-item">
+                                        <input
+                                            type="radio"
+                                            name="status"
+                                            value="all"
+                                            checked={filterStatus === 'all'}
+                                            onChange={(e) => setFilterStatus(e.target.value as 'all' | 'active' | 'inactive')}
+                                        />
+                                        <span>All</span>
+                                    </label>
+                                    <label className="filter-radio-item">
+                                        <input
+                                            type="radio"
+                                            name="status"
+                                            value="active"
+                                            checked={filterStatus === 'active'}
+                                            onChange={(e) => setFilterStatus(e.target.value as 'all' | 'active' | 'inactive')}
+                                        />
+                                        <span>Active</span>
+                                    </label>
+                                    <label className="filter-radio-item">
+                                        <input
+                                            type="radio"
+                                            name="status"
+                                            value="inactive"
+                                            checked={filterStatus === 'inactive'}
+                                            onChange={(e) => setFilterStatus(e.target.value as 'all' | 'active' | 'inactive')}
+                                        />
+                                        <span>Inactive</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="filter-popup-footer">
+                            <button
+                                className="btn-secondary"
+                                onClick={() => {
+                                    setSelectedCategories([]);
+                                    setFilterStatus('all');
+                                }}
+                            >
+                                Clear All
+                            </button>
+                            <button
+                                className="btn-primary"
+                                onClick={() => setShowFilterPopup(false)}
+                            >
+                                Apply Filters
+                            </button>
+                        </div>
+                    </div>
+                </>
+            )}
 
             {/* Delete Confirmation Modal */}
             <ConfirmModal

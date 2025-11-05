@@ -59,12 +59,24 @@ export default async function handler(req, res) {
         // New format: flat fields from AddProductModal
         productData = {
           name: req.body.name,
+          sku: req.body.sku || null,
           short_description: req.body.short_description || 'No description available',
           long_description: req.body.long_description || null,
           price: req.body.price,
-          cost_price: req.body.cost_price || null,
           stock: req.body.stock || 0,
-          status: req.body.status || 'active'
+          status: req.body.status || 'active',
+          // Jewelry specification fields
+          serial_number: req.body.serial_number || null,
+          supplier_id: req.body.supplier_id || null,
+          center_stone_size_mm: req.body.center_stone_size_mm || null,
+          ni_tay: req.body.ni_tay || null,
+          shape: req.body.shape || null,
+          dimensions: req.body.dimensions || null,
+          stone_count: req.body.stone_count || null,
+          carat_weight_ct: req.body.carat_weight_ct || null,
+          gold_purity: req.body.gold_purity || null,
+          product_weight_g: req.body.product_weight_g || null,
+          inventory_value: req.body.inventory_value || null
         };
         categoryIds = req.body.category_ids || req.body.categoryIds || [];
         primaryCategoryId = categoryIds.length > 0 ? categoryIds[0] : null;
@@ -103,8 +115,11 @@ export default async function handler(req, res) {
         await updateProduct(id, product, userId);
       }
 
-      // Update categories if provided
-      if (categoryIds !== undefined) {
+      // Update categories if provided AND not empty
+      // If categoryIds is undefined, skip category update (preserve existing)
+      // If categoryIds is empty array [], skip category update (preserve existing)
+      // Only update if categoryIds has items
+      if (categoryIds !== undefined && Array.isArray(categoryIds) && categoryIds.length > 0) {
         await updateProductCategories(id, categoryIds, primaryCategoryId);
       }
 

@@ -25,6 +25,10 @@ ADD COLUMN IF NOT EXISTS supplier_id TEXT;
 ALTER TABLE public.products 
 ADD COLUMN IF NOT EXISTS center_stone_size_mm NUMERIC(10, 2);
 
+-- Add Ni tay (Vietnamese field name - temporary)
+ALTER TABLE public.products 
+ADD COLUMN IF NOT EXISTS ni_tay NUMERIC(10, 2);
+
 -- Add Shape
 ALTER TABLE public.products 
 ADD COLUMN IF NOT EXISTS shape TEXT;
@@ -48,6 +52,10 @@ ADD COLUMN IF NOT EXISTS gold_purity TEXT;
 -- Add Product Weight (g)
 ALTER TABLE public.products 
 ADD COLUMN IF NOT EXISTS product_weight_g NUMERIC(10, 2);
+
+-- Add Type (phân loại)
+ALTER TABLE public.products 
+ADD COLUMN IF NOT EXISTS type TEXT;
 
 -- Add Inventory Value
 ALTER TABLE public.products 
@@ -247,6 +255,7 @@ COMMENT ON COLUMN public.products.stone_count IS 'Number of stones in the produc
 COMMENT ON COLUMN public.products.carat_weight_ct IS 'Total carat weight';
 COMMENT ON COLUMN public.products.gold_purity IS 'Gold purity (e.g., 18K, 24K)';
 COMMENT ON COLUMN public.products.product_weight_g IS 'Product weight in grams';
+COMMENT ON COLUMN public.products.type IS 'Product type/classification (phân loại)';
 COMMENT ON COLUMN public.products.inventory_value IS 'Total inventory value';
 COMMENT ON COLUMN public.products.last_synced_at IS 'Timestamp of last successful sync from third-party';
 COMMENT ON COLUMN public.products.sync_status IS 'Current sync status: pending, synced, failed, syncing';

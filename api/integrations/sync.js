@@ -235,6 +235,32 @@ async function fetchKiotVietProducts(accessToken, integration) {
     
     if (products.length === 0) {
       console.warn(`[KiotViet Sync] No products returned. Full response:`, JSON.stringify(data));
+    } else {
+      // Log COMPLETE first product structure for debugging
+      console.log(`[KiotViet Sync] ========== FIRST PRODUCT FULL STRUCTURE ==========`);
+      console.log(`[KiotViet Sync] First product keys:`, Object.keys(products[0]));
+      console.log(`[KiotViet Sync] First product FULL JSON:`, JSON.stringify(products[0], null, 2));
+      
+      // Check for common nested structures
+      if (products[0].properties) {
+        console.log(`[KiotViet Sync] Found 'properties' object:`, JSON.stringify(products[0].properties, null, 2));
+      }
+      if (products[0].extendedProperties) {
+        console.log(`[KiotViet Sync] Found 'extendedProperties' object:`, JSON.stringify(products[0].extendedProperties, null, 2));
+      }
+      if (products[0].customAttributes) {
+        console.log(`[KiotViet Sync] Found 'customAttributes' array:`, JSON.stringify(products[0].customAttributes, null, 2));
+      }
+      if (products[0].attributes) {
+        console.log(`[KiotViet Sync] Found 'attributes' array:`, JSON.stringify(products[0].attributes, null, 2));
+      }
+      if (products[0].category) {
+        console.log(`[KiotViet Sync] Found 'category' object:`, JSON.stringify(products[0].category, null, 2));
+      }
+      if (products[0].supplier) {
+        console.log(`[KiotViet Sync] Found 'supplier' object:`, JSON.stringify(products[0].supplier, null, 2));
+      }
+      console.log(`[KiotViet Sync] =================================================`);
     }
     
     return products;
@@ -244,6 +270,177 @@ async function fetchKiotVietProducts(accessToken, integration) {
     // Throw error instead of returning empty array so we know something went wrong
     throw new Error(`Failed to fetch products from KiotViet: ${error.message}`);
   }
+}
+
+/**
+ * Helper function to get field value from object with multiple possible field names
+ * Tries various naming conventions: camelCase, snake_case, PascalCase, Vietnamese transliterations
+ * Also checks nested structures: properties, extendedProperties, customAttributes, attributes
+ */
+function getFieldValue(obj, fieldNames, debugField = null) {
+  if (!obj || typeof obj !== 'object') return null;
+  
+  // Try each field name directly on the object
+  for (const fieldName of fieldNames) {
+    if (obj.hasOwnProperty(fieldName)) {
+      const value = obj[fieldName];
+      // Return value if it's not null, undefined, or empty string
+      if (value !== null && value !== undefined && value !== '') {
+        if (debugField) console.log(`[Field Extraction] Found ${debugField} at root.${fieldName}:`, value);
+        return value;
+      }
+    }
+  }
+  
+  // Also check case-insensitive matching (for Vietnamese fields with different casing)
+  const objKeys = Object.keys(obj);
+  for (const fieldName of fieldNames) {
+    const lowerFieldName = fieldName.toLowerCase();
+    for (const key of objKeys) {
+      if (key.toLowerCase() === lowerFieldName) {
+        const value = obj[key];
+        if (value !== null && value !== undefined && value !== '') {
+          if (debugField) console.log(`[Field Extraction] Found ${debugField} at root.${key} (case-insensitive):`, value);
+          return value;
+        }
+      }
+    }
+  }
+  
+  // Check properties object (common in KiotViet)
+  if (obj.properties && typeof obj.properties === 'object') {
+    for (const fieldName of fieldNames) {
+      if (obj.properties.hasOwnProperty(fieldName)) {
+        const value = obj.properties[fieldName];
+        if (value !== null && value !== undefined && value !== '') {
+          if (debugField) console.log(`[Field Extraction] Found ${debugField} at properties.${fieldName}:`, value);
+          return value;
+        }
+      }
+      // Case-insensitive check in properties
+      const lowerFieldName = fieldName.toLowerCase();
+      for (const key of Object.keys(obj.properties)) {
+        if (key.toLowerCase() === lowerFieldName) {
+          const value = obj.properties[key];
+          if (value !== null && value !== undefined && value !== '') {
+            if (debugField) console.log(`[Field Extraction] Found ${debugField} at properties.${key} (case-insensitive):`, value);
+            return value;
+          }
+        }
+      }
+    }
+  }
+  
+  // Check extendedProperties object
+  if (obj.extendedProperties && typeof obj.extendedProperties === 'object') {
+    for (const fieldName of fieldNames) {
+      if (obj.extendedProperties.hasOwnProperty(fieldName)) {
+        const value = obj.extendedProperties[fieldName];
+        if (value !== null && value !== undefined && value !== '') {
+          if (debugField) console.log(`[Field Extraction] Found ${debugField} at extendedProperties.${fieldName}:`, value);
+          return value;
+        }
+      }
+      // Case-insensitive check in extendedProperties
+      const lowerFieldName = fieldName.toLowerCase();
+      for (const key of Object.keys(obj.extendedProperties)) {
+        if (key.toLowerCase() === lowerFieldName) {
+          const value = obj.extendedProperties[key];
+          if (value !== null && value !== undefined && value !== '') {
+            if (debugField) console.log(`[Field Extraction] Found ${debugField} at extendedProperties.${key} (case-insensitive):`, value);
+            return value;
+          }
+        }
+      }
+    }
+  }
+  
+  // Check customAttributes or attributes arrays if they exist
+  if (obj.customAttributes && Array.isArray(obj.customAttributes)) {
+    for (const attr of obj.customAttributes) {
+      if (attr && typeof attr === 'object') {
+        for (const fieldName of fieldNames) {
+          const attrName = attr.name || attr.code || attr.attributeName || attr.fieldName || attr.key || attr.label;
+          const attrValue = attr.value || attr.data || attr.content;
+          if (attrName && attrValue !== undefined) {
+            const lowerAttrName = String(attrName).toLowerCase();
+            const lowerFieldName = fieldName.toLowerCase();
+            if (lowerAttrName === lowerFieldName || lowerAttrName.includes(lowerFieldName) || lowerFieldName.includes(lowerAttrName)) {
+              if (attrValue !== null && attrValue !== undefined && attrValue !== '') {
+                if (debugField) console.log(`[Field Extraction] Found ${debugField} in customAttributes[${attrName}]:`, attrValue);
+                return attrValue;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  
+  if (obj.attributes && Array.isArray(obj.attributes)) {
+    for (const attr of obj.attributes) {
+      if (attr && typeof attr === 'object') {
+        for (const fieldName of fieldNames) {
+          const attrName = attr.name || attr.code || attr.attributeName || attr.fieldName || attr.key || attr.label;
+          const attrValue = attr.value || attr.data || attr.content;
+          if (attrName && attrValue !== undefined) {
+            const lowerAttrName = String(attrName).toLowerCase();
+            const lowerFieldName = fieldName.toLowerCase();
+            if (lowerAttrName === lowerFieldName || lowerAttrName.includes(lowerFieldName) || lowerFieldName.includes(lowerAttrName)) {
+              if (attrValue !== null && attrValue !== undefined && attrValue !== '') {
+                if (debugField) console.log(`[Field Extraction] Found ${debugField} in attributes[${attrName}]:`, attrValue);
+                return attrValue;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  
+  // Check if there's a category object with nested fields
+  if (obj.category && typeof obj.category === 'object') {
+    // For category-related fields, check nested category object
+    for (const fieldName of fieldNames) {
+      if (fieldName.includes('category') || fieldName.includes('danhMuc')) {
+        if (obj.category.id && (fieldName.includes('Id') || fieldName.includes('id'))) {
+          if (debugField) console.log(`[Field Extraction] Found ${debugField} at category.id:`, obj.category.id);
+          return obj.category.id;
+        }
+        if (obj.category.name && (fieldName.includes('Name') || fieldName.includes('name') || fieldName.includes('ten'))) {
+          if (debugField) console.log(`[Field Extraction] Found ${debugField} at category.name:`, obj.category.name);
+          return obj.category.name;
+        }
+      }
+    }
+  }
+  
+  // Check if there's a supplier object with nested fields
+  if (obj.supplier && typeof obj.supplier === 'object') {
+    for (const fieldName of fieldNames) {
+      if (fieldName.includes('supplier') || fieldName.includes('nhaCungCap')) {
+        if (obj.supplier.id) {
+          if (debugField) console.log(`[Field Extraction] Found ${debugField} at supplier.id:`, obj.supplier.id);
+          return obj.supplier.id;
+        }
+        if (obj.supplier.name && fieldName.includes('name')) {
+          if (debugField) console.log(`[Field Extraction] Found ${debugField} at supplier.name:`, obj.supplier.name);
+          return obj.supplier.name;
+        }
+      }
+    }
+  }
+  
+  if (debugField) {
+    console.log(`[Field Extraction] Could not find ${debugField} in any location. Searched for:`, fieldNames);
+    console.log(`[Field Extraction] Available keys in object:`, Object.keys(obj));
+    if (obj.properties) console.log(`[Field Extraction] Available keys in properties:`, Object.keys(obj.properties));
+    if (obj.extendedProperties) console.log(`[Field Extraction] Available keys in extendedProperties:`, Object.keys(obj.extendedProperties));
+    if (obj.customAttributes) console.log(`[Field Extraction] customAttributes structure:`, JSON.stringify(obj.customAttributes, null, 2));
+    if (obj.attributes) console.log(`[Field Extraction] attributes structure:`, JSON.stringify(obj.attributes, null, 2));
+  }
+  
+  return null;
 }
 
 /**
@@ -325,33 +522,39 @@ async function findOrCreateCategory(supabase, kvCategoryId, kvCategoryName) {
     return null;
   }
 
+  // Normalize category ID and name
+  const normalizedCategoryId = kvCategoryId ? String(kvCategoryId).trim() : null;
+  const normalizedCategoryName = kvCategoryName ? String(kvCategoryName).trim() : null;
+
   // Try to find by kiotviet_id first
-  if (kvCategoryId) {
+  if (normalizedCategoryId) {
     const { data: existing } = await supabase
       .from('categories')
       .select('id')
-      .eq('kiotviet_id', kvCategoryId)
+      .eq('kiotviet_id', normalizedCategoryId)
       .maybeSingle();
     
     if (existing) {
+      console.log(`[KiotViet Sync] Found category by kiotviet_id: ${normalizedCategoryId} -> ${existing.id}`);
       return existing.id;
     }
   }
 
-  // Try to find by name
-  if (kvCategoryName) {
+  // Try to find by name (case-insensitive, trimmed)
+  if (normalizedCategoryName) {
     const { data: existing } = await supabase
       .from('categories')
-      .select('id')
-      .eq('name', kvCategoryName.trim())
+      .select('id, name')
+      .ilike('name', normalizedCategoryName)
       .maybeSingle();
     
     if (existing) {
+      console.log(`[KiotViet Sync] Found category by name: ${normalizedCategoryName} -> ${existing.id}`);
       // Update with kiotviet_id if we found it by name
-      if (kvCategoryId) {
+      if (normalizedCategoryId) {
         await supabase
           .from('categories')
-          .update({ kiotviet_id: kvCategoryId })
+          .update({ kiotviet_id: normalizedCategoryId })
           .eq('id', existing.id);
       }
       return existing.id;
@@ -359,8 +562,8 @@ async function findOrCreateCategory(supabase, kvCategoryId, kvCategoryName) {
   }
 
   // Create new category if not found
-  if (kvCategoryName) {
-    const categorySlug = generateSlug(kvCategoryName);
+  if (normalizedCategoryName) {
+    const categorySlug = generateSlug(normalizedCategoryName);
     let uniqueSlug = categorySlug;
     let counter = 1;
     
@@ -382,9 +585,9 @@ async function findOrCreateCategory(supabase, kvCategoryId, kvCategoryName) {
     const { data: newCategory, error } = await supabase
       .from('categories')
       .insert({
-        name: kvCategoryName.trim(),
+        name: normalizedCategoryName,
         slug: uniqueSlug,
-        kiotviet_id: kvCategoryId || null,
+        kiotviet_id: normalizedCategoryId || null,
         status: 'active',
         sync_status: 'synced',
         last_synced_at: new Date().toISOString()
@@ -452,27 +655,60 @@ async function updateProductsFromKiotViet(supabase, kiotvietProducts) {
     total++;
     
     try {
+      // Log product structure for first product to debug field names
+      if (total === 1) {
+        console.log(`[KiotViet Sync] First product all keys:`, Object.keys(kvProduct));
+        console.log(`[KiotViet Sync] First product full structure:`, JSON.stringify(kvProduct, null, 2).substring(0, 3000));
+      }
+      
       // Get KiotViet product ID (try multiple possible field names)
-      const kvProductId = String(kvProduct.id || kvProduct.productId || kvProduct.ProductId || '');
+      const kvProductId = String(getFieldValue(kvProduct, [
+        'id', 'productId', 'ProductId', 'maSanPham', 'ma', 'product_id'
+      ]) || '');
       
       if (!kvProductId) {
-        console.warn(`[KiotViet Sync] Product ${total} has no ID, skipping:`, kvProduct);
+        console.warn(`[KiotViet Sync] Product ${total} has no ID, skipping. Available keys:`, Object.keys(kvProduct));
         skipped++;
         continue;
       }
 
-      // Get product data from KiotViet
-      const kvProductName = kvProduct.name || kvProduct.productName || kvProduct.Name || kvProduct.ProductName || '';
-      const kvProductSku = kvProduct.code || kvProduct.sku || kvProduct.Code || kvProduct.SKU || '';
-      const kvCategoryId = kvProduct.categoryId || kvProduct.category_id || kvProduct.CategoryId || null;
-      const kvCategoryName = kvProduct.categoryName || kvProduct.category_name || kvProduct.CategoryName || null;
+      // Get product data from KiotViet with comprehensive field mapping
+      const kvProductName = getFieldValue(kvProduct, [
+        'name', 'productName', 'Name', 'ProductName', 'ten', 'tenSanPham', 'product_name'
+      ]) || '';
+      
+      const kvProductSku = getFieldValue(kvProduct, [
+        'code', 'sku', 'Code', 'SKU', 'ma', 'maSanPham', 'product_code'
+      ]) || '';
+      
+      const kvCategoryId = getFieldValue(kvProduct, [
+        'categoryId', 'category_id', 'CategoryId', 'maDanhMuc', 'danhMucId',
+        'mã danh mục', 'danh mục', 'category', 'Category'
+      ], total === 1 ? 'categoryId' : null);
+      
+      const kvCategoryName = getFieldValue(kvProduct, [
+        'categoryName', 'category_name', 'CategoryName', 'tenDanhMuc', 'danhMucTen',
+        'tên danh mục', 'tên danh mục sản phẩm', 'category', 'Category'
+      ], total === 1 ? 'categoryName' : null);
+      
+      // Also check nested category object
+      if (!kvCategoryId && kvProduct.category && typeof kvProduct.category === 'object') {
+        const nestedCategoryId = kvProduct.category.id || kvProduct.category.categoryId || kvProduct.category.maDanhMuc;
+        const nestedCategoryName = kvProduct.category.name || kvProduct.category.categoryName || kvProduct.category.tenDanhMuc;
+        if (nestedCategoryId && total === 1) {
+          console.log(`[Field Extraction] Found categoryId in nested category.id:`, nestedCategoryId);
+        }
+        if (nestedCategoryName && total === 1) {
+          console.log(`[Field Extraction] Found categoryName in nested category.name:`, nestedCategoryName);
+        }
+      }
 
       // Build product name: "first category name + product id" if category exists, otherwise use product name
       let productName = kvProductName;
       if (kvCategoryName && kvProductId) {
         productName = `${kvCategoryName} ${kvProductId}`;
       } else if (!productName) {
-        console.warn(`[KiotViet Sync] Product ${kvProductId} has no name, skipping`);
+        console.warn(`[KiotViet Sync] Product ${kvProductId} has no name, skipping. Available keys:`, Object.keys(kvProduct));
         skipped++;
         continue;
       }
@@ -488,29 +724,101 @@ async function updateProductsFromKiotViet(supabase, kiotvietProducts) {
         }
       }
 
-      // Map KiotViet product fields to our database schema
+      // Map KiotViet product fields to our database schema with comprehensive field mapping
       const productData = {
         kiotviet_id: kvProductId,
         name: productName.trim(),
         sku: kvProductSku || null,
-        price: kvProduct.basePrice || kvProduct.retailPrice || kvProduct.BasePrice || kvProduct.RetailPrice || kvProduct.price || 0,
-        stock: kvProduct.inventory ?? kvProduct.onHand ?? kvProduct.Inventory ?? kvProduct.OnHand ?? kvProduct.quantity ?? null,
-        serial_number: kvProduct.serialNumber || kvProduct.serial_number || kvProduct.SerialNumber || null,
-        supplier_id: kvProduct.supplierId || kvProduct.supplier_id || kvProduct.SupplierId || null,
-        center_stone_size_mm: kvProduct.centerStoneSize || kvProduct.center_stone_size_mm || kvProduct.CenterStoneSize || null,
-        shape: kvProduct.shape || kvProduct.Shape || null,
-        dimensions: kvProduct.dimensions || kvProduct.Dimensions || null,
-        stone_count: kvProduct.stoneCount || kvProduct.stone_count || kvProduct.StoneCount || null,
-        carat_weight_ct: kvProduct.caratWeight || kvProduct.carat_weight_ct || kvProduct.CaratWeight || null,
-        gold_purity: kvProduct.goldPurity || kvProduct.gold_purity || kvProduct.GoldPurity || null,
-        product_weight_g: kvProduct.weight || kvProduct.product_weight_g || kvProduct.Weight || null,
-        inventory_value: kvProduct.inventoryValue || kvProduct.inventory_value || kvProduct.InventoryValue || null,
-        short_description: kvProduct.description || kvProduct.short_description || kvProduct.Description || 'No description available',
-        long_description: kvProduct.fullDescription || kvProduct.long_description || kvProduct.FullDescription || null,
+        price: getFieldValue(kvProduct, [
+          'basePrice', 'retailPrice', 'BasePrice', 'RetailPrice', 'price', 'gia', 'giaBan', 
+          'giaBanLe', 'sellPrice', 'salePrice'
+        ]) || 0,
+        stock: getFieldValue(kvProduct, [
+          'inventory', 'onHand', 'Inventory', 'OnHand', 'quantity', 'tonKho', 'soLuong', 
+          'inStock', 'stock', 'Stock'
+        ]),
+        serial_number: getFieldValue(kvProduct, [
+          'serialNumber', 'serial_number', 'SerialNumber', 'maSo', 'maSoSanPham', 
+          'serial', 'Serial', 'maSeri', 'soSeri', 'productSerial', 'mã số', 'mã số sản phẩm'
+        ], total === 1 ? 'serial_number' : null),
+        supplier_id: getFieldValue(kvProduct, [
+          'supplierId', 'supplier_id', 'SupplierId', 'maNhaCungCap', 'nhaCungCapId', 
+          'supplier', 'Supplier', 'vendorId', 'vendor_id', 'mã nhà cung cấp', 'nhà cung cấp'
+        ], total === 1 ? 'supplier_id' : null),
+        center_stone_size_mm: getFieldValue(kvProduct, [
+          'centerStoneSize', 'center_stone_size_mm', 'CenterStoneSize', 'kichThuocDaChinh', 
+          'kích thước đá chính', 'centerStone', 'stoneSize', 'kích thước đá', 'kích thước đá chính (mm)'
+        ], total === 1 ? 'center_stone_size_mm' : null),
+        shape: getFieldValue(kvProduct, [
+          'shape', 'Shape', 'hinhDang', 'hình dạng', 'kieuDang', 'kiểu dáng', 
+          'form', 'Form', 'productShape', 'hình dáng', 'kiểu dáng'
+        ], total === 1 ? 'shape' : null),
+        dimensions: getFieldValue(kvProduct, [
+          'dimensions', 'Dimensions', 'kichThuoc', 'kích thước', 'kichThuocTongThe', 
+          'kích thước tổng thể', 'size', 'Size', 'dimension', 'kích thước tổng thể'
+        ], total === 1 ? 'dimensions' : null),
+        stone_count: getFieldValue(kvProduct, [
+          'stoneCount', 'stone_count', 'StoneCount', 'soLuongDa', 'số lượng đá', 
+          'soDa', 'số đá', 'numberOfStones', 'stones', 'số lượng đá'
+        ], total === 1 ? 'stone_count' : null),
+        carat_weight_ct: getFieldValue(kvProduct, [
+          'caratWeight', 'carat_weight_ct', 'CaratWeight', 'trongLuongCarat', 
+          'trọng lượng carat', 'carat', 'Carat', 'weightCarat', 'carat_ct', 'trọng lượng carat (ct)'
+        ], total === 1 ? 'carat_weight_ct' : null),
+        gold_purity: getFieldValue(kvProduct, [
+          'goldPurity', 'gold_purity', 'GoldPurity', 'doTuoiVang', 'độ tuổi vàng', 
+          'tuoiVang', 'tuổi vàng', 'doTinhKhietVang', 'độ tinh khiết vàng', 
+          'purity', 'Purity', 'karat', 'Karat', 'độ tuổi vàng', 'độ tinh khiết vàng'
+        ], total === 1 ? 'gold_purity' : null),
+        product_weight_g: getFieldValue(kvProduct, [
+          'weight', 'product_weight_g', 'Weight', 'trongLuong', 'trọng lượng', 
+          'trongLuongSanPham', 'trọng lượng sản phẩm', 'productWeight', 
+          'totalWeight', 'weight_g', 'weightG', 'trọng lượng sản phẩm (g)'
+        ], total === 1 ? 'product_weight_g' : null),
+        type: getFieldValue(kvProduct, [
+          'type', 'Type', 'phanLoai', 'phân loại', 'classification', 
+          'Classification', 'categoryType', 'productType', 'loai', 'phân loại'
+        ], total === 1 ? 'type' : null),
+        inventory_value: getFieldValue(kvProduct, [
+          'inventoryValue', 'inventory_value', 'InventoryValue', 'giaTriTonKho', 
+          'giá trị tồn kho', 'tongGiaTri', 'tổng giá trị', 'value', 'Value', 
+          'stockValue', 'totalValue', 'giá trị tồn kho'
+        ], total === 1 ? 'inventory_value' : null),
+        short_description: getFieldValue(kvProduct, [
+          'description', 'short_description', 'Description', 'moTa', 'mô tả', 
+          'moTaNgan', 'mô tả ngắn', 'shortDescription', 'summary'
+        ]) || 'No description available',
+        long_description: getFieldValue(kvProduct, [
+          'fullDescription', 'long_description', 'FullDescription', 'moTaChiTiet', 
+          'mô tả chi tiết', 'moTaDayDu', 'mô tả đầy đủ', 'longDescription', 
+          'full_description', 'content', 'Content'
+        ]),
         last_synced_at: new Date().toISOString(),
         sync_status: 'synced',
         updated_at: new Date().toISOString()
       };
+
+      // Log field extraction for debugging (only for first product)
+      if (total === 1) {
+        console.log(`[KiotViet Sync] First product extracted fields:`, {
+          id: kvProductId,
+          name: kvProductName,
+          sku: kvProductSku,
+          categoryId: kvCategoryId,
+          categoryName: kvCategoryName,
+          serial_number: productData.serial_number,
+          supplier_id: productData.supplier_id,
+          center_stone_size_mm: productData.center_stone_size_mm,
+          shape: productData.shape,
+          dimensions: productData.dimensions,
+          stone_count: productData.stone_count,
+          carat_weight_ct: productData.carat_weight_ct,
+          gold_purity: productData.gold_purity,
+          product_weight_g: productData.product_weight_g,
+          type: productData.type,
+          inventory_value: productData.inventory_value
+        });
+      }
 
       if (existingProduct) {
         // Track that this product was matched
