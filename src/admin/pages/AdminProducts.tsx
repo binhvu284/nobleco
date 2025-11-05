@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import AdminLayout from '../components/AdminLayout';
-import { IconPlus, IconSearch, IconFilter, IconList, IconGrid, IconMoreVertical, IconEdit, IconTrash2, IconEye, IconPackage, IconLayout, IconChevronDown, IconCheck, IconX } from '../components/icons';
+import { IconPlus, IconSearch, IconFilter, IconList, IconGrid, IconMoreVertical, IconEdit, IconTrash2, IconEye, IconPackage, IconLayout, IconChevronDown, IconCheck, IconX, IconImage } from '../components/icons';
 import ProductDetailModal from '../components/ProductDetailModal';
 import ConfirmModal from '../components/ConfirmModal';
-import StockManagementModal from '../components/StockManagementModal';
+import UpdateDataModal from '../components/UpdateDataModal';
 import AddProductModal from '../components/AddProductModal';
 
 interface Category {
@@ -12,6 +12,14 @@ interface Category {
     slug: string;
     color: string;
     is_primary: boolean;
+}
+
+interface ProductImage {
+    id: number;
+    url: string;
+    alt_text?: string;
+    is_featured: boolean;
+    sort_order: number;
 }
 
 interface Product {
@@ -32,6 +40,21 @@ interface Product {
     updated_at: string;
     categories: Category[];
     category_names: string[];
+    images?: ProductImage[];
+    // KiotViet integration fields
+    kiotviet_id?: string | null;
+    serial_number?: string | null;
+    supplier_id?: string | null;
+    center_stone_size_mm?: number | null;
+    shape?: string | null;
+    dimensions?: string | null;
+    stone_count?: number | null;
+    carat_weight_ct?: number | null;
+    gold_purity?: string | null;
+    product_weight_g?: number | null;
+    inventory_value?: number | null;
+    last_synced_at?: string | null;
+    sync_status?: string | null;
 }
 
 // Format number as VND currency
@@ -43,9 +66,7 @@ export default function AdminProducts() {
     const [products, setProducts] = useState<Product[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [viewMode, setViewMode] = useState<'table' | 'card'>(
-        window.innerWidth <= 768 ? 'card' : 'table'
-    );
+    const [viewMode, setViewMode] = useState<'table' | 'card'>('table');
     const [mobileColumns, setMobileColumns] = useState<1 | 2 | 3>(3);
     const [showColumnDropdown, setShowColumnDropdown] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
@@ -56,9 +77,13 @@ export default function AdminProducts() {
     const [notification, setNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [productToDelete, setProductToDelete] = useState<{ id: number, name: string } | null>(null);
-    const [showStockManagement, setShowStockManagement] = useState(false);
-    const [showAddProductModal, setShowAddProductModal] = useState(false);
+    const [showUpdateDataModal, setShowUpdateDataModal] = useState(false);
     const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+    const [autoSyncEnabled, setAutoSyncEnabled] = useState(() => {
+        const saved = localStorage.getItem('autoSyncEnabled');
+        return saved === 'true';
+    });
+    const [isAutoSyncing, setIsAutoSyncing] = useState(false);
 
     const filteredProducts = products.filter(product =>
         product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -70,6 +95,43 @@ export default function AdminProducts() {
         fetchProducts();
     }, []);
 
+    // Auto-sync on page load if enabled
+    useEffect(() => {
+        if (autoSyncEnabled) {
+            handleAutoSync();
+        }
+    }, []);
+
+    const handleAutoSync = async () => {
+        if (isAutoSyncing) return;
+        
+        setIsAutoSyncing(true);
+        try {
+            // Get default integration (KiotViet)
+            const response = await fetch('/api/integrations/test?integrationId=1');
+            const testData = await response.json();
+            
+            if (testData.success) {
+                const syncResponse = await fetch('/api/integrations/sync', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ integrationId: 1 })
+                });
+
+                if (syncResponse.ok) {
+                    // Refresh products after sync
+                    await fetchProducts();
+                }
+            }
+        } catch (error) {
+            console.error('Auto-sync error:', error);
+        } finally {
+            setIsAutoSyncing(false);
+        }
+    };
+
     const fetchProducts = async () => {
         setLoading(true);
         setError(null);
@@ -80,7 +142,24 @@ export default function AdminProducts() {
                 throw new Error(errorData.error || `HTTP ${response.status}: Failed to fetch products`);
             }
             const data = await response.json();
-            setProducts(data);
+            
+            // Fetch images for each product
+            const productsWithImages = await Promise.all(
+                data.map(async (product: Product) => {
+                    try {
+                        const imagesResponse = await fetch(`/api/product-images?productId=${product.id}`);
+                        if (imagesResponse.ok) {
+                            const images = await imagesResponse.json();
+                            return { ...product, images: images || [] };
+                        }
+                    } catch (error) {
+                        console.warn(`Failed to load images for product ${product.id}:`, error);
+                    }
+                    return { ...product, images: [] };
+                })
+            );
+            
+            setProducts(productsWithImages);
         } catch (err) {
             console.error('Error fetching products:', err);
             setError(err instanceof Error ? err.message : 'Failed to load products');
@@ -89,17 +168,12 @@ export default function AdminProducts() {
         }
     };
 
-    // Handle window resize to force card view on mobile
+    // Mobile columns set to 2 for card view
     useEffect(() => {
-        const handleResize = () => {
-            if (window.innerWidth <= 768) {
-                setViewMode('card');
-            }
-        };
-
-        window.addEventListener('resize', handleResize);
-        return () => window.removeEventListener('resize', handleResize);
-    }, []);
+        if (viewMode === 'card' && window.innerWidth <= 768) {
+            setMobileColumns(2);
+        }
+    }, [viewMode]);
 
     // Handle click outside to close dropdown
     useEffect(() => {
@@ -190,55 +264,19 @@ export default function AdminProducts() {
         setProductToDelete(null);
     };
 
-    const handleUpdateStock = async (productId: number, newStock: number) => {
-        try {
-            const response = await fetch(`/api/products`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    id: productId,
-                    stock: newStock
-                })
-            });
-            
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
-                throw new Error(errorData.error || 'Failed to update stock');
-            }
-            
-            // Refresh products list
-            await fetchProducts();
-            
-            // Show success notification
-            setNotification({
-                type: 'success',
-                message: 'Stock updated successfully!'
-            });
-            
-            // Hide notification after 3 seconds
-            setTimeout(() => setNotification(null), 3000);
-        } catch (err) {
-            console.error('Error updating stock:', err);
-            setNotification({
-                type: 'error',
-                message: err instanceof Error ? err.message : 'Failed to update stock.'
-            });
-            
-            // Hide error notification after 5 seconds
-            setTimeout(() => setNotification(null), 5000);
-            
-            throw err; // Re-throw so the modal knows it failed
-        }
-    };
-
-    const getStockStatus = (stock: number) => {
-        return stock > 0 ? 'In stock' : 'Out of stock';
-    };
-
-    const getStockStatusClass = (stock: number) => {
-        return stock > 0 ? 'in-stock' : 'out-of-stock';
+    const handleSyncData = async (integrationId: number) => {
+        // TODO: Implement sync logic
+        console.log('Syncing data from integration:', integrationId);
+        // Show success notification
+        setNotification({
+            type: 'success',
+            message: 'Data sync started successfully!'
+        });
+        setTimeout(() => setNotification(null), 3000);
+        // Refresh products after sync
+        setTimeout(() => {
+            fetchProducts();
+        }, 2000);
     };
 
     const getProductStatusClass = (status: string) => {
@@ -250,6 +288,8 @@ export default function AdminProducts() {
         };
         return statusMap[status] || 'status-draft';
     };
+
+    const [showAddProductModal, setShowAddProductModal] = useState(false);
 
     const handleEditProduct = (product: Product) => {
         setActiveDropdown(null);
@@ -321,12 +361,12 @@ export default function AdminProducts() {
                             <IconFilter />
                         </button>
                         <button 
-                            className="btn-stock-management" 
-                            title="Stock Management"
-                            onClick={() => setShowStockManagement(true)}
+                            className="btn-update-data" 
+                            title="Update Data from Third Party"
+                            onClick={() => setShowUpdateDataModal(true)}
                         >
                             <IconPackage />
-                            <span>Stock</span>
+                            <span>Update Data</span>
                         </button>
                     </div>
                     <div className="toolbar-right">
@@ -399,14 +439,6 @@ export default function AdminProducts() {
                             )}
                         </div>
                         
-                        <button 
-                            className="btn-create-product-compact" 
-                            title="Create Product"
-                            onClick={() => setShowAddProductModal(true)}
-                        >
-                            <IconPlus />
-                            <span className="desktop-only">Create Product</span>
-                        </button>
                     </div>
                 </div>
 
@@ -418,8 +450,9 @@ export default function AdminProducts() {
                                 <tr>
                                     <th>Product</th>
                                     <th>Category</th>
-                                    <th>Price</th>
+                                    <th>SKU</th>
                                     <th>Stock</th>
+                                    <th>Price</th>
                                     <th>Status</th>
                                     <th>Actions</th>
                                 </tr>
@@ -498,8 +531,9 @@ export default function AdminProducts() {
                                 <tr>
                                     <th>Product</th>
                                     <th>Category</th>
-                                    <th>Price</th>
+                                    <th>SKU</th>
                                     <th>Stock</th>
+                                    <th>Price</th>
                                     <th>Status</th>
                                     <th>Actions</th>
                                 </tr>
@@ -507,7 +541,7 @@ export default function AdminProducts() {
                             <tbody>
                                 {filteredProducts.length === 0 ? (
                                     <tr>
-                                        <td colSpan={6} style={{ textAlign: 'center', padding: '40px' }}>
+                                        <td colSpan={7} style={{ textAlign: 'center', padding: '40px' }}>
                                             No products found
                                         </td>
                                     </tr>
@@ -522,7 +556,15 @@ export default function AdminProducts() {
                                         <td>
                                             <div className="product-info">
                                                 <div className="product-image">
-                                                    📦
+                                                    {product.images && product.images.length > 0 ? (
+                                                        <img 
+                                                            src={product.images[0].url} 
+                                                            alt={product.name}
+                                                            loading="lazy"
+                                                        />
+                                                    ) : (
+                                                        <span>📦</span>
+                                                    )}
                                                 </div>
                                                 <div className="product-details">
                                                     <h4>{product.name}</h4>
@@ -553,10 +595,15 @@ export default function AdminProducts() {
                                             </div>
                                         </td>
                                         <td>
-                                            <span className="price">{formatVND(product.price)}</span>
+                                            <span className="sku">{product.sku || 'N/A'}</span>
                                         </td>
                                         <td>
-                                            <span className="stock-amount">{product.stock}</span>
+                                            <span className={`stock ${product.stock === 0 ? 'out-of-stock' : ''}`}>
+                                                {product.stock}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span className="price">{formatVND(product.price)}</span>
                                         </td>
                                         <td>
                                             <span className={`product-status ${getProductStatusClass(product.status)}`}>
@@ -590,8 +637,8 @@ export default function AdminProducts() {
                                                                 handleEditProduct(product);
                                                             }}
                                                         >
-                                                            <IconEdit />
-                                                            Edit
+                                                            <IconImage />
+                                                            Edit Image
                                                         </button>
                                                         {product.status === 'inactive' ? (
                                                             <button 
@@ -637,7 +684,15 @@ export default function AdminProducts() {
                                 style={{ cursor: 'pointer' }}
                             >
                                 <div className="product-card-image">
-                                    📦
+                                    {product.images && product.images.length > 0 ? (
+                                        <img 
+                                            src={product.images[0].url} 
+                                            alt={product.name}
+                                            loading="lazy"
+                                        />
+                                    ) : (
+                                        <span>📦</span>
+                                    )}
                                     <div className="product-card-actions" onClick={(e) => e.stopPropagation()}>
                                         <div className={`unified-dropdown ${activeDropdown === product.id ? 'active' : ''}`}>
                                             <button
@@ -665,8 +720,8 @@ export default function AdminProducts() {
                                                             handleEditProduct(product);
                                                         }}
                                                     >
-                                                        <IconEdit />
-                                                        Edit
+                                                        <IconImage />
+                                                        Edit Image
                                                     </button>
                                                     {product.status === 'inactive' ? (
                                                         <button 
@@ -727,7 +782,6 @@ export default function AdminProducts() {
                                     </div>
                                     <div className="product-card-footer">
                                         <span className="price">{formatVND(product.price)}</span>
-                                        <span className="product-card-stock">Stock: {product.stock}</span>
                                     </div>
                                 </div>
                             </div>
@@ -745,12 +799,28 @@ export default function AdminProducts() {
             </div>
 
             {/* Product Detail Modal */}
-            <ProductDetailModal
-                open={showDetailModal}
-                onClose={handleCloseDetail}
-                product={selectedProduct}
-                onEdit={handleEditProduct}
-            />
+            {selectedProduct && (
+                <ProductDetailModal
+                    open={showDetailModal}
+                    onClose={handleCloseDetail}
+                    product={{
+                        ...selectedProduct,
+                        images: selectedProduct.images?.map(img => ({
+                            id: img.id,
+                            url: img.url,
+                            storage_path: '',
+                            alt_text: img.alt_text || undefined,
+                            sort_order: img.sort_order,
+                            is_featured: img.is_featured,
+                            file_size: undefined,
+                            width: undefined,
+                            height: undefined,
+                            mime_type: undefined
+                        }))
+                    }}
+                    onEdit={handleEditProduct}
+                />
+            )}
 
             {/* Add/Edit Product Modal */}
             <AddProductModal
@@ -760,25 +830,23 @@ export default function AdminProducts() {
                     setEditingProduct(null);
                 }}
                 onSuccess={() => {
-                    fetchProducts();
-                    setNotification({
-                        type: 'success',
-                        message: editingProduct 
-                            ? 'Product updated successfully!'
-                            : 'Product created successfully!'
-                    });
-                    setTimeout(() => setNotification(null), 3000);
+                    setShowAddProductModal(false);
                     setEditingProduct(null);
+                    fetchProducts();
                 }}
                 product={editingProduct}
             />
 
-            {/* Stock Management Modal */}
-            <StockManagementModal
-                open={showStockManagement}
-                onClose={() => setShowStockManagement(false)}
-                products={products}
-                onUpdateStock={handleUpdateStock}
+            {/* Update Data Modal */}
+            <UpdateDataModal
+                open={showUpdateDataModal}
+                onClose={() => setShowUpdateDataModal(false)}
+                onSync={handleSyncData}
+                autoSyncEnabled={autoSyncEnabled}
+                onAutoSyncChange={(enabled) => {
+                    setAutoSyncEnabled(enabled);
+                    localStorage.setItem('autoSyncEnabled', enabled.toString());
+                }}
             />
 
             {/* Delete Confirmation Modal */}

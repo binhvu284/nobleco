@@ -8,6 +8,10 @@ import productsHandler from '../api/products.js';
 import categoriesHandler from '../api/categories.js';
 import clientsHandler from '../api/clients.js';
 import commissionRatesHandler from '../api/commission-rates.js';
+import productImagesHandler from '../api/product-images.js';
+import syncHandler from '../api/integrations/sync.js';
+import testHandler from '../api/integrations/test.js';
+import listHandler from '../api/integrations/list.js';
 
 const app = express();
 app.use(express.json());
@@ -40,6 +44,10 @@ app.all('/api/products', toRoute(productsHandler));
 app.all('/api/categories', toRoute(categoriesHandler));
 app.all('/api/clients', toRoute(clientsHandler));
 app.all('/api/commission-rates', toRoute(commissionRatesHandler));
+app.all('/api/product-images', toRoute(productImagesHandler));
+app.all('/api/integrations/sync', toRoute(syncHandler));
+app.all('/api/integrations/test', toRoute(testHandler));
+app.all('/api/integrations/list', toRoute(listHandler));
 app.all('/api/check-tables', (req, res) => {
   req.query = { ...req.query, endpoint: 'tables' };
   return diagnosticsHandler(req, res);
