@@ -85,8 +85,17 @@ SUPABASE_SERVICE_ROLE_KEY=<service-role-key>
 
 On Vercel (Project Settings → Environment Variables):
 
+**Backend (Server-side):**
 - SUPABASE_URL = your project URL
 - SUPABASE_SERVICE_ROLE_KEY = your service role key
+
+**Frontend (Client-side - Required for image uploads):**
+- VITE_SUPABASE_URL = your project URL
+- VITE_SUPABASE_ANON_KEY = your anon/public key
+
+**Important:** After setting environment variables in Vercel, you must redeploy your application for changes to take effect.
+
+See [VERCEL_DEPLOYMENT.md](./VERCEL_DEPLOYMENT.md) for detailed deployment instructions.
 
 ### Database schema
 
