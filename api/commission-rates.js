@@ -18,7 +18,6 @@ export default async function handler(req, res) {
       // GET /api/commission-rates - List all commission rates
       try {
         const rates = await listCommissionRates();
-        console.log('Commission rates fetched:', rates);
         return res.status(200).json(rates);
       } catch (error) {
         console.error('GET commission-rates error:', error);

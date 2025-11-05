@@ -46,7 +46,6 @@ export default function AdminCommission() {
             }
             
             const data: DatabaseCommissionRate[] = await response.json();
-            console.log('Fetched commission rates:', data);
             
             if (!data || data.length === 0) {
                 console.warn('No commission rates found in database');
@@ -59,9 +58,9 @@ export default function AdminCommission() {
             // Map database format to component format
             const mappedRates: CommissionRate[] = data.map(rate => ({
                 level: rate.user_level as Level,
-                selfCommission: parseFloat(rate.self_commission) || 0,
-                level1Commission: parseFloat(rate.level_1_down) || 0,
-                level2Commission: parseFloat(rate.level_2_down) || 0
+                selfCommission: Number(rate.self_commission) || 0,
+                level1Commission: Number(rate.level_1_down) || 0,
+                level2Commission: Number(rate.level_2_down) || 0
             }));
 
             // Sort by level order
@@ -70,7 +69,6 @@ export default function AdminCommission() {
                 levelOrder.indexOf(a.level) - levelOrder.indexOf(b.level)
             );
 
-            console.log('Mapped and sorted rates:', sortedRates);
             setCommissionRates(sortedRates);
             setOriginalRates(sortedRates);
         } catch (error) {

@@ -141,10 +141,8 @@ export default async function handler(req, res) {
         try {
           // Normalize user level to match database format (lowercase)
           const normalizedLevel = (user.level || 'guest').toLowerCase().trim();
-          console.log('Fetching commission rates for level:', normalizedLevel);
           
           const rateData = await getCommissionRateByLevel(normalizedLevel);
-          console.log('Commission rate data from DB:', rateData);
           
           if (rateData) {
             commissionRates = {
@@ -152,7 +150,6 @@ export default async function handler(req, res) {
               level1: rateData.level_1_down || 0,
               level2: rateData.level_2_down || 0
             };
-            console.log('Mapped commission rates:', commissionRates);
           } else {
             console.warn('No commission rate found for level:', normalizedLevel, ', using fallback');
             // Fallback to default rates if not found in database
