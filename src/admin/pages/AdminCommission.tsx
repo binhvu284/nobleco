@@ -215,7 +215,7 @@ export default function AdminCommission() {
                         </div>
                         <div className="info-card-content">
                             <div className="info-card-label">Level 1 Commission</div>
-                            <div className="info-card-description">Earned from direct inferiors' orders</div>
+                            <div className="info-card-description">Earned from direct junior advisors' orders</div>
                         </div>
                     </div>
                     <div className="info-card">
@@ -228,7 +228,7 @@ export default function AdminCommission() {
                         </div>
                         <div className="info-card-content">
                             <div className="info-card-label">Level 2 Commission</div>
-                            <div className="info-card-description">Earned from 2nd level inferiors' orders</div>
+                            <div className="info-card-description">Earned from 2nd level junior advisors' orders</div>
                         </div>
                     </div>
                 </div>
