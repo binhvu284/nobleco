@@ -19,18 +19,43 @@ interface UserDetailModalProps {
 }
 
 import { useState, useEffect } from 'react';
+import { getAvatarInitial, getAvatarColor } from '../../utils/avatarUtils';
 
 export default function UserDetailModal({ open, onClose, user, onEditReferrer }: UserDetailModalProps) {
     const [directInferiorsCount, setDirectInferiorsCount] = useState<number>(0);
     const [indirectInferiorsCount, setIndirectInferiorsCount] = useState<number>(0);
-    const [superiorInfo, setSuperiorInfo] = useState<{ name: string; email?: string } | null>(null);
+    const [superiorInfo, setSuperiorInfo] = useState<{ name: string; email?: string; avatar?: string } | null>(null);
+    const [userAvatar, setUserAvatar] = useState<string | null>(null);
     const [loadingHierarchy, setLoadingHierarchy] = useState(false);
+    const [loadingAvatar, setLoadingAvatar] = useState(false);
 
     useEffect(() => {
         if (open && user) {
             fetchHierarchyInfo();
+            fetchUserAvatar();
         }
     }, [open, user]);
+    
+    const fetchUserAvatar = async () => {
+        if (!user?.id) return;
+        setLoadingAvatar(true);
+        try {
+            const response = await fetch(`/api/user-avatars?userId=${user.id}`);
+            if (response.ok) {
+                const avatarData = await response.json();
+                if (avatarData?.url) {
+                    setUserAvatar(avatarData.url);
+                } else {
+                    setUserAvatar(null);
+                }
+            }
+        } catch (error) {
+            console.error('Error fetching user avatar:', error);
+            setUserAvatar(null);
+        } finally {
+            setLoadingAvatar(false);
+        }
+    };
 
     const fetchHierarchyInfo = async () => {
         if (!user) return;
@@ -57,11 +82,12 @@ export default function UserDetailModal({ open, onClose, user, onEditReferrer }:
                 }
                 setIndirectInferiorsCount(indirectCount);
                 
-                // The hierarchy API already returns the superior object with name
+                // The hierarchy API already returns the superior object with name and avatar
                 if (data.superior) {
                     setSuperiorInfo({
                         name: data.superior.name || data.superior.email || 'Unknown',
-                        email: data.superior.email
+                        email: data.superior.email,
+                        avatar: data.superior.avatar || null
                     });
                 } else {
                     setSuperiorInfo(null);
@@ -121,10 +147,53 @@ export default function UserDetailModal({ open, onClose, user, onEditReferrer }:
                     {/* Compact Header with Avatar and Basic Info */}
                     <div className="user-detail-header">
                         <div className="user-detail-avatar">
-                            <img 
-                                src="/images/logo.png" 
-                                alt="avatar" 
-                            />
+                            {userAvatar ? (
+                                <img 
+                                    src={userAvatar} 
+                                    alt={user.name || user.email}
+                                    onError={(e) => {
+                                        const target = e.target as HTMLImageElement;
+                                        target.style.display = 'none';
+                                        const parent = target.parentElement;
+                                        if (parent && user.name) {
+                                            const fallback = document.createElement('div');
+                                            fallback.style.cssText = `
+                                                width: 80px;
+                                                height: 80px;
+                                                border-radius: 50%;
+                                                background-color: ${getAvatarColor(user.name)};
+                                                display: flex;
+                                                align-items: center;
+                                                justify-content: center;
+                                                color: white;
+                                                font-size: 32px;
+                                                font-weight: 600;
+                                                text-transform: uppercase;
+                                            `;
+                                            fallback.textContent = getAvatarInitial(user.name);
+                                            parent.appendChild(fallback);
+                                        }
+                                    }}
+                                />
+                            ) : (
+                                <div 
+                                    style={{
+                                        width: '80px',
+                                        height: '80px',
+                                        borderRadius: '50%',
+                                        backgroundColor: getAvatarColor(user.name || user.email),
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        color: 'white',
+                                        fontSize: '32px',
+                                        fontWeight: 600,
+                                        textTransform: 'uppercase'
+                                    }}
+                                >
+                                    {getAvatarInitial(user.name || user.email)}
+                                </div>
+                            )}
                         </div>
                         <div className="user-detail-basic">
                             <h3>{user.name || user.email}</h3>
@@ -182,9 +251,59 @@ export default function UserDetailModal({ open, onClose, user, onEditReferrer }:
                                         ) : superiorInfo ? (
                                             <>
                                                 <div className="superior-info" style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
-                                                    <div className="superior-avatar">
-                                                        {superiorInfo.name.split(' ').map(n => n[0]).join('').toUpperCase()}
-                                                    </div>
+                                                    {superiorInfo.avatar ? (
+                                                        <img 
+                                                            className="superior-avatar"
+                                                            src={superiorInfo.avatar}
+                                                            alt={superiorInfo.name}
+                                                            style={{
+                                                                width: '32px',
+                                                                height: '32px',
+                                                                borderRadius: '50%',
+                                                                objectFit: 'cover'
+                                                            }}
+                                                            onError={(e) => {
+                                                                const target = e.target as HTMLImageElement;
+                                                                target.style.display = 'none';
+                                                                const parent = target.parentElement;
+                                                                if (parent) {
+                                                                    const fallback = document.createElement('div');
+                                                                    fallback.className = 'superior-avatar';
+                                                                    fallback.style.cssText = `
+                                                                        width: 32px;
+                                                                        height: 32px;
+                                                                        border-radius: 50%;
+                                                                        background-color: ${getAvatarColor(superiorInfo.name)};
+                                                                        display: flex;
+                                                                        align-items: center;
+                                                                        justify-content: center;
+                                                                        color: white;
+                                                                        font-size: 14px;
+                                                                        font-weight: 600;
+                                                                        text-transform: uppercase;
+                                                                    `;
+                                                                    fallback.textContent = getAvatarInitial(superiorInfo.name);
+                                                                    parent.appendChild(fallback);
+                                                                }
+                                                            }}
+                                                        />
+                                                    ) : (
+                                                        <div 
+                                                            className="superior-avatar"
+                                                            style={{
+                                                                backgroundColor: getAvatarColor(superiorInfo.name),
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                justifyContent: 'center',
+                                                                color: 'white',
+                                                                fontSize: '14px',
+                                                                fontWeight: 600,
+                                                                textTransform: 'uppercase'
+                                                            }}
+                                                        >
+                                                            {getAvatarInitial(superiorInfo.name)}
+                                                        </div>
+                                                    )}
                                                     <span className="superior-name">{superiorInfo.name}</span>
                                                 </div>
                                                 {onEditReferrer && (
@@ -266,11 +385,11 @@ export default function UserDetailModal({ open, onClose, user, onEditReferrer }:
                                     </div>
                                 </div>
                                 <div className="detail-row">
-                                    <span className="detail-label">Number of Direct Junior Advisors</span>
+                                    <span className="detail-label">Direct Junior Advisors</span>
                                     <span className="detail-value">{loadingHierarchy ? 'Loading...' : directInferiorsCount}</span>
                                 </div>
                                 <div className="detail-row">
-                                    <span className="detail-label">Number of Indirect Junior Advisors</span>
+                                    <span className="detail-label">Indirect Junior Advisors</span>
                                     <span className="detail-value">{loadingHierarchy ? 'Loading...' : indirectInferiorsCount}</span>
                                 </div>
                             </div>

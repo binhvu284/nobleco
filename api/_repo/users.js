@@ -190,6 +190,17 @@ export async function getUserHierarchy(userId) {
     
     if (!superiorError && superiorData) {
       superior = normalize(superiorData);
+      
+      // Fetch avatar URL for superior
+      try {
+        const { getUserAvatar } = await import('./userAvatars.js');
+        const avatar = await getUserAvatar(superior.id);
+        if (avatar?.url) {
+          superior.avatar = avatar.url;
+        }
+      } catch (error) {
+        console.warn('Could not fetch superior avatar:', error);
+      }
     }
   }
   
@@ -226,6 +237,25 @@ export async function getUserHierarchy(userId) {
         inferiors_count: inferiorsCountMap[inferior.refer_code] || 0
       };
     });
+    
+    // Fetch avatar URLs for all inferiors
+    try {
+      const { getUserAvatar } = await import('./userAvatars.js');
+      const avatarPromises = inferiors.map(async (inferior) => {
+        try {
+          const avatar = await getUserAvatar(inferior.id);
+          if (avatar?.url) {
+            return { ...inferior, avatar: avatar.url };
+          }
+        } catch (error) {
+          console.warn(`Could not fetch avatar for user ${inferior.id}:`, error);
+        }
+        return inferior;
+      });
+      inferiors = await Promise.all(avatarPromises);
+    } catch (error) {
+      console.warn('Could not fetch avatars for inferiors:', error);
+    }
   }
   
   return { superior, inferiors };
@@ -261,7 +291,28 @@ export async function getIndirectInferiors(userId) {
       .eq('referred_by', directInferior.refer_code);
     
     if (!indirectError && indirectData) {
-      indirectInferiors = indirectInferiors.concat(indirectData.map(normalize));
+      const normalizedIndirect = indirectData.map(normalize);
+      
+      // Fetch avatar URLs for indirect inferiors
+      try {
+        const { getUserAvatar } = await import('./userAvatars.js');
+        const avatarPromises = normalizedIndirect.map(async (indirect) => {
+          try {
+            const avatar = await getUserAvatar(indirect.id);
+            if (avatar?.url) {
+              return { ...indirect, avatar: avatar.url };
+            }
+          } catch (error) {
+            console.warn(`Could not fetch avatar for user ${indirect.id}:`, error);
+          }
+          return indirect;
+        });
+        const indirectWithAvatars = await Promise.all(avatarPromises);
+        indirectInferiors = indirectInferiors.concat(indirectWithAvatars);
+      } catch (error) {
+        console.warn('Could not fetch avatars for indirect inferiors:', error);
+        indirectInferiors = indirectInferiors.concat(normalizedIndirect);
+      }
     }
   }
   
