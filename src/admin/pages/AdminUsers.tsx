@@ -9,6 +9,7 @@ import {
     IconPlus,
     IconMoreVertical 
 } from '../components/icons';
+import { getAvatarInitial, getAvatarColor } from '../../utils/avatarUtils';
 
 type User = {
     id: string | number;
@@ -23,6 +24,7 @@ type User = {
     phone?: string;
     address?: string;
     referred_by?: string;
+    avatar?: string; // Avatar URL from database
 };
 
 type Level = 'guest' | 'member' | 'unit manager' | 'brand manager';
@@ -108,7 +110,27 @@ export default function AdminUsers() {
             const res = await fetch('/api/users');
             if (!res.ok) throw new Error(`Request failed: ${res.status}`);
             const data = await res.json();
-            setUsers(Array.isArray(data) ? data : []);
+            const usersList = Array.isArray(data) ? data : [];
+            
+            // Fetch avatars for all users
+            const usersWithAvatars = await Promise.all(
+                usersList.map(async (user: User) => {
+                    try {
+                        const avatarRes = await fetch(`/api/user-avatars?userId=${user.id}`);
+                        if (avatarRes.ok) {
+                            const avatarData = await avatarRes.json();
+                            if (avatarData?.url) {
+                                return { ...user, avatar: avatarData.url };
+                            }
+                        }
+                    } catch (error) {
+                        console.warn(`Could not fetch avatar for user ${user.id}:`, error);
+                    }
+                    return user;
+                })
+            );
+            
+            setUsers(usersWithAvatars);
         } catch (e: any) {
             setError(e?.message || 'Failed to load users');
         } finally {
@@ -379,26 +401,6 @@ export default function AdminUsers() {
         setIsLoadingReferrerInfo(false);
     };
 
-    const getAvatarInitial = (name: string | null) => {
-        if (!name) return '?';
-        return name.charAt(0).toUpperCase();
-    };
-
-    const getAvatarColor = (name: string | null) => {
-        if (!name) return '#94a3b8';
-        const colors = [
-            '#3b82f6', // blue
-            '#8b5cf6', // purple
-            '#ec4899', // pink
-            '#f59e0b', // amber
-            '#10b981', // emerald
-            '#06b6d4', // cyan
-            '#ef4444', // red
-            '#6366f1', // indigo
-        ];
-        const index = name.charCodeAt(0) % colors.length;
-        return colors[index];
-    };
 
     const removeSeniorConsultant = async () => {
         if (!editSeniorConsultantModal.userId) return;
@@ -635,7 +637,64 @@ export default function AdminUsers() {
                                             }}
                                         >
                                             <td><code>{r.id}</code></td>
-                                            <td>{r.name}</td>
+                                            <td>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                    {user?.avatar ? (
+                                                        <img 
+                                                            src={user.avatar} 
+                                                            alt={r.name}
+                                                            style={{
+                                                                width: '32px',
+                                                                height: '32px',
+                                                                borderRadius: '50%',
+                                                                objectFit: 'cover'
+                                                            }}
+                                                            onError={(e) => {
+                                                                const target = e.target as HTMLImageElement;
+                                                                target.style.display = 'none';
+                                                                const parent = target.parentElement;
+                                                                if (parent) {
+                                                                    const fallback = document.createElement('div');
+                                                                    fallback.style.cssText = `
+                                                                        width: 32px;
+                                                                        height: 32px;
+                                                                        border-radius: 50%;
+                                                                        background-color: ${getAvatarColor(r.name)};
+                                                                        display: flex;
+                                                                        align-items: center;
+                                                                        justify-content: center;
+                                                                        color: white;
+                                                                        font-size: 14px;
+                                                                        font-weight: 600;
+                                                                        text-transform: uppercase;
+                                                                    `;
+                                                                    fallback.textContent = getAvatarInitial(r.name);
+                                                                    parent.appendChild(fallback);
+                                                                }
+                                                            }}
+                                                        />
+                                                    ) : (
+                                                        <div 
+                                                            style={{
+                                                                width: '32px',
+                                                                height: '32px',
+                                                                borderRadius: '50%',
+                                                                backgroundColor: getAvatarColor(r.name),
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                justifyContent: 'center',
+                                                                color: 'white',
+                                                                fontSize: '14px',
+                                                                fontWeight: 600,
+                                                                textTransform: 'uppercase'
+                                                            }}
+                                                        >
+                                                            {getAvatarInitial(r.name)}
+                                                        </div>
+                                                    )}
+                                                    <span>{r.name}</span>
+                                                </div>
+                                            </td>
                                             <td>{r.email}</td>
                                             <td>
                                                 <span className={`badge ${`badge-level-${r.level.replace(/\s+/g, '-')}`}`}>{
@@ -765,9 +824,59 @@ export default function AdminUsers() {
                                         }}
                                     >
                                         <div className="card-header">
-                                            <div className="user-avatar">
-                                                {r.name.charAt(0).toUpperCase()}
-                                            </div>
+                                            {user?.avatar ? (
+                                                <img 
+                                                    className="user-avatar"
+                                                    src={user.avatar}
+                                                    alt={r.name}
+                                                    style={{
+                                                        width: '48px',
+                                                        height: '48px',
+                                                        borderRadius: '50%',
+                                                        objectFit: 'cover'
+                                                    }}
+                                                    onError={(e) => {
+                                                        const target = e.target as HTMLImageElement;
+                                                        target.style.display = 'none';
+                                                        const parent = target.parentElement;
+                                                        if (parent) {
+                                                            const fallback = document.createElement('div');
+                                                            fallback.className = 'user-avatar';
+                                                            fallback.style.cssText = `
+                                                                width: 48px;
+                                                                height: 48px;
+                                                                border-radius: 50%;
+                                                                background-color: ${getAvatarColor(r.name)};
+                                                                display: flex;
+                                                                align-items: center;
+                                                                justify-content: center;
+                                                                color: white;
+                                                                font-size: 20px;
+                                                                font-weight: 600;
+                                                                text-transform: uppercase;
+                                                            `;
+                                                            fallback.textContent = getAvatarInitial(r.name);
+                                                            parent.appendChild(fallback);
+                                                        }
+                                                    }}
+                                                />
+                                            ) : (
+                                                <div 
+                                                    className="user-avatar"
+                                                    style={{
+                                                        backgroundColor: getAvatarColor(r.name),
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        color: 'white',
+                                                        fontSize: '20px',
+                                                        fontWeight: 600,
+                                                        textTransform: 'uppercase'
+                                                    }}
+                                                >
+                                                    {getAvatarInitial(r.name)}
+                                                </div>
+                                            )}
                                             <div className="card-info">
                                                 <h3>{r.name}</h3>
                                                 <p className="user-email">{r.email}</p>
@@ -1318,10 +1427,25 @@ export default function AdminUsers() {
                                         background: '#f3f4f6', 
                                         borderRadius: '8px',
                                         fontSize: '0.875rem',
-                                        color: '#6b7280'
+                                        color: '#6b7280',
+                                        marginBottom: '16px'
                                     }}>
                                         Enter the refer code of the user who will become the referrer.
                                     </div>
+                                    <button 
+                                        className="btn-primary" 
+                                        onClick={updateSeniorConsultant} 
+                                        disabled={isUpdatingSeniorConsultant || !referCodeInput.trim()}
+                                        style={{ 
+                                            width: '100%', 
+                                            textAlign: 'center',
+                                            display: 'flex',
+                                            justifyContent: 'center',
+                                            alignItems: 'center'
+                                        }}
+                                    >
+                                        {isUpdatingSeniorConsultant ? 'Adding...' : 'Add Referrer'}
+                                    </button>
                                 </div>
                             )}
                         </div>

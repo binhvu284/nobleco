@@ -32,6 +32,19 @@ export default async function handler(req, res) {
           return res.status(404).json({ error: 'User not found' });
         }
 
+        // Fetch avatar URL if exists
+        let avatarUrl = null;
+        try {
+          const { getUserAvatar } = await import('./_repo/userAvatars.js');
+          const avatar = await getUserAvatar(parseInt(userId));
+          if (avatar?.url) {
+            avatarUrl = avatar.url;
+          }
+        } catch (error) {
+          console.warn('Could not fetch user avatar:', error);
+          // Continue without avatar - not critical
+        }
+
         return res.status(200).json({
           success: true,
           user: {
@@ -48,6 +61,7 @@ export default async function handler(req, res) {
             address: userData.address,
             created_at: userData.created_at,
             referred_by: userData.referred_by,
+            avatar: avatarUrl,
           },
         });
       } catch (error) {

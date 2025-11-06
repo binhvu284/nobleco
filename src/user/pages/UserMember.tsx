@@ -13,6 +13,7 @@ interface MemberData {
     direct_commission?: number;
     indirect_commission?: number;
     inferiors_list?: MemberData[];
+    avatar?: string; // Avatar URL from database
 }
 
 export default function UserMember() {
@@ -357,12 +358,45 @@ export default function UserMember() {
 
                     {superior ? (
                         <div className="member-card-compact superior-card">
-                            <div 
-                                className="member-avatar-compact member-avatar-default"
-                                style={{ backgroundColor: getAvatarColor(superior.name) }}
-                            >
-                                {getAvatarInitial(superior.name)}
-                            </div>
+                            {superior.avatar ? (
+                                <img 
+                                    className="member-avatar-compact"
+                                    src={superior.avatar}
+                                    alt={superior.name}
+                                    onError={(e) => {
+                                        // Fallback to default if image fails to load
+                                        const target = e.target as HTMLImageElement;
+                                        target.style.display = 'none';
+                                        const parent = target.parentElement;
+                                        if (parent) {
+                                            const fallback = document.createElement('div');
+                                            fallback.className = 'member-avatar-compact member-avatar-default';
+                                            fallback.style.cssText = `
+                                                width: 48px;
+                                                height: 48px;
+                                                border-radius: 50%;
+                                                background-color: ${getAvatarColor(superior.name)};
+                                                display: flex;
+                                                align-items: center;
+                                                justify-content: center;
+                                                color: white;
+                                                font-size: 20px;
+                                                font-weight: 600;
+                                                text-transform: uppercase;
+                                            `;
+                                            fallback.textContent = getAvatarInitial(superior.name);
+                                            parent.appendChild(fallback);
+                                        }
+                                    }}
+                                />
+                            ) : (
+                                <div 
+                                    className="member-avatar-compact member-avatar-default"
+                                    style={{ backgroundColor: getAvatarColor(superior.name) }}
+                                >
+                                    {getAvatarInitial(superior.name)}
+                                </div>
+                            )}
                             <div className="member-info-compact">
                                 <div className="member-name-row">
                                     <h3>{superior.name}</h3>
@@ -420,12 +454,45 @@ export default function UserMember() {
                                     }}
                                     style={{ cursor: 'pointer' }}
                                 >
-                                    <div 
-                                        className="member-avatar-compact member-avatar-default"
-                                        style={{ backgroundColor: getAvatarColor(inferior.name) }}
-                                    >
-                                        {getAvatarInitial(inferior.name)}
-                                    </div>
+                                    {inferior.avatar ? (
+                                        <img 
+                                            className="member-avatar-compact"
+                                            src={inferior.avatar}
+                                            alt={inferior.name}
+                                            onError={(e) => {
+                                                // Fallback to default if image fails to load
+                                                const target = e.target as HTMLImageElement;
+                                                target.style.display = 'none';
+                                                const parent = target.parentElement;
+                                                if (parent) {
+                                                    const fallback = document.createElement('div');
+                                                    fallback.className = 'member-avatar-compact member-avatar-default';
+                                                    fallback.style.cssText = `
+                                                        width: 48px;
+                                                        height: 48px;
+                                                        border-radius: 50%;
+                                                        background-color: ${getAvatarColor(inferior.name)};
+                                                        display: flex;
+                                                        align-items: center;
+                                                        justify-content: center;
+                                                        color: white;
+                                                        font-size: 20px;
+                                                        font-weight: 600;
+                                                        text-transform: uppercase;
+                                                    `;
+                                                    fallback.textContent = getAvatarInitial(inferior.name);
+                                                    parent.appendChild(fallback);
+                                                }
+                                            }}
+                                        />
+                                    ) : (
+                                        <div 
+                                            className="member-avatar-compact member-avatar-default"
+                                            style={{ backgroundColor: getAvatarColor(inferior.name) }}
+                                        >
+                                            {getAvatarInitial(inferior.name)}
+                                        </div>
+                                    )}
                                     <div className="member-info-compact">
                                         <div className="member-name-row">
                                             <h3>{inferior.name}</h3>
@@ -511,12 +578,45 @@ export default function UserMember() {
                         </div>
                         <div className="modal-body">
                             <div className="detail-section">
-                                <div 
-                                    className="member-avatar-large"
-                                    style={{ backgroundColor: getAvatarColor(selectedInferior.name) }}
-                                >
-                                    {getAvatarInitial(selectedInferior.name)}
-                                </div>
+                                {selectedInferior.avatar ? (
+                                    <img 
+                                        className="member-avatar-large"
+                                        src={selectedInferior.avatar}
+                                        alt={selectedInferior.name}
+                                        onError={(e) => {
+                                            // Fallback to default if image fails to load
+                                            const target = e.target as HTMLImageElement;
+                                            target.style.display = 'none';
+                                            const parent = target.parentElement;
+                                            if (parent) {
+                                                const fallback = document.createElement('div');
+                                                fallback.className = 'member-avatar-large';
+                                                fallback.style.cssText = `
+                                                    width: 80px;
+                                                    height: 80px;
+                                                    border-radius: 50%;
+                                                    background-color: ${getAvatarColor(selectedInferior.name)};
+                                                    display: flex;
+                                                    align-items: center;
+                                                    justify-content: center;
+                                                    color: white;
+                                                    font-size: 32px;
+                                                    font-weight: 600;
+                                                    text-transform: uppercase;
+                                                `;
+                                                fallback.textContent = getAvatarInitial(selectedInferior.name);
+                                                parent.appendChild(fallback);
+                                            }
+                                        }}
+                                    />
+                                ) : (
+                                    <div 
+                                        className="member-avatar-large"
+                                        style={{ backgroundColor: getAvatarColor(selectedInferior.name) }}
+                                    >
+                                        {getAvatarInitial(selectedInferior.name)}
+                                    </div>
+                                )}
                                 <div className="detail-info">
                                     <div className="detail-name-row">
                                         <h3>{selectedInferior.name}</h3>
@@ -558,12 +658,45 @@ export default function UserMember() {
                                     <div className="inferiors-mini-list">
                                         {selectedInferior.inferiors_list.map((subInferior) => (
                                             <div key={subInferior.id} className="mini-member-card">
-                                                <div 
-                                                    className="mini-avatar"
-                                                    style={{ backgroundColor: getAvatarColor(subInferior.name) }}
-                                                >
-                                                    {getAvatarInitial(subInferior.name)}
-                                                </div>
+                                                {subInferior.avatar ? (
+                                                    <img 
+                                                        className="mini-avatar"
+                                                        src={subInferior.avatar}
+                                                        alt={subInferior.name}
+                                                        onError={(e) => {
+                                                            // Fallback to default if image fails to load
+                                                            const target = e.target as HTMLImageElement;
+                                                            target.style.display = 'none';
+                                                            const parent = target.parentElement;
+                                                            if (parent) {
+                                                                const fallback = document.createElement('div');
+                                                                fallback.className = 'mini-avatar';
+                                                                fallback.style.cssText = `
+                                                                    width: 40px;
+                                                                    height: 40px;
+                                                                    border-radius: 50%;
+                                                                    background-color: ${getAvatarColor(subInferior.name)};
+                                                                    display: flex;
+                                                                    align-items: center;
+                                                                    justify-content: center;
+                                                                    color: white;
+                                                                    font-size: 16px;
+                                                                    font-weight: 600;
+                                                                    text-transform: uppercase;
+                                                                `;
+                                                                fallback.textContent = getAvatarInitial(subInferior.name);
+                                                                parent.appendChild(fallback);
+                                                            }
+                                                        }}
+                                                    />
+                                                ) : (
+                                                    <div 
+                                                        className="mini-avatar"
+                                                        style={{ backgroundColor: getAvatarColor(subInferior.name) }}
+                                                    >
+                                                        {getAvatarInitial(subInferior.name)}
+                                                    </div>
+                                                )}
                                                 <div className="mini-info">
                                                     <div className="mini-name-row">
                                                         <span className="mini-name">{subInferior.name}</span>
@@ -617,12 +750,45 @@ export default function UserMember() {
                             <div className="alert-content">
                                 <h3>Are you sure you want to remove this junior advisor?</h3>
                                 <div className="alert-member">
-                                    <div 
-                                        className="alert-avatar"
-                                        style={{ backgroundColor: getAvatarColor(selectedInferior.name) }}
-                                    >
-                                        {getAvatarInitial(selectedInferior.name)}
-                                    </div>
+                                    {selectedInferior.avatar ? (
+                                        <img 
+                                            className="alert-avatar"
+                                            src={selectedInferior.avatar}
+                                            alt={selectedInferior.name}
+                                            onError={(e) => {
+                                                // Fallback to default if image fails to load
+                                                const target = e.target as HTMLImageElement;
+                                                target.style.display = 'none';
+                                                const parent = target.parentElement;
+                                                if (parent) {
+                                                    const fallback = document.createElement('div');
+                                                    fallback.className = 'alert-avatar';
+                                                    fallback.style.cssText = `
+                                                        width: 48px;
+                                                        height: 48px;
+                                                        border-radius: 50%;
+                                                        background-color: ${getAvatarColor(selectedInferior.name)};
+                                                        display: flex;
+                                                        align-items: center;
+                                                        justify-content: center;
+                                                        color: white;
+                                                        font-size: 20px;
+                                                        font-weight: 600;
+                                                        text-transform: uppercase;
+                                                    `;
+                                                    fallback.textContent = getAvatarInitial(selectedInferior.name);
+                                                    parent.appendChild(fallback);
+                                                }
+                                            }}
+                                        />
+                                    ) : (
+                                        <div 
+                                            className="alert-avatar"
+                                            style={{ backgroundColor: getAvatarColor(selectedInferior.name) }}
+                                        >
+                                            {getAvatarInitial(selectedInferior.name)}
+                                        </div>
+                                    )}
                                     <div className="alert-member-info">
                                         <span className="alert-name">{selectedInferior.name}</span>
                                         <span className="alert-email">{selectedInferior.email}</span>

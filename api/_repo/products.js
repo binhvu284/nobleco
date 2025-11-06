@@ -316,6 +316,7 @@ export async function createProduct(productData, userId) {
       // Jewelry specification fields
       serial_number: productData.serial_number || null,
       supplier_id: productData.supplier_id || null,
+      type: productData.type || null,
       center_stone_size_mm: productData.center_stone_size_mm || null,
       ni_tay: productData.ni_tay || null,
       shape: productData.shape || null,
@@ -388,6 +389,9 @@ export async function updateProduct(productId, productData, userId) {
   }
   if (productData.supplier_id !== undefined) {
     updateData.supplier_id = productData.supplier_id || null;
+  }
+  if (productData.type !== undefined) {
+    updateData.type = productData.type || null;
   }
   if (productData.center_stone_size_mm !== undefined) {
     updateData.center_stone_size_mm = productData.center_stone_size_mm || null;

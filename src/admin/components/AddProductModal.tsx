@@ -51,6 +51,7 @@ export default function AddProductModal({ open, onClose, onSuccess, product }: A
         status: 'active' as 'active' | 'inactive',
         // Jewelry specification fields
         supplier_id: '',
+        type: '' as '' | 'L' | 'N' | 'K',
         center_stone_size_mm: '',
         ni_tay: '',
         shape: '' as '' | 'Round' | 'Baguette',
@@ -114,6 +115,7 @@ export default function AddProductModal({ open, onClose, onSuccess, product }: A
                 status: formStatus,
                 // Jewelry specification fields
                 supplier_id: (product as any).supplier_id || '',
+                type: ((product as any).type === 'L' || (product as any).type === 'N' || (product as any).type === 'K') ? (product as any).type : '',
                 center_stone_size_mm: (product as any).center_stone_size_mm?.toString() || '',
                 ni_tay: (product as any).ni_tay?.toString() || '',
                 shape: ((product as any).shape === 'Round' || (product as any).shape === 'Baguette') ? (product as any).shape : '',
@@ -166,6 +168,7 @@ export default function AddProductModal({ open, onClose, onSuccess, product }: A
                 stock: '0',
                 status: 'active',
                 supplier_id: '',
+                type: '',
                 center_stone_size_mm: '',
                 ni_tay: '',
                 shape: '',
@@ -453,6 +456,7 @@ export default function AddProductModal({ open, onClose, onSuccess, product }: A
                     stock: formData.stock ? parseInt(formData.stock) : 0,
                     // Jewelry specification fields
                     supplier_id: formData.supplier_id.trim() || null,
+                    type: formData.type || null,
                     center_stone_size_mm: formData.center_stone_size_mm ? parseFloat(formData.center_stone_size_mm) : null,
                     ni_tay: formData.ni_tay ? parseFloat(formData.ni_tay) : null,
                     shape: formData.shape || null,
@@ -493,6 +497,7 @@ export default function AddProductModal({ open, onClose, onSuccess, product }: A
                     status: formData.status,
                     // Jewelry specification fields
                     supplier_id: formData.supplier_id.trim() || null,
+                    type: formData.type || null,
                     center_stone_size_mm: formData.center_stone_size_mm ? parseFloat(formData.center_stone_size_mm) : null,
                     ni_tay: formData.ni_tay ? parseFloat(formData.ni_tay) : null,
                     shape: formData.shape || null,
@@ -606,7 +611,6 @@ export default function AddProductModal({ open, onClose, onSuccess, product }: A
                                     onChange={(e) => handleInputChange('name', e.target.value)}
                                     placeholder="Enter product name"
                                     className={errors.name ? 'error' : ''}
-                                    disabled={isEditMode}
                                 />
                                 {errors.name && <span className="error-message">{errors.name}</span>}
                             </div>
@@ -751,6 +755,28 @@ export default function AddProductModal({ open, onClose, onSuccess, product }: A
                                         onChange={(e) => handleInputChange('supplier_id', e.target.value)}
                                         placeholder="Enter supplier ID"
                                     />
+                                </div>
+                                <div className="form-group">
+                                    <label htmlFor="product-type">Type</label>
+                                    <select
+                                        id="product-type"
+                                        value={formData.type}
+                                        onChange={(e) => handleInputChange('type', e.target.value as '' | 'L' | 'N' | 'K')}
+                                        style={{
+                                            width: '100%',
+                                            padding: '10px 12px',
+                                            border: '1px solid #e5e7eb',
+                                            borderRadius: '8px',
+                                            fontSize: '14px',
+                                            backgroundColor: 'white',
+                                            cursor: 'pointer'
+                                        }}
+                                    >
+                                        <option value="">Select Type</option>
+                                        <option value="L">L - Lab Grown Diamond</option>
+                                        <option value="N">N - Natural Diamond</option>
+                                        <option value="K">K - Others</option>
+                                    </select>
                                 </div>
                             </div>
 
