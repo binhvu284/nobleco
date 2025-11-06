@@ -263,7 +263,7 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
                                 <div className="profile-field refer-code-field">
                                     <label>Refer Code</label>
                                     <p className="field-description">
-                                        Share your unique refer code to invite others to become your inferior.
+                                        Share your unique refer code to invite others to become your junior advisor.
                                     </p>
                                     <div className="refer-code-container">
                                         <div className={user.refer_code ? "refer-code-value" : "profile-field-value non-editable"}>

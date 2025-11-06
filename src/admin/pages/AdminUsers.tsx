@@ -82,6 +82,27 @@ export default function AdminUsers() {
     const dropdownRef = useRef<HTMLDivElement>(null);
     const dropdownToggleRef = useRef<HTMLButtonElement>(null);
 
+    // Edit Senior Consultant modal states
+    const [editSeniorConsultantModal, setEditSeniorConsultantModal] = useState<{ 
+        show: boolean; 
+        userId: string | number | null; 
+        userName: string; 
+        currentSeniorConsultantId: string | number | null;
+        currentSeniorConsultantName: string | null;
+        currentSeniorConsultantEmail: string | null;
+    }>({
+        show: false,
+        userId: null,
+        userName: '',
+        currentSeniorConsultantId: null,
+        currentSeniorConsultantName: null,
+        currentSeniorConsultantEmail: null
+    });
+    const [referCodeInput, setReferCodeInput] = useState('');
+    const [isUpdatingSeniorConsultant, setIsUpdatingSeniorConsultant] = useState(false);
+    const [isLoadingReferrerInfo, setIsLoadingReferrerInfo] = useState(false);
+    const [referCodeError, setReferCodeError] = useState<string | null>(null);
+
     const fetchUsers = async () => {
         try {
             const res = await fetch('/api/users');
@@ -282,6 +303,165 @@ export default function AdminUsers() {
             setTimeout(() => setErrorMessage(null), 4000);
         } finally {
             setIsUpdatingLevel(false);
+        }
+    };
+
+    const openEditSeniorConsultantModal = async (userId: string | number, userName: string) => {
+        // Show modal immediately with loading state
+        setEditSeniorConsultantModal({
+            show: true,
+            userId,
+            userName,
+            currentSeniorConsultantId: null,
+            currentSeniorConsultantName: null,
+            currentSeniorConsultantEmail: null
+        });
+        setReferCodeInput('');
+        setReferCodeError(null);
+        setMenuOpenId(null);
+        setIsLoadingReferrerInfo(true);
+
+        // Fetch current senior consultant info
+        try {
+            const user = users.find(u => u.id === userId);
+            let currentSeniorConsultantId: string | number | null = null;
+            let currentSeniorConsultantName: string | null = null;
+            let currentSeniorConsultantEmail: string | null = null;
+
+            if (user?.referred_by) {
+                // Fetch the senior consultant details
+                const hierarchyRes = await fetch(`/api/users?endpoint=hierarchy&userId=${userId}`);
+                if (hierarchyRes.ok) {
+                    const hierarchyData = await hierarchyRes.json();
+                    if (hierarchyData.superior) {
+                        currentSeniorConsultantId = hierarchyData.superior.id;
+                        currentSeniorConsultantName = hierarchyData.superior.name || hierarchyData.superior.email;
+                        currentSeniorConsultantEmail = hierarchyData.superior.email || null;
+                    }
+                }
+            }
+
+            setEditSeniorConsultantModal({
+                show: true,
+                userId,
+                userName,
+                currentSeniorConsultantId,
+                currentSeniorConsultantName,
+                currentSeniorConsultantEmail
+            });
+        } catch (error) {
+            console.error('Error fetching senior consultant info:', error);
+            // Keep modal open even if fetch fails
+            setEditSeniorConsultantModal({
+                show: true,
+                userId,
+                userName,
+                currentSeniorConsultantId: null,
+                currentSeniorConsultantName: null,
+                currentSeniorConsultantEmail: null
+            });
+        } finally {
+            setIsLoadingReferrerInfo(false);
+        }
+    };
+
+    const closeEditSeniorConsultantModal = () => {
+        setEditSeniorConsultantModal({ 
+            show: false, 
+            userId: null, 
+            userName: '', 
+            currentSeniorConsultantId: null,
+            currentSeniorConsultantName: null,
+            currentSeniorConsultantEmail: null
+        });
+        setReferCodeInput('');
+        setReferCodeError(null);
+        setIsLoadingReferrerInfo(false);
+    };
+
+    const getAvatarInitial = (name: string | null) => {
+        if (!name) return '?';
+        return name.charAt(0).toUpperCase();
+    };
+
+    const getAvatarColor = (name: string | null) => {
+        if (!name) return '#94a3b8';
+        const colors = [
+            '#3b82f6', // blue
+            '#8b5cf6', // purple
+            '#ec4899', // pink
+            '#f59e0b', // amber
+            '#10b981', // emerald
+            '#06b6d4', // cyan
+            '#ef4444', // red
+            '#6366f1', // indigo
+        ];
+        const index = name.charCodeAt(0) % colors.length;
+        return colors[index];
+    };
+
+    const removeSeniorConsultant = async () => {
+        if (!editSeniorConsultantModal.userId) return;
+
+        setIsUpdatingSeniorConsultant(true);
+        setReferCodeError(null);
+        try {
+            const res = await fetch('/api/users', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    id: editSeniorConsultantModal.userId, 
+                    referred_by: null 
+                }),
+            });
+
+            if (!res.ok) {
+                const errorData = await res.json();
+                throw new Error(errorData.error || 'Failed to remove referrer');
+            }
+
+            setSuccessMessage('Referrer removed successfully');
+            setTimeout(() => setSuccessMessage(null), 3000);
+            closeEditSeniorConsultantModal();
+            await fetchUsers();
+        } catch (e: any) {
+            setReferCodeError(e.message || 'Failed to remove referrer');
+        } finally {
+            setIsUpdatingSeniorConsultant(false);
+        }
+    };
+
+    const updateSeniorConsultant = async () => {
+        if (!editSeniorConsultantModal.userId || !referCodeInput.trim()) {
+            setReferCodeError('Please enter a refer code');
+            return;
+        }
+
+        setIsUpdatingSeniorConsultant(true);
+        setReferCodeError(null);
+        try {
+            const res = await fetch('/api/users', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    id: editSeniorConsultantModal.userId, 
+                    refer_code: referCodeInput.trim().toUpperCase()
+                }),
+            });
+
+            if (!res.ok) {
+                const errorData = await res.json();
+                throw new Error(errorData.error || 'Invalid refer code');
+            }
+
+            setSuccessMessage('Referrer updated successfully');
+            setTimeout(() => setSuccessMessage(null), 3000);
+            closeEditSeniorConsultantModal();
+            await fetchUsers();
+        } catch (e: any) {
+            setReferCodeError(e.message || 'Invalid refer code');
+        } finally {
+            setIsUpdatingSeniorConsultant(false);
         }
     };
 
@@ -507,6 +687,18 @@ export default function AdminUsers() {
                                                         </button>
                                                         <button 
                                                             className="menu-item" 
+                                                            onClick={() => openEditSeniorConsultantModal(r.id, r.name)}
+                                                        >
+                                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                                                                <circle cx="9" cy="7" r="4" />
+                                                                <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                                                                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                                                            </svg>
+                                                            Edit Referrer
+                                                        </button>
+                                                        <button 
+                                                            className="menu-item" 
                                                             onClick={() => updateUserStatus(r.id, r.status === 'active' ? 'inactive' : 'active')}
                                                             disabled={isUpdatingStatus}
                                                         >
@@ -620,6 +812,18 @@ export default function AdminUsers() {
                                                                 <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
                                                             </svg>
                                                             Edit Level
+                                                        </button>
+                                                        <button 
+                                                            className="unified-dropdown-item" 
+                                                            onClick={() => openEditSeniorConsultantModal(r.id, r.name)}
+                                                        >
+                                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                                                                <circle cx="9" cy="7" r="4" />
+                                                                <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                                                                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                                                            </svg>
+                                                            Edit Referrer
                                                         </button>
                                                         {r.status === 'active' ? (
                                                             <button 
@@ -915,11 +1119,235 @@ export default function AdminUsers() {
                 </div>
             )}
 
+            {/* Edit Senior Consultant Modal */}
+            {editSeniorConsultantModal.show && (
+                <div className="modal-overlay" onClick={closeEditSeniorConsultantModal}>
+                    <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <h3 className="modal-title">Edit Referrer</h3>
+                            <button className="modal-close" onClick={closeEditSeniorConsultantModal}>×</button>
+                        </div>
+                        <div className="modal-body">
+                            <p className="modal-message" style={{ marginBottom: '20px' }}>
+                                Manage referrer for <strong>{editSeniorConsultantModal.userName || 'this user'}</strong>
+                            </p>
+                            
+                            {isLoadingReferrerInfo ? (
+                                // Loading state
+                                <div style={{ 
+                                    display: 'flex', 
+                                    justifyContent: 'center', 
+                                    alignItems: 'center', 
+                                    padding: '40px',
+                                    flexDirection: 'column',
+                                    gap: '16px'
+                                }}>
+                                    <div className="loading-spinner" style={{
+                                        width: '40px',
+                                        height: '40px',
+                                        border: '4px solid #f3f4f6',
+                                        borderTop: '4px solid #3b82f6',
+                                        borderRadius: '50%',
+                                        animation: 'spin 1s linear infinite'
+                                    }}></div>
+                                    <p style={{ color: '#6b7280', fontSize: '0.875rem' }}>Loading referrer information...</p>
+                                </div>
+                            ) : editSeniorConsultantModal.currentSeniorConsultantId ? (
+                                // User has a referrer - show current referrer with avatar and both remove/change options
+                                <div className="form-group">
+                                    <div style={{ 
+                                        padding: '16px', 
+                                        background: '#f3f4f6', 
+                                        borderRadius: '8px',
+                                        marginBottom: '20px'
+                                    }}>
+                                        <div style={{ 
+                                            fontSize: '0.875rem', 
+                                            color: '#6b7280',
+                                            marginBottom: '12px'
+                                        }}>
+                                            Current Referrer:
+                                        </div>
+                                        <div style={{ 
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            gap: '12px'
+                                        }}>
+                                            <div style={{
+                                                width: '48px',
+                                                height: '48px',
+                                                borderRadius: '50%',
+                                                backgroundColor: getAvatarColor(editSeniorConsultantModal.currentSeniorConsultantName),
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                color: 'white',
+                                                fontSize: '1.25rem',
+                                                fontWeight: '600',
+                                                flexShrink: 0
+                                            }}>
+                                                {getAvatarInitial(editSeniorConsultantModal.currentSeniorConsultantName)}
+                                            </div>
+                                            <div style={{ 
+                                                display: 'flex',
+                                                flexDirection: 'column',
+                                                alignItems: 'flex-start',
+                                                justifyContent: 'center',
+                                                gap: '4px'
+                                            }}>
+                                                <div style={{ 
+                                                    fontSize: '1rem', 
+                                                    fontWeight: '500', 
+                                                    color: '#1d2939',
+                                                    textAlign: 'left',
+                                                    lineHeight: '1.5'
+                                                }}>
+                                                    {editSeniorConsultantModal.currentSeniorConsultantName || 'Unknown'}
+                                                </div>
+                                                {editSeniorConsultantModal.currentSeniorConsultantEmail && (
+                                                    <div style={{
+                                                        fontSize: '0.875rem',
+                                                        color: '#6b7280',
+                                                        textAlign: 'left',
+                                                        lineHeight: '1.5'
+                                                    }}>
+                                                        {editSeniorConsultantModal.currentSeniorConsultantEmail}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Change Referrer Section */}
+                                    <div style={{ marginBottom: '16px' }}>
+                                        <label className="form-label" style={{ marginBottom: '8px', display: 'block' }}>
+                                            Change Referrer
+                                        </label>
+                                        <input
+                                            type="text"
+                                            className={`form-input ${referCodeError ? 'error' : ''}`}
+                                            placeholder="Enter new refer code (e.g., ABC123)"
+                                            value={referCodeInput}
+                                            onChange={(e) => {
+                                                setReferCodeInput(e.target.value.toUpperCase());
+                                                setReferCodeError(null);
+                                            }}
+                                            disabled={isUpdatingSeniorConsultant}
+                                            style={{ textTransform: 'uppercase', marginBottom: '8px' }}
+                                        />
+                                        {referCodeError && (
+                                            <div style={{ 
+                                                marginTop: '4px', 
+                                                color: '#dc2626', 
+                                                fontSize: '0.875rem' 
+                                            }}>
+                                                {referCodeError}
+                                            </div>
+                                        )}
+                                        <button 
+                                            className="btn-primary" 
+                                            onClick={updateSeniorConsultant} 
+                                            disabled={isUpdatingSeniorConsultant || !referCodeInput.trim()}
+                                            style={{ 
+                                                width: '100%', 
+                                                textAlign: 'center',
+                                                display: 'flex',
+                                                justifyContent: 'center',
+                                                alignItems: 'center'
+                                            }}
+                                        >
+                                            {isUpdatingSeniorConsultant ? 'Updating...' : 'Change Referrer'}
+                                        </button>
+                                    </div>
+
+                                    {/* Divider */}
+                                    <div style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        margin: '20px 0',
+                                        gap: '12px'
+                                    }}>
+                                        <div style={{ flex: 1, height: '1px', background: '#e5e7eb' }}></div>
+                                        <span style={{ fontSize: '0.875rem', color: '#6b7280' }}>OR</span>
+                                        <div style={{ flex: 1, height: '1px', background: '#e5e7eb' }}></div>
+                                    </div>
+
+                                    {/* Remove Referrer Button */}
+                                    <button 
+                                        className="btn-danger" 
+                                        onClick={removeSeniorConsultant}
+                                        disabled={isUpdatingSeniorConsultant}
+                                        style={{ 
+                                            width: '100%',
+                                            textAlign: 'center',
+                                            justifyContent: 'center'
+                                        }}
+                                    >
+                                        {isUpdatingSeniorConsultant ? 'Removing...' : 'Remove Referrer'}
+                                    </button>
+                                </div>
+                            ) : (
+                                // User doesn't have a referrer - show input only
+                                <div className="form-group">
+                                    <label className="form-label">Enter Refer Code</label>
+                                    <input
+                                        type="text"
+                                        className={`form-input ${referCodeError ? 'error' : ''}`}
+                                        placeholder="Enter refer code (e.g., ABC123)"
+                                        value={referCodeInput}
+                                        onChange={(e) => {
+                                            setReferCodeInput(e.target.value.toUpperCase());
+                                            setReferCodeError(null);
+                                        }}
+                                        disabled={isUpdatingSeniorConsultant}
+                                        style={{ textTransform: 'uppercase' }}
+                                    />
+                                    {referCodeError && (
+                                        <div style={{ 
+                                            marginTop: '8px', 
+                                            color: '#dc2626', 
+                                            fontSize: '0.875rem' 
+                                        }}>
+                                            {referCodeError}
+                                        </div>
+                                    )}
+                                    <div style={{ 
+                                        marginTop: '12px', 
+                                        padding: '12px', 
+                                        background: '#f3f4f6', 
+                                        borderRadius: '8px',
+                                        fontSize: '0.875rem',
+                                        color: '#6b7280'
+                                    }}>
+                                        Enter the refer code of the user who will become the referrer.
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                        <div className="modal-footer">
+                            <button 
+                                className="btn-secondary" 
+                                onClick={closeEditSeniorConsultantModal} 
+                                disabled={isUpdatingSeniorConsultant || isLoadingReferrerInfo}
+                                style={{ width: '100%' }}
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* User Detail Modal */}
             <UserDetailModal 
                 open={selectedUserForDetail !== null}
                 onClose={() => setSelectedUserForDetail(null)}
                 user={selectedUserForDetail}
+                onEditReferrer={(userId, userName) => {
+                    setSelectedUserForDetail(null); // Close user detail modal
+                    openEditSeniorConsultantModal(userId, userName);
+                }}
             />
         </AdminLayout>
     );

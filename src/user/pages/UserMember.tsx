@@ -350,7 +350,7 @@ export default function UserMember() {
                                 <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
                                 <path d="M16 3.13a4 4 0 0 1 0 7.75" />
                             </svg>
-                            <h2>My Superior</h2>
+                            <h2>Senior Consultant</h2>
                             <span className="section-subtitle">The person who referred you</span>
                         </div>
                     </div>
@@ -384,7 +384,7 @@ export default function UserMember() {
                                 <line x1="12" y1="8" x2="12" y2="12" />
                                 <line x1="12" y1="16" x2="12.01" y2="16" />
                             </svg>
-                            <p>You don't have a superior yet</p>
+                            <p>You don't have a senior consultant yet</p>
                             <span>You signed up without a referral code</span>
                         </div>
                     )}
@@ -400,7 +400,7 @@ export default function UserMember() {
                                 <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
                                 <path d="M16 3.13a4 4 0 0 1 0 7.75" />
                             </svg>
-                            <h2>My Inferiors</h2>
+                            <h2>Junior Advisors</h2>
                             <span className="section-subtitle">People you have referred ({inferiors.length})</span>
                         </div>
                     </div>
@@ -437,7 +437,7 @@ export default function UserMember() {
                                             <span>{inferior.email}</span>
                                             <span>•</span>
                                             <span className="inferiors-count">
-                                                {inferior.inferiors_count} {inferior.inferiors_count === 1 ? 'inferior' : 'inferiors'}
+                                                {inferior.inferiors_count} {inferior.inferiors_count === 1 ? 'junior advisor' : 'junior advisors'}
                                             </span>
                                         </div>
                                     </div>
@@ -489,7 +489,7 @@ export default function UserMember() {
                                 <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
                                 <path d="M16 3.13a4 4 0 0 1 0 7.75" />
                             </svg>
-                            <p>You don't have any inferiors yet</p>
+                            <p>You don't have any junior advisors yet</p>
                             <span>Share your referral code to grow your network</span>
                         </div>
                     )}
@@ -501,7 +501,7 @@ export default function UserMember() {
                 <div className="modal-overlay" onClick={handleModalClose}>
                     <div className="modal-content" onClick={(e) => e.stopPropagation()}>
                         <div className="modal-header">
-                            <h2>Inferior Details</h2>
+                            <h2>Junior Advisor Details</h2>
                             <button className="modal-close" onClick={handleModalClose}>
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                     <line x1="18" y1="6" x2="6" y2="18"/>
@@ -544,7 +544,7 @@ export default function UserMember() {
                             </div>
 
                             <div className="detail-inferiors">
-                                <h4>Indirect Inferiors ({selectedInferior.inferiors_list?.length || 0})</h4>
+                                <h4>Indirect Junior Advisors ({selectedInferior.inferiors_list?.length || 0})</h4>
                                 {loadingInferiors ? (
                                     <div className="inferiors-loading">
                                         <div className="loading-spinner">
@@ -552,7 +552,7 @@ export default function UserMember() {
                                             <div className="spinner-ring"></div>
                                             <div className="spinner-ring"></div>
                                         </div>
-                                        <p className="loading-text">Loading indirect inferiors...</p>
+                                        <p className="loading-text">Loading indirect junior advisors...</p>
                                     </div>
                                 ) : selectedInferior.inferiors_list && selectedInferior.inferiors_list.length > 0 ? (
                                     <div className="inferiors-mini-list">
@@ -598,7 +598,7 @@ export default function UserMember() {
                 <div className="modal-overlay" onClick={handleModalClose}>
                     <div className="modal-content alert-modal" onClick={(e) => e.stopPropagation()}>
                         <div className="modal-header">
-                            <h2>Remove Inferior</h2>
+                            <h2>Remove Junior Advisor</h2>
                             <button className="modal-close" onClick={handleModalClose}>
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                     <line x1="18" y1="6" x2="6" y2="18"/>
@@ -615,7 +615,7 @@ export default function UserMember() {
                                 </svg>
                             </div>
                             <div className="alert-content">
-                                <h3>Are you sure you want to remove this inferior?</h3>
+                                <h3>Are you sure you want to remove this junior advisor?</h3>
                                 <div className="alert-member">
                                     <div 
                                         className="alert-avatar"
@@ -629,10 +629,10 @@ export default function UserMember() {
                                     </div>
                                 </div>
                                 <div className="alert-warning">
-                                    <p><strong>Warning:</strong> When you remove this inferior, you will no longer receive commission from:</p>
+                                    <p><strong>Warning:</strong> When you remove this junior advisor, you will no longer receive commission from:</p>
                                     <ul>
-                                        <li>This inferior's direct sales</li>
-                                        <li>All sales from their inferiors (indirect commission)</li>
+                                        <li>This junior advisor's direct sales</li>
+                                        <li>All sales from their junior advisors (indirect commission)</li>
                                         <li>Any future sales from their network</li>
                                     </ul>
                                 </div>
@@ -668,7 +668,7 @@ export default function UserMember() {
                                         Removing...
                                     </>
                                 ) : (
-                                    'Remove Inferior'
+                                    'Remove Junior Advisor'
                                 )}
                             </button>
                         </div>

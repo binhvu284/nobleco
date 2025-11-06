@@ -207,7 +207,86 @@ export default async function handler(req, res) {
 
     if (req.method === 'PATCH') {
       const body = req.body || await readBody(req);
-      const { id, status, name, phone, address, level } = body || {};
+      const { id, status, name, phone, address, level, referred_by, refer_code } = body || {};
+      
+      // Handle referred_by updates (set or remove senior consultant)
+      // Check if refer_code is provided and not empty, or if referred_by is explicitly set
+      const hasReferCode = refer_code !== undefined && refer_code !== null && refer_code !== '';
+      const hasReferredBy = referred_by !== undefined;
+      
+      if (hasReferredBy || hasReferCode) {
+        if (!id) {
+          return res.status(400).json({ error: 'User ID is required' });
+        }
+
+        try {
+          const supabase = getSupabase();
+          let referredByCode = null;
+
+          // If refer_code is provided, validate it exists
+          if (hasReferCode) {
+            const referCodeUpper = String(refer_code).toUpperCase().trim();
+            
+            // First, check if the refer code exists
+            const { data: referrerData, error: referrerError } = await supabase
+              .from('users')
+              .select('id, refer_code')
+              .eq('refer_code', referCodeUpper)
+              .maybeSingle();
+
+            if (referrerError) {
+              console.error('Error finding user by refer_code:', referrerError);
+              return res.status(500).json({ error: 'Failed to validate refer code' });
+            }
+
+            if (!referrerData) {
+              return res.status(400).json({ error: 'Invalid refer code' });
+            }
+
+            // Prevent self-referral - get current user's refer_code to check
+            const { data: currentUser, error: currentUserError } = await supabase
+              .from('users')
+              .select('refer_code')
+              .eq('id', id)
+              .maybeSingle();
+
+            if (currentUserError) {
+              console.error('Error fetching current user:', currentUserError);
+              return res.status(500).json({ error: 'Failed to validate user' });
+            }
+
+            if (currentUser && currentUser.refer_code === referCodeUpper) {
+              return res.status(400).json({ error: 'User cannot be their own senior consultant' });
+            }
+
+            // Store the refer_code, not the id
+            referredByCode = referCodeUpper;
+          } else if (hasReferredBy) {
+            // Direct referred_by value (null to remove, or refer_code string)
+            referredByCode = referred_by;
+          }
+
+          const { data: userData, error: userError } = await supabase
+            .from('users')
+            .update({ referred_by: referredByCode })
+            .eq('id', id)
+            .select('id, email, name, role, points, level, status, refer_code, commission, phone, address, created_at, referred_by')
+            .single();
+
+          if (userError) {
+            console.error('Error updating referred_by:', userError);
+            return res.status(500).json({ error: 'Failed to update senior consultant' });
+          }
+
+          return res.status(200).json({
+            success: true,
+            user: userData,
+          });
+        } catch (e) {
+          console.error('Exception updating referred_by:', e);
+          return res.status(500).json({ error: e.message });
+        }
+      }
       
       // Handle level updates
       if (level !== undefined) {
