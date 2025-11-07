@@ -1,11 +1,13 @@
 import { FormEvent, useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import OTPVerification from '../components/OTPVerification';
 
 export default function SignUp() {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
+    const [phone, setPhone] = useState('');
     const [password, setPassword] = useState('');
     const [confirm, setConfirm] = useState('');
     const [referCode, setReferCode] = useState('');
@@ -13,6 +15,10 @@ export default function SignUp() {
     const [isLoading, setIsLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirm, setShowConfirm] = useState(false);
+    
+    // OTP verification state
+    const [showOTPVerification, setShowOTPVerification] = useState(false);
+    const [signupData, setSignupData] = useState<{ phone: string; userId: number; email: string; password: string } | null>(null);
 
     // Auto-fill refer code from URL parameter
     useEffect(() => {
@@ -45,6 +51,7 @@ export default function SignUp() {
                 body: JSON.stringify({
                     name,
                     email,
+                    phone,
                     password,
                     referCode: referCode.trim() || undefined,
                 }),
@@ -54,20 +61,56 @@ export default function SignUp() {
 
             if (!response.ok) {
                 setError(data.error || 'Failed to create account');
+                setIsLoading(false);
                 return;
             }
 
-            // Success - redirect to login
-            navigate('/login', { 
-                replace: true, 
-                state: { message: 'Account created successfully! Please log in.' }
-            });
+            // Check if OTP verification is required
+            if (data.requiresVerification && data.user) {
+                setSignupData({
+                    phone: data.phone,
+                    userId: data.user.id,
+                    email: email,
+                    password: password
+                });
+                setShowOTPVerification(true);
+                setIsLoading(false);
+            } else {
+                // If no verification needed (shouldn't happen), redirect to login
+                navigate('/login', { 
+                    replace: true, 
+                    state: { message: 'Account created successfully! Please log in.' }
+                });
+            }
         } catch (err) {
             setError('Failed to connect to server. Please try again.');
-        } finally {
             setIsLoading(false);
         }
     };
+
+    const handleOTPSuccess = () => {
+        // OTP verified and user logged in - redirect to dashboard
+        navigate('/dashboard', { replace: true });
+    };
+
+    const handleOTPBack = () => {
+        setShowOTPVerification(false);
+        setSignupData(null);
+    };
+
+    // Show OTP verification screen if needed
+    if (showOTPVerification && signupData) {
+        return (
+            <OTPVerification
+                phone={signupData.phone}
+                userId={signupData.userId}
+                email={signupData.email}
+                password={signupData.password}
+                onSuccess={handleOTPSuccess}
+                onBack={handleOTPBack}
+            />
+        );
+    }
 
     return (
         <div className="auth-root">
@@ -103,6 +146,16 @@ export default function SignUp() {
                             value={email} 
                             onChange={(e) => setEmail(e.target.value)} 
                             placeholder="you@example.com" 
+                            required 
+                        />
+                    </label>
+                    <label>
+                        Phone Number
+                        <input 
+                            type="tel"
+                            value={phone} 
+                            onChange={(e) => setPhone(e.target.value)} 
+                            placeholder="Enter your phone number" 
                             required 
                         />
                     </label>

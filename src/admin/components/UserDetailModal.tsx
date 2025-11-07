@@ -28,11 +28,19 @@ export default function UserDetailModal({ open, onClose, user, onEditReferrer }:
     const [userAvatar, setUserAvatar] = useState<string | null>(null);
     const [loadingHierarchy, setLoadingHierarchy] = useState(false);
     const [loadingAvatar, setLoadingAvatar] = useState(false);
+    const [personalID, setPersonalID] = useState<{
+        front_image_url?: string;
+        back_image_url?: string;
+        verified?: boolean;
+    } | null>(null);
+    const [showPersonalIDExpanded, setShowPersonalIDExpanded] = useState<{ type: 'front' | 'back' } | null>(null);
+    const [loadingPersonalID, setLoadingPersonalID] = useState(false);
 
     useEffect(() => {
         if (open && user) {
             fetchHierarchyInfo();
             fetchUserAvatar();
+            fetchPersonalID();
         }
     }, [open, user]);
     
@@ -54,6 +62,32 @@ export default function UserDetailModal({ open, onClose, user, onEditReferrer }:
             setUserAvatar(null);
         } finally {
             setLoadingAvatar(false);
+        }
+    };
+
+    const fetchPersonalID = async () => {
+        if (!user?.id) return;
+        setLoadingPersonalID(true);
+        try {
+            const token = localStorage.getItem('nobleco_auth_token');
+            const response = await fetch(`/api/user-personal-ids?userId=${user.id}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                },
+            });
+            if (response.ok) {
+                const data = await response.json();
+                if (data && (data.front_image_url || data.back_image_url)) {
+                    setPersonalID(data);
+                } else {
+                    setPersonalID(null);
+                }
+            }
+        } catch (error) {
+            console.error('Error fetching personal ID:', error);
+            setPersonalID(null);
+        } finally {
+            setLoadingPersonalID(false);
         }
     };
 
@@ -235,6 +269,107 @@ export default function UserDetailModal({ open, onClose, user, onEditReferrer }:
                                 <div className="detail-row">
                                     <span className="detail-label">Address</span>
                                     <span className="detail-value">{user.address || 'Not set'}</span>
+                                </div>
+                                <div className="detail-row">
+                                    <span className="detail-label">Personal ID</span>
+                                    <div className="detail-value" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                        {loadingPersonalID ? (
+                                            <span>Loading...</span>
+                                        ) : personalID && (personalID.front_image_url || personalID.back_image_url) ? (
+                                            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                                                {personalID.front_image_url && (
+                                                    <div style={{ position: 'relative', display: 'inline-block' }}>
+                                                        <img 
+                                                            src={personalID.front_image_url}
+                                                            alt="Front side"
+                                                            style={{
+                                                                width: '80px',
+                                                                height: '50px',
+                                                                objectFit: 'cover',
+                                                                borderRadius: '6px',
+                                                                border: '2px solid var(--border)',
+                                                                cursor: 'pointer'
+                                                            }}
+                                                            onClick={() => setShowPersonalIDExpanded({ type: 'front' })}
+                                                        />
+                                                        <button
+                                                            onClick={() => setShowPersonalIDExpanded({ type: 'front' })}
+                                                            style={{
+                                                                position: 'absolute',
+                                                                top: '4px',
+                                                                right: '4px',
+                                                                width: '20px',
+                                                                height: '20px',
+                                                                borderRadius: '4px',
+                                                                border: 'none',
+                                                                background: 'rgba(255, 255, 255, 0.9)',
+                                                                cursor: 'pointer',
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                justifyContent: 'center',
+                                                                padding: 0
+                                                            }}
+                                                            title="Expand front image"
+                                                        >
+                                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                                <polyline points="15 3 21 3 21 9" />
+                                                                <polyline points="9 21 3 21 3 15" />
+                                                                <line x1="21" y1="3" x2="14" y2="10" />
+                                                                <line x1="3" y1="21" x2="10" y2="14" />
+                                                            </svg>
+                                                        </button>
+                                                        <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '4px', textAlign: 'center' }}>Front</div>
+                                                    </div>
+                                                )}
+                                                {personalID.back_image_url && (
+                                                    <div style={{ position: 'relative', display: 'inline-block' }}>
+                                                        <img 
+                                                            src={personalID.back_image_url}
+                                                            alt="Back side"
+                                                            style={{
+                                                                width: '80px',
+                                                                height: '50px',
+                                                                objectFit: 'cover',
+                                                                borderRadius: '6px',
+                                                                border: '2px solid var(--border)',
+                                                                cursor: 'pointer'
+                                                            }}
+                                                            onClick={() => setShowPersonalIDExpanded({ type: 'back' })}
+                                                        />
+                                                        <button
+                                                            onClick={() => setShowPersonalIDExpanded({ type: 'back' })}
+                                                            style={{
+                                                                position: 'absolute',
+                                                                top: '4px',
+                                                                right: '4px',
+                                                                width: '20px',
+                                                                height: '20px',
+                                                                borderRadius: '4px',
+                                                                border: 'none',
+                                                                background: 'rgba(255, 255, 255, 0.9)',
+                                                                cursor: 'pointer',
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                justifyContent: 'center',
+                                                                padding: 0
+                                                            }}
+                                                            title="Expand back image"
+                                                        >
+                                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                                <polyline points="15 3 21 3 21 9" />
+                                                                <polyline points="9 21 3 21 3 15" />
+                                                                <line x1="21" y1="3" x2="14" y2="10" />
+                                                                <line x1="3" y1="21" x2="10" y2="14" />
+                                                            </svg>
+                                                        </button>
+                                                        <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '4px', textAlign: 'center' }}>Back</div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ) : (
+                                            <span>Not uploaded</span>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -434,6 +569,30 @@ export default function UserDetailModal({ open, onClose, user, onEditReferrer }:
                     </div>
                 </div>
             </div>
+
+            {/* Personal ID Expanded Modal */}
+            {showPersonalIDExpanded && personalID && (
+                <div className="modal-overlay personal-id-expanded-overlay" onClick={() => setShowPersonalIDExpanded(null)}>
+                    <div className="personal-id-expanded-modal" onClick={(e) => e.stopPropagation()}>
+                        <div className="personal-id-expanded-header">
+                            <h3>{showPersonalIDExpanded.type === 'front' ? 'Front Side' : 'Back Side'} - Personal ID</h3>
+                            <button className="modal-close" onClick={() => setShowPersonalIDExpanded(null)}>
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <line x1="18" y1="6" x2="6" y2="18" />
+                                    <line x1="6" y1="6" x2="18" y2="18" />
+                                </svg>
+                            </button>
+                        </div>
+                        <div className="personal-id-expanded-content">
+                            <img 
+                                src={showPersonalIDExpanded.type === 'front' ? personalID.front_image_url : personalID.back_image_url} 
+                                alt={`${showPersonalIDExpanded.type === 'front' ? 'Front' : 'Back'} side of personal ID`}
+                                className="personal-id-expanded-image"
+                            />
+                        </div>
+                    </div>
+                </div>
+            )}
         </>
     );
 }

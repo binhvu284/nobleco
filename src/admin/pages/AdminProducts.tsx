@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import AdminLayout from '../components/AdminLayout';
-import { IconPlus, IconSearch, IconFilter, IconList, IconGrid, IconMoreVertical, IconEdit, IconTrash2, IconEye, IconPackage, IconLayout, IconChevronDown, IconChevronUp, IconCheck, IconX, IconImage } from '../components/icons';
+import { IconPlus, IconSearch, IconFilter, IconList, IconGrid, IconMoreVertical, IconEdit, IconTrash2, IconEye, IconPackage, IconLayout, IconChevronDown, IconChevronUp, IconCheck, IconX, IconImage, IconActivity } from '../components/icons';
 import ProductDetailModal from '../components/ProductDetailModal';
 import ConfirmModal from '../components/ConfirmModal';
 import UpdateDataModal from '../components/UpdateDataModal';
 import AddProductModal from '../components/AddProductModal';
+import ActivityLogModal from '../components/ActivityLogModal';
 
 interface Category {
     id: number;
@@ -93,6 +94,8 @@ export default function AdminProducts() {
     const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
     const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'inactive'>('all');
     const [availableCategories, setAvailableCategories] = useState<Category[]>([]);
+    const [showActivityLog, setShowActivityLog] = useState(false);
+    const [priceRange, setPriceRange] = useState({ min: '', max: '' });
 
     // Fetch categories for filter
     useEffect(() => {
@@ -122,8 +125,16 @@ export default function AdminProducts() {
         // Status filter
         const matchesStatus = filterStatus === 'all' || product.status === filterStatus;
         
-        return matchesSearch && matchesCategory && matchesStatus;
+        // Price range filter
+        const matchesPrice = (!priceRange.min || product.price >= parseFloat(priceRange.min)) &&
+            (!priceRange.max || product.price <= parseFloat(priceRange.max));
+        
+        return matchesSearch && matchesCategory && matchesStatus && matchesPrice;
     });
+
+    // Calculate active/inactive counts
+    const activeCount = products.filter(p => p.status === 'active').length;
+    const inactiveCount = products.filter(p => p.status === 'inactive').length;
 
     // Sort products
     const sortedProducts = [...filteredProducts].sort((a, b) => {
@@ -451,8 +462,20 @@ export default function AdminProducts() {
                                 className="search-input"
                             />
                         </div>
-                        <button className="btn-filter" title="Filter products">
+                        <button 
+                            className="btn-filter" 
+                            title="Filter products"
+                            onClick={() => setShowFilterPopup(true)}
+                        >
                             <IconFilter />
+                        </button>
+                        <button 
+                            className="btn-activity-log" 
+                            title="View Activity Log"
+                            onClick={() => setShowActivityLog(true)}
+                        >
+                            <IconActivity />
+                            <span>Activity Log</span>
                         </button>
                         <button 
                             className="btn-update-data" 
@@ -627,9 +650,17 @@ export default function AdminProducts() {
                     </div>
                 )}
 
-                {/* Total Products Count */}
+                {/* Product Status Counts */}
                 {!loading && !error && (
                     <div className="products-count-bar">
+                        <div className="products-status-counts">
+                            <span className="status-count active">
+                                Active: <strong>{activeCount}</strong>
+                            </span>
+                            <span className="status-count inactive">
+                                Inactive: <strong>{inactiveCount}</strong>
+                            </span>
+                        </div>
                         <span className="products-count-text">
                             Total Products: <strong>{filteredProducts.length}</strong>
                         </span>
@@ -1112,12 +1143,33 @@ export default function AdminProducts() {
                                 </div>
                             </div>
                         </div>
+                            <div className="filter-popup-group">
+                                <label className="filter-popup-label">Price Range</label>
+                                <div className="filter-price-range">
+                                    <input
+                                        type="number"
+                                        placeholder="Min price"
+                                        value={priceRange.min}
+                                        onChange={(e) => setPriceRange({ ...priceRange, min: e.target.value })}
+                                        style={{ width: '100%', padding: '8px 12px', border: '1px solid #e5e7eb', borderRadius: '6px', marginBottom: '8px' }}
+                                    />
+                                    <input
+                                        type="number"
+                                        placeholder="Max price"
+                                        value={priceRange.max}
+                                        onChange={(e) => setPriceRange({ ...priceRange, max: e.target.value })}
+                                        style={{ width: '100%', padding: '8px 12px', border: '1px solid #e5e7eb', borderRadius: '6px' }}
+                                    />
+                                </div>
+                            </div>
+                        </div>
                         <div className="filter-popup-footer">
                             <button
                                 className="btn-secondary"
                                 onClick={() => {
                                     setSelectedCategories([]);
                                     setFilterStatus('all');
+                                    setPriceRange({ min: '', max: '' });
                                 }}
                             >
                                 Clear All
@@ -1132,6 +1184,12 @@ export default function AdminProducts() {
                     </div>
                 </>
             )}
+
+            {/* Activity Log Modal */}
+            <ActivityLogModal
+                open={showActivityLog}
+                onClose={() => setShowActivityLog(false)}
+            />
 
             {/* Delete Confirmation Modal */}
             <ConfirmModal

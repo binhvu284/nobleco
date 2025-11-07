@@ -2,6 +2,8 @@
  * Utility functions for avatar display
  */
 
+import { UserAvatar } from './avatarUpload';
+
 /**
  * Get the first letter of a name for avatar display
  */
@@ -24,8 +26,52 @@ export function getAvatarColor(name: string): string {
         '#ef4444', // red
         '#6366f1', // indigo
     ];
-    if (!name || name.trim().length === 0) return colors[0];
+    if (!name || name.length === 0) return colors[0];
     const index = name.charCodeAt(0) % colors.length;
     return colors[index];
 }
 
+/**
+ * Get CSS styles for displaying an avatar with circular viewport
+ * @param avatar - Avatar data with viewport coordinates
+ * @param displaySize - Size of the circular display (in pixels)
+ * @returns CSS styles object for the image
+ */
+export function getAvatarViewportStyles(avatar: UserAvatar | null, displaySize: number): React.CSSProperties {
+    if (!avatar || !avatar.url || avatar.viewport_x === null || avatar.viewport_y === null || avatar.viewport_size === null || !avatar.width || !avatar.height) {
+        // No viewport data or dimensions, show full image with circular clip
+        return {
+            width: `${displaySize}px`,
+            height: `${displaySize}px`,
+            borderRadius: '50%',
+            objectFit: 'cover',
+            objectPosition: 'center'
+        };
+    }
+
+    // Calculate the actual viewport size in pixels
+    const largerDimension = Math.max(avatar.width, avatar.height);
+    const viewportSizePx = largerDimension * avatar.viewport_size;
+    
+    // Calculate the center position in pixels
+    const centerX = avatar.viewport_x * avatar.width;
+    const centerY = avatar.viewport_y * avatar.height;
+    
+    // Calculate object-position percentage (relative to image dimensions)
+    const objectPositionX = (centerX / avatar.width) * 100;
+    const objectPositionY = (centerY / avatar.height) * 100;
+    
+    // Calculate scale to zoom into viewport area
+    // We want the viewport to fill the circular display
+    const scale = Math.max(1, displaySize / viewportSizePx);
+    
+    return {
+        width: `${displaySize}px`,
+        height: `${displaySize}px`,
+        borderRadius: '50%',
+        objectFit: 'cover',
+        objectPosition: `${objectPositionX}% ${objectPositionY}%`,
+        transform: `scale(${scale})`,
+        transformOrigin: `${objectPositionX}% ${objectPositionY}%`
+    };
+}

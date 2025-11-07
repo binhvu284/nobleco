@@ -11,6 +11,7 @@ import {
     IconList,
     IconGrid
 } from '../components/icons';
+import { getAvatarInitial, getAvatarColor } from '../../utils/avatarUtils';
 
 interface Client {
     id: number;
@@ -26,9 +27,11 @@ interface Client {
         id: number;
         name: string;
         refer_code: string;
+        avatar?: string;
     } | null;
     created_at: string;
     updated_at: string;
+    avatar?: string; // Avatar URL from database
 }
 
 export default function AdminClients() {
@@ -54,7 +57,54 @@ export default function AdminClients() {
                 throw new Error('Failed to fetch clients');
             }
             const data = await response.json();
-            setClients(data || []);
+            
+            // Fetch avatars for all clients and created_by_user
+            const clientsWithAvatars = await Promise.all(
+                (data || []).map(async (client: Client) => {
+                    // Fetch client avatar (if client avatars exist in future)
+                    let clientAvatar = null;
+                    try {
+                        // For now, clients might not have avatars, but we'll try
+                        // If there's a client-avatars API in the future, use it here
+                        // const avatarRes = await fetch(`/api/client-avatars?clientId=${client.id}`);
+                        // if (avatarRes.ok) {
+                        //     const avatarData = await avatarRes.json();
+                        //     if (avatarData?.url) {
+                        //         clientAvatar = avatarData.url;
+                        //     }
+                        // }
+                    } catch (error) {
+                        // Silently fail - clients might not have avatars yet
+                    }
+                    
+                    // Fetch avatar for created_by_user
+                    let createdByAvatar = null;
+                    if (client.created_by_user?.id) {
+                        try {
+                            const avatarRes = await fetch(`/api/user-avatars?userId=${client.created_by_user.id}`);
+                            if (avatarRes.ok) {
+                                const avatarData = await avatarRes.json();
+                                if (avatarData?.url) {
+                                    createdByAvatar = avatarData.url;
+                                }
+                            }
+                        } catch (error) {
+                            console.warn(`Could not fetch avatar for user ${client.created_by_user.id}:`, error);
+                        }
+                    }
+                    
+                    return {
+                        ...client,
+                        avatar: clientAvatar,
+                        created_by_user: client.created_by_user ? {
+                            ...client.created_by_user,
+                            avatar: createdByAvatar
+                        } : null
+                    };
+                })
+            );
+            
+            setClients(clientsWithAvatars);
         } catch (err) {
             console.error('Error fetching clients:', err);
             setError(err instanceof Error ? err.message : 'Failed to fetch clients');
@@ -281,7 +331,32 @@ export default function AdminClients() {
                                             onClick={() => handleClientClick(client)}
                                         >
                                             <td>
-                                                <span className="client-name">{client.name}</span>
+                                                <div className="client-name-with-avatar">
+                                                    {client.avatar ? (
+                                                        <img 
+                                                            src={client.avatar} 
+                                                            alt={client.name}
+                                                            className="client-avatar-img"
+                                                            onError={(e) => {
+                                                                // Fallback to letter avatar if image fails to load
+                                                                const target = e.target as HTMLImageElement;
+                                                                target.style.display = 'none';
+                                                                const fallback = target.nextElementSibling as HTMLElement;
+                                                                if (fallback) fallback.style.display = 'flex';
+                                                            }}
+                                                        />
+                                                    ) : null}
+                                                    <div 
+                                                        className="client-avatar-letter"
+                                                        style={{
+                                                            display: client.avatar ? 'none' : 'flex',
+                                                            backgroundColor: getAvatarColor(client.name)
+                                                        }}
+                                                    >
+                                                        {getAvatarInitial(client.name)}
+                                                    </div>
+                                                    <span className="client-name">{client.name}</span>
+                                                </div>
                                             </td>
                                             <td>{client.phone || 'N/A'}</td>
                                             <td>
@@ -291,8 +366,27 @@ export default function AdminClients() {
                                                 <div className="made-by">
                                                     {client.created_by_user ? (
                                                         <>
-                                                            <div className="creator-avatar">
-                                                                {client.created_by_user.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                                                            {client.created_by_user.avatar ? (
+                                                                <img 
+                                                                    src={client.created_by_user.avatar} 
+                                                                    alt={client.created_by_user.name}
+                                                                    className="creator-avatar-img"
+                                                                    onError={(e) => {
+                                                                        const target = e.target as HTMLImageElement;
+                                                                        target.style.display = 'none';
+                                                                        const fallback = target.nextElementSibling as HTMLElement;
+                                                                        if (fallback) fallback.style.display = 'flex';
+                                                                    }}
+                                                                />
+                                                            ) : null}
+                                                            <div 
+                                                                className="creator-avatar"
+                                                                style={{
+                                                                    display: client.created_by_user.avatar ? 'none' : 'flex',
+                                                                    backgroundColor: getAvatarColor(client.created_by_user.name)
+                                                                }}
+                                                            >
+                                                                {getAvatarInitial(client.created_by_user.name)}
                                                             </div>
                                                             <span>{client.created_by_user.name}</span>
                                                         </>
@@ -373,8 +467,27 @@ export default function AdminClients() {
                                     onClick={() => handleClientClick(client)}
                                 >
                                     <div className="card-header">
-                                        <div className="client-avatar">
-                                            {client.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                                        {client.avatar ? (
+                                            <img 
+                                                src={client.avatar} 
+                                                alt={client.name}
+                                                className="client-avatar-img-card"
+                                                onError={(e) => {
+                                                    const target = e.target as HTMLImageElement;
+                                                    target.style.display = 'none';
+                                                    const fallback = target.nextElementSibling as HTMLElement;
+                                                    if (fallback) fallback.style.display = 'flex';
+                                                }}
+                                            />
+                                        ) : null}
+                                        <div 
+                                            className="client-avatar"
+                                            style={{
+                                                display: client.avatar ? 'none' : 'flex',
+                                                backgroundColor: getAvatarColor(client.name)
+                                            }}
+                                        >
+                                            {getAvatarInitial(client.name)}
                                         </div>
                                         <div className="card-info">
                                             <h3>{client.name}</h3>
@@ -429,8 +542,27 @@ export default function AdminClients() {
                                             <div className="made-by-compact">
                                                 {client.created_by_user ? (
                                                     <>
-                                                        <div className="creator-avatar-small">
-                                                            {client.created_by_user.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                                                        {client.created_by_user.avatar ? (
+                                                            <img 
+                                                                src={client.created_by_user.avatar} 
+                                                                alt={client.created_by_user.name}
+                                                                className="creator-avatar-img-small"
+                                                                onError={(e) => {
+                                                                    const target = e.target as HTMLImageElement;
+                                                                    target.style.display = 'none';
+                                                                    const fallback = target.nextElementSibling as HTMLElement;
+                                                                    if (fallback) fallback.style.display = 'flex';
+                                                                }}
+                                                            />
+                                                        ) : null}
+                                                        <div 
+                                                            className="creator-avatar-small"
+                                                            style={{
+                                                                display: client.created_by_user.avatar ? 'none' : 'flex',
+                                                                backgroundColor: getAvatarColor(client.created_by_user.name)
+                                                            }}
+                                                        >
+                                                            {getAvatarInitial(client.created_by_user.name)}
                                                         </div>
                                                         <span className="detail-value">{client.created_by_user.name}</span>
                                                     </>

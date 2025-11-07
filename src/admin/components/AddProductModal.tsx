@@ -54,7 +54,7 @@ export default function AddProductModal({ open, onClose, onSuccess, product }: A
         type: '' as '' | 'L' | 'N' | 'K',
         center_stone_size_mm: '',
         ni_tay: '',
-        shape: '' as '' | 'Round' | 'Baguette',
+        shape: [] as string[], // Array to support multiple shapes
         dimensions: '',
         stone_count: '',
         carat_weight_ct: '',
@@ -118,7 +118,7 @@ export default function AddProductModal({ open, onClose, onSuccess, product }: A
                 type: ((product as any).type === 'L' || (product as any).type === 'N' || (product as any).type === 'K') ? (product as any).type : '',
                 center_stone_size_mm: (product as any).center_stone_size_mm?.toString() || '',
                 ni_tay: (product as any).ni_tay?.toString() || '',
-                shape: ((product as any).shape === 'Round' || (product as any).shape === 'Baguette') ? (product as any).shape : '',
+                shape: (product as any).shape ? (Array.isArray((product as any).shape) ? (product as any).shape : [(product as any).shape].filter(Boolean)) : [],
                 dimensions: (product as any).dimensions || '',
                 stone_count: (product as any).stone_count?.toString() || '',
                 carat_weight_ct: (product as any).carat_weight_ct?.toString() || '',
@@ -459,7 +459,7 @@ export default function AddProductModal({ open, onClose, onSuccess, product }: A
                     type: formData.type || null,
                     center_stone_size_mm: formData.center_stone_size_mm ? parseFloat(formData.center_stone_size_mm) : null,
                     ni_tay: formData.ni_tay ? parseFloat(formData.ni_tay) : null,
-                    shape: formData.shape || null,
+                    shape: formData.shape.length > 0 ? (formData.shape.length === 1 ? formData.shape[0] : formData.shape.join(', ')) : null,
                     dimensions: formData.dimensions.trim() || null,
                     stone_count: formData.stone_count ? parseInt(formData.stone_count) : null,
                     carat_weight_ct: formData.carat_weight_ct ? parseFloat(formData.carat_weight_ct) : null,
@@ -500,7 +500,7 @@ export default function AddProductModal({ open, onClose, onSuccess, product }: A
                     type: formData.type || null,
                     center_stone_size_mm: formData.center_stone_size_mm ? parseFloat(formData.center_stone_size_mm) : null,
                     ni_tay: formData.ni_tay ? parseFloat(formData.ni_tay) : null,
-                    shape: formData.shape || null,
+                    shape: formData.shape.length > 0 ? (formData.shape.length === 1 ? formData.shape[0] : formData.shape.join(', ')) : null,
                     dimensions: formData.dimensions.trim() || null,
                     stone_count: formData.stone_count ? parseInt(formData.stone_count) : null,
                     carat_weight_ct: formData.carat_weight_ct ? parseFloat(formData.carat_weight_ct) : null,
@@ -625,6 +625,35 @@ export default function AddProductModal({ open, onClose, onSuccess, product }: A
                                     onChange={(e) => handleInputChange('sku', e.target.value)}
                                     placeholder="Enter SKU"
                                 />
+                            </div>
+
+                            {/* Short Description */}
+                            <div className="form-group">
+                                <label htmlFor="short-description">
+                                    Short Description
+                                    <span className="char-count" style={{ 
+                                        float: 'right', 
+                                        fontWeight: 'normal', 
+                                        color: formData.short_description.length > SHORT_DESC_LIMIT ? '#ef4444' : '#6b7280',
+                                        fontSize: '0.875rem'
+                                    }}>
+                                        {formData.short_description.length}/{SHORT_DESC_LIMIT}
+                                    </span>
+                                </label>
+                                <textarea
+                                    id="short-description"
+                                    value={formData.short_description}
+                                    onChange={(e) => {
+                                        if (e.target.value.length <= SHORT_DESC_LIMIT) {
+                                            handleInputChange('short_description', e.target.value);
+                                        }
+                                    }}
+                                    placeholder="Enter short description (max 200 characters)"
+                                    rows={3}
+                                    maxLength={SHORT_DESC_LIMIT}
+                                    className={errors.short_description ? 'error' : ''}
+                                />
+                                {errors.short_description && <span className="error-message">{errors.short_description}</span>}
                             </div>
 
                             {/* Product Images */}
@@ -811,15 +840,36 @@ export default function AddProductModal({ open, onClose, onSuccess, product }: A
                             <div className="form-row">
                                 <div className="form-group">
                                     <label htmlFor="shape">Shape</label>
-                                    <select
-                                        id="shape"
-                                        value={formData.shape}
-                                        onChange={(e) => handleInputChange('shape', e.target.value as '' | 'Round' | 'Baguette')}
-                                    >
-                                        <option value="">Select shape</option>
-                                        <option value="Round">Round</option>
-                                        <option value="Baguette">Baguette</option>
-                                    </select>
+                                    <div className="shape-checkbox-group">
+                                        <label className="shape-checkbox-item">
+                                            <input
+                                                type="checkbox"
+                                                checked={formData.shape.includes('Round')}
+                                                onChange={(e) => {
+                                                    if (e.target.checked) {
+                                                        handleInputChange('shape', [...formData.shape, 'Round']);
+                                                    } else {
+                                                        handleInputChange('shape', formData.shape.filter(s => s !== 'Round'));
+                                                    }
+                                                }}
+                                            />
+                                            <span>Round</span>
+                                        </label>
+                                        <label className="shape-checkbox-item">
+                                            <input
+                                                type="checkbox"
+                                                checked={formData.shape.includes('Baguette')}
+                                                onChange={(e) => {
+                                                    if (e.target.checked) {
+                                                        handleInputChange('shape', [...formData.shape, 'Baguette']);
+                                                    } else {
+                                                        handleInputChange('shape', formData.shape.filter(s => s !== 'Baguette'));
+                                                    }
+                                                }}
+                                            />
+                                            <span>Baguette</span>
+                                        </label>
+                                    </div>
                                 </div>
                             </div>
 

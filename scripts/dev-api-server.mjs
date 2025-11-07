@@ -10,13 +10,16 @@ import clientsHandler from '../api/clients.js';
 import commissionRatesHandler from '../api/commission-rates.js';
 import productImagesHandler from '../api/product-images.js';
 import userAvatarsHandler from '../api/user-avatars.js';
+import userPersonalIdsHandler from '../api/user-personal-ids.js';
+import otpHandler from '../api/otp.js';
 import syncHandler from '../api/integrations/sync.js';
 import testHandler from '../api/integrations/test.js';
 import listHandler from '../api/integrations/list.js';
 import supabaseConfigHandler from '../api/supabase-config.js';
 
 const app = express();
-app.use(express.json());
+app.use(express.json({ limit: '50mb' })); // Increase limit for base64 image uploads
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // Adapter to map Vercel-style (req, res) handlers to Express routes
 function toRoute(handler) {
@@ -34,6 +37,7 @@ app.get('/api/users/:id', (req, res) => {
   req.query = { ...req.query, id: req.params.id };
   return usersHandler(req, res);
 });
+app.all('/api/users/profile', toRoute(usersHandler));
 app.all('/api/users/hierarchy', (req, res) => {
   req.query = { ...req.query, endpoint: 'hierarchy' };
   return usersHandler(req, res);
@@ -48,6 +52,8 @@ app.all('/api/clients', toRoute(clientsHandler));
 app.all('/api/commission-rates', toRoute(commissionRatesHandler));
 app.all('/api/product-images', toRoute(productImagesHandler));
 app.all('/api/user-avatars', toRoute(userAvatarsHandler));
+app.all('/api/user-personal-ids', toRoute(userPersonalIdsHandler));
+app.all('/api/otp', toRoute(otpHandler));
 app.all('/api/integrations/sync', toRoute(syncHandler));
 app.all('/api/integrations/test', toRoute(testHandler));
 app.all('/api/integrations/list', toRoute(listHandler));

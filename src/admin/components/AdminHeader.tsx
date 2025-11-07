@@ -18,7 +18,7 @@ export default function AdminHeader({ title, mobileMenuOpen, onMobileMenuToggle 
     const [profileOpen, setProfileOpen] = useModalState(false);
     const [settingOpen, setSettingOpen] = useModalState(false);
     const [userName, setUserName] = useState('Admin User');
-    const [userAvatar, setUserAvatar] = useState<string>('/images/logo.png');
+    const [userAvatar, setUserAvatar] = useState<string | null>(null);
     const menuRef = useRef<HTMLDivElement | null>(null);
     const location = useLocation();
     const navigate = useNavigate();
@@ -37,13 +37,17 @@ export default function AdminHeader({ title, mobileMenuOpen, onMobileMenuToggle 
                         localStorage.setItem('nobleco_user_data', JSON.stringify(updatedUser));
                     }
                 } else {
-                    // No avatar, use default
-                    setUserAvatar('/images/logo.png');
+                    // No avatar, set to null to show default letter avatar
+                    setUserAvatar(null);
                 }
+            } else {
+                // API error, set to null to show default letter avatar
+                setUserAvatar(null);
             }
         } catch (error) {
             console.error('Error loading avatar:', error);
-            // Keep default avatar on error
+            // Set to null to show default letter avatar on error
+            setUserAvatar(null);
         }
     };
     
@@ -149,7 +153,7 @@ export default function AdminHeader({ title, mobileMenuOpen, onMobileMenuToggle 
                             alt={user.name} 
                             className="avatar"
                             onError={(e) => {
-                                // Fallback to default if image fails to load
+                                // Fallback to default letter avatar if image fails to load
                                 const target = e.target as HTMLImageElement;
                                 target.style.display = 'none';
                                 const parent = target.parentElement;
@@ -157,20 +161,22 @@ export default function AdminHeader({ title, mobileMenuOpen, onMobileMenuToggle 
                                     const fallback = document.createElement('div');
                                     fallback.className = 'avatar';
                                     fallback.style.cssText = `
-                                        width: 40px;
-                                        height: 40px;
+                                        width: 28px;
+                                        height: 28px;
                                         border-radius: 50%;
                                         background-color: ${getAvatarColor(user.name)};
                                         display: flex;
                                         align-items: center;
                                         justify-content: center;
                                         color: white;
-                                        font-size: 16px;
+                                        font-size: 11px;
                                         font-weight: 600;
                                         text-transform: uppercase;
                                     `;
                                     fallback.textContent = getAvatarInitial(user.name);
                                     parent.insertBefore(fallback, target);
+                                    // Update state to null so it doesn't try to load again
+                                    setUserAvatar(null);
                                 }
                             }}
                         />
@@ -178,15 +184,15 @@ export default function AdminHeader({ title, mobileMenuOpen, onMobileMenuToggle 
                         <div 
                             className="avatar"
                             style={{
-                                width: '40px',
-                                height: '40px',
+                                width: '28px',
+                                height: '28px',
                                 borderRadius: '50%',
                                 backgroundColor: getAvatarColor(user.name),
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
                                 color: 'white',
-                                fontSize: '16px',
+                                fontSize: '11px',
                                 fontWeight: 600,
                                 textTransform: 'uppercase'
                             }}

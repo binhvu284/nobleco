@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { IconX } from './icons';
+import { getAvatarInitial, getAvatarColor } from '../../utils/avatarUtils';
 
 interface Client {
     id: number;
@@ -15,9 +16,11 @@ interface Client {
         id: number;
         name: string;
         refer_code: string;
+        avatar?: string;
     } | null;
     created_at: string;
     updated_at: string;
+    avatar?: string;
 }
 
 interface ClientDetailModalProps {
@@ -27,6 +30,39 @@ interface ClientDetailModalProps {
 }
 
 export default function ClientDetailModal({ open, onClose, client }: ClientDetailModalProps) {
+    const [creatorAvatar, setCreatorAvatar] = useState<string | null>(null);
+    const [loadingAvatar, setLoadingAvatar] = useState(false);
+
+    useEffect(() => {
+        if (open && client?.created_by_user?.id) {
+            fetchCreatorAvatar();
+        } else {
+            setCreatorAvatar(null);
+        }
+    }, [open, client?.created_by_user?.id]);
+
+    const fetchCreatorAvatar = async () => {
+        if (!client?.created_by_user?.id) return;
+        
+        setLoadingAvatar(true);
+        try {
+            const response = await fetch(`/api/user-avatars?userId=${client.created_by_user.id}`);
+            if (response.ok) {
+                const avatarData = await response.json();
+                if (avatarData?.url) {
+                    setCreatorAvatar(avatarData.url);
+                } else {
+                    setCreatorAvatar(null);
+                }
+            }
+        } catch (error) {
+            console.error('Error fetching creator avatar:', error);
+            setCreatorAvatar(null);
+        } finally {
+            setLoadingAvatar(false);
+        }
+    };
+
     if (!open || !client) return null;
 
     const formatDate = (dateString: string | null) => {
@@ -148,8 +184,27 @@ export default function ClientDetailModal({ open, onClose, client }: ClientDetai
                                     <div className="detail-value-wrapper">
                                         {client.created_by_user ? (
                                             <div className="created-by-info">
-                                                <div className="creator-avatar-small">
-                                                    {client.created_by_user.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                                                {creatorAvatar ? (
+                                                    <img 
+                                                        src={creatorAvatar} 
+                                                        alt={client.created_by_user.name}
+                                                        className="creator-avatar-img-modal"
+                                                        onError={(e) => {
+                                                            const target = e.target as HTMLImageElement;
+                                                            target.style.display = 'none';
+                                                            const fallback = target.nextElementSibling as HTMLElement;
+                                                            if (fallback) fallback.style.display = 'flex';
+                                                        }}
+                                                    />
+                                                ) : null}
+                                                <div 
+                                                    className="creator-avatar-small"
+                                                    style={{
+                                                        display: creatorAvatar ? 'none' : 'flex',
+                                                        backgroundColor: getAvatarColor(client.created_by_user.name)
+                                                    }}
+                                                >
+                                                    {getAvatarInitial(client.created_by_user.name)}
                                                 </div>
                                                 <div className="creator-details">
                                                     <div className="creator-name">{client.created_by_user.name}</div>

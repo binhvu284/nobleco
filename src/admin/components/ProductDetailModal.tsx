@@ -246,7 +246,13 @@ export default function ProductDetailModal({ open, onClose, product, onEdit }: P
                                 </div>
                                 <div className="kiotviet-field">
                                     <label>Shape</label>
-                                    <span>{product.shape ?? 'null'}</span>
+                                    <span>
+                                        {product.shape 
+                                            ? (typeof product.shape === 'string' && product.shape.includes(',') 
+                                                ? product.shape.split(',').map(s => s.trim()).join(', ')
+                                                : product.shape)
+                                            : 'null'}
+                                    </span>
                                 </div>
                                 <div className="kiotviet-field">
                                     <label>Dimensions</label>

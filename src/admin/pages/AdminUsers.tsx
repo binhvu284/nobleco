@@ -594,9 +594,9 @@ export default function AdminUsers() {
                         <table className="table">
                         <thead>
                             <tr>
-                                <th style={{ width: 120 }}>ID</th>
                                 <th style={{ width: 180 }}>Name</th>
                                 <th style={{ width: 220 }}>Email</th>
+                                <th style={{ width: 150 }}>Phone</th>
                                 <th style={{ width: 150 }}>Level</th>
                                 <th style={{ width: 90 }}>Points</th>
                                 <th style={{ width: 110 }}>Status</th>
@@ -605,118 +605,118 @@ export default function AdminUsers() {
                             </tr>
                         </thead>
                         <tbody>
-                            {loading ? (
-                                // Show skeleton loading rows
-                                Array.from({ length: 5 }).map((_, i) => (
-                                    <tr key={`skeleton-${i}`} className="row-loading">
-                                        <td><div className="skeleton skeleton-text" style={{ width: '60px' }}></div></td>
-                                        <td><div className="skeleton skeleton-text" style={{ width: '120px' }}></div></td>
-                                        <td><div className="skeleton skeleton-text" style={{ width: '180px' }}></div></td>
-                                        <td><div className="skeleton skeleton-badge"></div></td>
-                                        <td><div className="skeleton skeleton-text" style={{ width: '50px' }}></div></td>
-                                        <td><div className="skeleton skeleton-badge"></div></td>
-                                        <td><div className="skeleton skeleton-text" style={{ width: '100px' }}></div></td>
-                                        <td></td>
+                                {loading ? (
+                                    // Show skeleton loading rows
+                                    Array.from({ length: 5 }).map((_, i) => (
+                                        <tr key={`skeleton-${i}`} className="row-loading">
+                                            <td><div className="skeleton skeleton-text" style={{ width: '120px' }}></div></td>
+                                            <td><div className="skeleton skeleton-text" style={{ width: '180px' }}></div></td>
+                                            <td><div className="skeleton skeleton-text" style={{ width: '120px' }}></div></td>
+                                            <td><div className="skeleton skeleton-badge"></div></td>
+                                            <td><div className="skeleton skeleton-text" style={{ width: '50px' }}></div></td>
+                                            <td><div className="skeleton skeleton-badge"></div></td>
+                                            <td><div className="skeleton skeleton-text" style={{ width: '100px' }}></div></td>
+                                            <td></td>
+                                        </tr>
+                                    ))
+                                ) : filteredRows.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={8} className="muted">No users found</td>
                                     </tr>
-                                ))
-                            ) : filteredRows.length === 0 ? (
-                                <tr>
-                                    <td colSpan={8} className="muted">No users found</td>
-                                </tr>
-                            ) : (
-                                filteredRows.map((r) => {
-                                    const user = users.find(u => u.id === r.id);
-                                    return (
-                                        <tr 
-                                            key={String(r.id)} 
-                                            className="user-row-clickable"
-                                            onClick={() => {
-                                                if (user) {
-                                                    setSelectedUserForDetail(user);
-                                                }
-                                            }}
-                                        >
-                                            <td><code>{r.id}</code></td>
-                                            <td>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                    {user?.avatar ? (
-                                                        <img 
-                                                            src={user.avatar} 
-                                                            alt={r.name}
-                                                            style={{
-                                                                width: '32px',
-                                                                height: '32px',
-                                                                borderRadius: '50%',
-                                                                objectFit: 'cover'
-                                                            }}
-                                                            onError={(e) => {
-                                                                const target = e.target as HTMLImageElement;
-                                                                target.style.display = 'none';
-                                                                const parent = target.parentElement;
-                                                                if (parent) {
-                                                                    const fallback = document.createElement('div');
-                                                                    fallback.style.cssText = `
-                                                                        width: 32px;
-                                                                        height: 32px;
-                                                                        border-radius: 50%;
-                                                                        background-color: ${getAvatarColor(r.name)};
-                                                                        display: flex;
-                                                                        align-items: center;
-                                                                        justify-content: center;
-                                                                        color: white;
-                                                                        font-size: 14px;
-                                                                        font-weight: 600;
-                                                                        text-transform: uppercase;
-                                                                    `;
-                                                                    fallback.textContent = getAvatarInitial(r.name);
-                                                                    parent.appendChild(fallback);
-                                                                }
-                                                            }}
-                                                        />
-                                                    ) : (
-                                                        <div 
-                                                            style={{
-                                                                width: '32px',
-                                                                height: '32px',
-                                                                borderRadius: '50%',
-                                                                backgroundColor: getAvatarColor(r.name),
-                                                                display: 'flex',
-                                                                alignItems: 'center',
-                                                                justifyContent: 'center',
-                                                                color: 'white',
-                                                                fontSize: '14px',
-                                                                fontWeight: 600,
-                                                                textTransform: 'uppercase'
-                                                            }}
-                                                        >
-                                                            {getAvatarInitial(r.name)}
-                                                        </div>
-                                                    )}
-                                                    <span>{r.name}</span>
-                                                </div>
-                                            </td>
-                                            <td>{r.email}</td>
-                                            <td>
-                                                <span className={`badge ${`badge-level-${r.level.replace(/\s+/g, '-')}`}`}>{
-                                                    r.level === 'unit manager' ? 'Unit Manager' : r.level === 'brand manager' ? 'Brand Manager' : r.level === 'member' ? 'Member' : 'Guest'
-                                                }</span>
-                                            </td>
-                                            <td className="points-value">{r.points}</td>
-                                            <td>
-                                                <span className={`badge ${r.status === 'active' ? 'badge-success' : 'badge-muted'}`}>{r.status}</span>
-                                            </td>
-                                            <td>{r.createdAt}</td>
-                                            <td className="row-actions">
-                                                <button
-                                                    className="more-btn"
-                                                    aria-label="More actions"
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        setMenuOpenId((prev) => prev === r.id ? null : r.id);
-                                                    }}
-                                                >
-                                                    ⋯
-                                                </button>
+                                ) : (
+                                    filteredRows.map((r) => {
+                                        const user = users.find(u => u.id === r.id);
+                                        return (
+                                            <tr 
+                                                key={String(r.id)} 
+                                                className="user-row-clickable"
+                                                onClick={() => {
+                                                    if (user) {
+                                                        setSelectedUserForDetail(user);
+                                                    }
+                                                }}
+                                            >
+                                                <td>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                        {user?.avatar ? (
+                                                            <img 
+                                                                src={user.avatar} 
+                                                                alt={r.name}
+                                                                style={{
+                                                                    width: '32px',
+                                                                    height: '32px',
+                                                                    borderRadius: '50%',
+                                                                    objectFit: 'cover'
+                                                                }}
+                                                                onError={(e) => {
+                                                                    const target = e.target as HTMLImageElement;
+                                                                    target.style.display = 'none';
+                                                                    const parent = target.parentElement;
+                                                                    if (parent) {
+                                                                        const fallback = document.createElement('div');
+                                                                        fallback.style.cssText = `
+                                                                            width: 32px;
+                                                                            height: 32px;
+                                                                            border-radius: 50%;
+                                                                            background-color: ${getAvatarColor(r.name)};
+                                                                            display: flex;
+                                                                            align-items: center;
+                                                                            justify-content: center;
+                                                                            color: white;
+                                                                            font-size: 14px;
+                                                                            font-weight: 600;
+                                                                            text-transform: uppercase;
+                                                                        `;
+                                                                        fallback.textContent = getAvatarInitial(r.name);
+                                                                        parent.appendChild(fallback);
+                                                                    }
+                                                                }}
+                                                            />
+                                                        ) : (
+                                                            <div 
+                                                                style={{
+                                                                    width: '32px',
+                                                                    height: '32px',
+                                                                    borderRadius: '50%',
+                                                                    backgroundColor: getAvatarColor(r.name),
+                                                                    display: 'flex',
+                                                                    alignItems: 'center',
+                                                                    justifyContent: 'center',
+                                                                    color: 'white',
+                                                                    fontSize: '14px',
+                                                                    fontWeight: 600,
+                                                                    textTransform: 'uppercase'
+                                                                }}
+                                                            >
+                                                                {getAvatarInitial(r.name)}
+                                                            </div>
+                                                        )}
+                                                        <span>{r.name}</span>
+                                                    </div>
+                                                </td>
+                                                <td>{r.email}</td>
+                                                <td>{user?.phone || 'N/A'}</td>
+                                                <td>
+                                                    <span className={`badge ${`badge-level-${r.level.replace(/\s+/g, '-')}`}`}>{
+                                                        r.level === 'unit manager' ? 'Unit Manager' : r.level === 'brand manager' ? 'Brand Manager' : r.level === 'member' ? 'Member' : 'Guest'
+                                                    }</span>
+                                                </td>
+                                                <td className="points-value">{r.points}</td>
+                                                <td>
+                                                    <span className={`badge ${r.status === 'active' ? 'badge-success' : 'badge-muted'}`}>{r.status}</span>
+                                                </td>
+                                                <td>{r.createdAt}</td>
+                                                <td className="row-actions">
+                                                    <button
+                                                        className="more-btn"
+                                                        aria-label="More actions"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setMenuOpenId((prev) => prev === r.id ? null : r.id);
+                                                        }}
+                                                    >
+                                                        ⋯
+                                                    </button>
                                                 {menuOpenId === r.id && (
                                                     <div className="menu" onClick={(e) => e.stopPropagation()}>
                                                         <button 
@@ -880,6 +880,7 @@ export default function AdminUsers() {
                                             <div className="card-info">
                                                 <h3>{r.name}</h3>
                                                 <p className="user-email">{r.email}</p>
+                                                <p className="user-phone" style={{ fontSize: '0.875rem', color: 'var(--muted)', marginTop: '4px' }}>{user?.phone || 'N/A'}</p>
                                             </div>
                                             <div className="card-meta">
                                                 <span className={`badge ${r.status === 'active' ? 'badge-success' : 'badge-muted'}`}>{r.status}</span>
@@ -974,8 +975,8 @@ export default function AdminUsers() {
                                         </div>
                                         <div className="card-body">
                                             <div className="card-detail">
-                                                <span className="detail-label">ID:</span>
-                                                <span className="detail-value"><code>{r.id}</code></span>
+                                                <span className="detail-label">Phone:</span>
+                                                <span className="detail-value">{user?.phone || 'N/A'}</span>
                                             </div>
                                             <div className="card-detail">
                                                 <span className="detail-label">Level:</span>

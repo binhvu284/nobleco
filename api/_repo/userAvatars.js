@@ -14,6 +14,9 @@ function normalize(img) {
     width: img.width || null,
     height: img.height || null,
     mime_type: img.mime_type || null,
+    viewport_x: img.viewport_x !== null && img.viewport_x !== undefined ? parseFloat(img.viewport_x) : null,
+    viewport_y: img.viewport_y !== null && img.viewport_y !== undefined ? parseFloat(img.viewport_y) : null,
+    viewport_size: img.viewport_size !== null && img.viewport_size !== undefined ? parseFloat(img.viewport_size) : null,
     created_at: img.created_at,
     updated_at: img.updated_at
   };
@@ -67,7 +70,10 @@ export async function upsertUserAvatar(userId, avatarData) {
     file_size: avatarData.file_size || null,
     width: avatarData.width || null,
     height: avatarData.height || null,
-    mime_type: avatarData.mime_type || null
+    mime_type: avatarData.mime_type || null,
+    viewport_x: avatarData.viewport_x !== null && avatarData.viewport_x !== undefined ? parseFloat(avatarData.viewport_x) : null,
+    viewport_y: avatarData.viewport_y !== null && avatarData.viewport_y !== undefined ? parseFloat(avatarData.viewport_y) : null,
+    viewport_size: avatarData.viewport_size !== null && avatarData.viewport_size !== undefined ? parseFloat(avatarData.viewport_size) : null
   };
 
   // Use upsert to insert or update
