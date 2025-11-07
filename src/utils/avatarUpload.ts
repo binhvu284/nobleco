@@ -10,6 +10,9 @@ export interface UserAvatar {
   width?: number;
   height?: number;
   mime_type?: string;
+  viewport_x?: number | null;  // X coordinate of viewport center (0-1, relative to width)
+  viewport_y?: number | null;   // Y coordinate of viewport center (0-1, relative to height)
+  viewport_size?: number | null; // Size of viewport (0-1, relative to larger dimension)
   created_at: string;
   updated_at: string;
 }
@@ -23,12 +26,12 @@ export async function uploadUserAvatar(
   file: File,
   options: {
     compress?: boolean;
-    cropData?: {
-      x: number;
-      y: number;
-      width: number;
-      height: number;
-      displaySize?: {
+    viewportData?: {
+      x: number;  // X coordinate in displayed image
+      y: number;  // Y coordinate in displayed image
+      width: number;  // Viewport width in displayed image
+      height: number;  // Viewport height in displayed image
+      displaySize: {
         width: number;
         height: number;
       };
@@ -37,7 +40,7 @@ export async function uploadUserAvatar(
 ): Promise<UserAvatar> {
   const {
     compress = true,
-    cropData
+    viewportData
   } = options;
 
   const supabase = await getSupabaseClient();
@@ -63,19 +66,41 @@ export async function uploadUserAvatar(
     console.warn('Bucket check failed (continuing anyway):', error);
   }
 
-  // Process image: crop if needed, then compress
+  // Process image: NO cropping, just compress if needed
   let fileToUpload = file;
   
-  // Apply cropping if provided
-  // Note: cropData coordinates are relative to displayed image, we'll handle scaling in cropImage
-  if (cropData) {
+  // Calculate viewport coordinates relative to original image (0-1)
+  let viewport_x: number | null = null;
+  let viewport_y: number | null = null;
+  let viewport_size: number | null = null;
+  
+  if (viewportData) {
     try {
-      // Use displaySize if provided, otherwise get actual dimensions
-      const displaySize = cropData.displaySize || await getImageDimensions(file);
-      fileToUpload = await cropImage(file, cropData, displaySize);
+      // Get actual image dimensions
+      const actualDimensions = await getImageDimensions(file);
+      
+      // Calculate scale factors
+      const scaleX = actualDimensions.width / viewportData.displaySize.width;
+      const scaleY = actualDimensions.height / viewportData.displaySize.height;
+      
+      // Convert displayed coordinates to actual image coordinates
+      const actualX = viewportData.x * scaleX;
+      const actualY = viewportData.y * scaleY;
+      const actualWidth = viewportData.width * scaleX;
+      const actualHeight = viewportData.height * scaleY;
+      
+      // Calculate viewport center and size as ratios (0-1)
+      const viewportCenterX = (actualX + actualWidth / 2) / actualDimensions.width;
+      const viewportCenterY = (actualY + actualHeight / 2) / actualDimensions.height;
+      const largerDimension = Math.max(actualDimensions.width, actualDimensions.height);
+      const viewportSizeRatio = actualWidth / largerDimension;
+      
+      viewport_x = Math.max(0, Math.min(1, viewportCenterX));
+      viewport_y = Math.max(0, Math.min(1, viewportCenterY));
+      viewport_size = Math.max(0, Math.min(1, viewportSizeRatio));
     } catch (error) {
-      console.warn('Image cropping failed, using original:', error);
-      // Continue with original file if cropping fails
+      console.warn('Failed to calculate viewport coordinates:', error);
+      // Continue without viewport data
     }
   }
 
@@ -204,7 +229,10 @@ export async function uploadUserAvatar(
       file_size: fileToUpload.size,
       width: width || null,
       height: height || null,
-      mime_type: fileToUpload.type || null
+      mime_type: fileToUpload.type || null,
+      viewport_x: viewport_x,
+      viewport_y: viewport_y,
+      viewport_size: viewport_size
     })
   });
 
@@ -308,92 +336,4 @@ export async function deleteUserAvatar(userId: number): Promise<void> {
   }
 }
 
-/**
- * Crop image using canvas
- * cropData coordinates are relative to the displayed image size, need to scale to actual image size
- */
-function cropImage(file: File, cropData: { x: number; y: number; width: number; height: number }, displaySize?: { width: number; height: number }): Promise<File> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    
-    reader.onload = (e) => {
-      const img = new Image();
-      
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        
-        if (!ctx) {
-          reject(new Error('Failed to get canvas context'));
-          return;
-        }
-
-        // Calculate scale factor if display size is provided
-        let scaleX = 1;
-        let scaleY = 1;
-        if (displaySize) {
-          scaleX = img.width / displaySize.width;
-          scaleY = img.height / displaySize.height;
-        }
-
-        // Scale crop coordinates to actual image size
-        const actualX = cropData.x * scaleX;
-        const actualY = cropData.y * scaleY;
-        const actualWidth = cropData.width * scaleX;
-        const actualHeight = cropData.height * scaleY;
-
-        // Ensure crop is within image bounds
-        const cropX = Math.max(0, Math.min(actualX, img.width - actualWidth));
-        const cropY = Math.max(0, Math.min(actualY, img.height - actualHeight));
-        const cropWidth = Math.min(actualWidth, img.width - cropX);
-        const cropHeight = Math.min(actualHeight, img.height - cropY);
-
-        // Set canvas size to crop dimensions
-        canvas.width = cropWidth;
-        canvas.height = cropHeight;
-
-        // Draw cropped image
-        ctx.drawImage(
-          img,
-          cropX,
-          cropY,
-          cropWidth,
-          cropHeight,
-          0,
-          0,
-          cropWidth,
-          cropHeight
-        );
-
-        // Convert to blob
-        canvas.toBlob((blob) => {
-          if (!blob) {
-            reject(new Error('Failed to create blob from canvas'));
-            return;
-          }
-
-          // Create new File from blob
-          const croppedFile = new File([blob], file.name, {
-            type: file.type || 'image/jpeg',
-            lastModified: Date.now()
-          });
-
-          resolve(croppedFile);
-        }, file.type || 'image/jpeg', 0.95);
-      };
-
-      img.onerror = () => {
-        reject(new Error('Failed to load image'));
-      };
-
-      img.src = e.target?.result as string;
-    };
-
-    reader.onerror = () => {
-      reject(new Error('Failed to read file'));
-    };
-
-    reader.readAsDataURL(file);
-  });
-}
 

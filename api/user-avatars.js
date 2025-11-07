@@ -64,7 +64,7 @@ export default async function handler(req, res) {
       }
 
       const body = req.body || await readBody(req);
-      const { storage_path, url, file_size, width, height, mime_type } = body;
+      const { storage_path, url, file_size, width, height, mime_type, viewport_x, viewport_y, viewport_size } = body;
 
       if (!storage_path || !url) {
         return res.status(400).json({ 
@@ -79,7 +79,10 @@ export default async function handler(req, res) {
           file_size: file_size || null,
           width: width || null,
           height: height || null,
-          mime_type: mime_type || null
+          mime_type: mime_type || null,
+          viewport_x: viewport_x !== null && viewport_x !== undefined ? parseFloat(viewport_x) : null,
+          viewport_y: viewport_y !== null && viewport_y !== undefined ? parseFloat(viewport_y) : null,
+          viewport_size: viewport_size !== null && viewport_size !== undefined ? parseFloat(viewport_size) : null
         });
         return res.status(200).json(result);
       } catch (error) {

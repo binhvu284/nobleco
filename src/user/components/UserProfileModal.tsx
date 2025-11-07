@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { getCurrentUser, type User } from '../../auth';
 import QRCode from 'qrcode';
-import { uploadUserAvatar, type UserAvatar } from '../../utils/avatarUpload';
-import { getAvatarInitial, getAvatarColor } from '../../utils/avatarUtils';
+import { uploadUserAvatar, deleteUserAvatar, type UserAvatar } from '../../utils/avatarUpload';
+import { getAvatarInitial, getAvatarColor, getAvatarViewportStyles } from '../../utils/avatarUtils';
 
 export default function UserProfileModal({ open, onClose }: { open: boolean; onClose: () => void }) {
     const [user, setUser] = useState<User | null>(null);
@@ -12,7 +12,6 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
     const [error, setError] = useState('');
     const [formData, setFormData] = useState({
         name: '',
-        phone: '',
         address: ''
     });
     const [qrCodeUrl, setQrCodeUrl] = useState('');
@@ -22,12 +21,31 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
     const [showAvatarCrop, setShowAvatarCrop] = useState(false);
     const [avatarFile, setAvatarFile] = useState<File | null>(null);
     const [avatarPreview, setAvatarPreview] = useState<string>('');
-    const [cropData, setCropData] = useState({ x: 0, y: 0, width: 200, height: 200 });
+    const [imageScale, setImageScale] = useState(1); // Zoom scale for the image
+    const [imagePosition, setImagePosition] = useState({ x: 0, y: 0 }); // Image position for dragging
+    const [frameSize, setFrameSize] = useState(300); // Fixed frame size (will be set based on image)
+    const [imageDimensions, setImageDimensions] = useState<{ width: number; height: number } | null>(null);
+    const [imageOffset, setImageOffset] = useState({ x: 0, y: 0 });
     const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
     const avatarImageRef = useRef<HTMLImageElement>(null);
     const cropContainerRef = useRef<HTMLDivElement>(null);
     const [isDragging, setIsDragging] = useState(false);
     const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+    
+    // Personal ID state
+    const [personalID, setPersonalID] = useState<{
+        front_image_url?: string;
+        back_image_url?: string;
+        front_image_path?: string;
+        back_image_path?: string;
+        verified?: boolean;
+    } | null>(null);
+    const [showPersonalIDExpanded, setShowPersonalIDExpanded] = useState<{ type: 'front' | 'back' } | null>(null);
+    const [isUploadingPersonalID, setIsUploadingPersonalID] = useState(false);
+    const frontImageInputRef = useRef<HTMLInputElement>(null);
+    const backImageInputRef = useRef<HTMLInputElement>(null);
+    const [showAvatarExpanded, setShowAvatarExpanded] = useState(false);
+    const [isHoveringAvatar, setIsHoveringAvatar] = useState(false);
 
     useEffect(() => {
         if (open) {
@@ -64,7 +82,6 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
                 setUser(freshUser);
                 setFormData({
                     name: freshUser.name || '',
-                    phone: freshUser.phone || '',
                     address: freshUser.address || ''
                 });
                 
@@ -75,6 +92,9 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
                 if (freshUser.avatar) {
                     setAvatar({ url: freshUser.avatar } as UserAvatar);
                 }
+                
+                // Load personal ID
+                await loadPersonalID(freshUser.id);
                 
                 // Generate QR code
                 if (freshUser.refer_code) {
@@ -89,7 +109,6 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
                 setUser(currentUser);
                 setFormData({
                     name: currentUser.name || '',
-                    phone: currentUser.phone || '',
                     address: currentUser.address || ''
                 });
                 if (currentUser.refer_code) {
@@ -104,7 +123,6 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
                 setUser(currentUser);
                 setFormData({
                     name: currentUser.name || '',
-                    phone: currentUser.phone || '',
                     address: currentUser.address || ''
                 });
                 if (currentUser.refer_code) {
@@ -166,7 +184,6 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
                 body: JSON.stringify({
                     id: user.id,
                     name: formData.name,
-                    phone: formData.phone,
                     address: formData.address,
                 }),
             });
@@ -188,7 +205,6 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
             // Update form data with the latest values from server
             setFormData({
                 name: data.user.name || '',
-                phone: data.user.phone || '',
                 address: data.user.address || ''
             });
             
@@ -211,7 +227,6 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
         if (user) {
             setFormData({
                 name: user.name || '',
-                phone: user.phone || '',
                 address: user.address || ''
             });
         }
@@ -267,8 +282,61 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
         }
     };
 
+
+    // Handler for Change button - opens file picker
+    const handleChangeAvatar = () => {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*';
+        input.onchange = (e) => {
+            const file = (e.target as HTMLInputElement).files?.[0];
+            if (file) {
+                handleAvatarFileSelect({ target: { files: [file] } } as any);
+            }
+        };
+        input.click();
+    };
+
+    // Handler for Remove button - deletes avatar
+    const handleRemoveAvatar = async () => {
+        if (!user?.id) return;
+        
+        if (!confirm('Are you sure you want to remove your avatar? It will revert to the default letter avatar.')) {
+            return;
+        }
+
+        setIsUploadingAvatar(true);
+        setError('');
+
+        try {
+            await deleteUserAvatar(user.id);
+            setAvatar(null);
+            
+            // Reload user data
+            await loadFreshUserData();
+            
+            // Update localStorage
+            const currentUser = getCurrentUser();
+            if (currentUser) {
+                const updatedUser = { ...currentUser, avatar: undefined };
+                localStorage.setItem('nobleco_user_data', JSON.stringify(updatedUser));
+            }
+            
+            // Dispatch events
+            window.dispatchEvent(new CustomEvent('avatarUpdated', {
+                detail: { avatarUrl: null }
+            }));
+            window.dispatchEvent(new Event('storage'));
+        } catch (error: any) {
+            setError(error.message || 'Failed to remove avatar. Please try again.');
+            console.error('Avatar removal error:', error);
+        } finally {
+            setIsUploadingAvatar(false);
+        }
+    };
+
     const handleCropConfirm = async () => {
-        if (!avatarFile || !user?.id || !avatarImageRef.current) {
+        if (!avatarFile || !user?.id || !avatarImageRef.current || !imageDimensions || !cropContainerRef.current) {
             setError('Missing required data. Please try again.');
             return;
         }
@@ -277,8 +345,10 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
         setError(''); // Clear any previous errors
         
         try {
-            // Get display dimensions for proper scaling
+            // Get container dimensions
+            const containerRect = cropContainerRef.current.getBoundingClientRect();
             const imgRect = avatarImageRef.current.getBoundingClientRect();
+            
             const displaySize = {
                 width: imgRect.width,
                 height: imgRect.height
@@ -288,11 +358,46 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
                 throw new Error('Image dimensions are invalid. Please try again.');
             }
 
+            // Frame is centered in container
+            const frameCenterX = containerRect.width / 2;
+            const frameCenterY = containerRect.height / 2;
+            
+            // Calculate scaled image dimensions
+            const scaledImageWidth = imageDimensions.width * imageScale;
+            const scaledImageHeight = imageDimensions.height * imageScale;
+            
+            // Image position is relative to container center
+            // Calculate where image top-left is
+            const imageLeft = (containerRect.width - scaledImageWidth) / 2 + imagePosition.x;
+            const imageTop = (containerRect.height - scaledImageHeight) / 2 + imagePosition.y;
+            
+            // Frame center relative to image top-left
+            const frameCenterRelativeToImage = {
+                x: frameCenterX - imageLeft,
+                y: frameCenterY - imageTop
+            };
+            
+            // Convert to original image coordinates (divide by scale)
+            const viewportX = frameCenterRelativeToImage.x / imageScale;
+            const viewportY = frameCenterRelativeToImage.y / imageScale;
+            
+            // Calculate as ratios (0-1) relative to original image dimensions
+            const viewportData = {
+                x: viewportX / imageDimensions.width,
+                y: viewportY / imageDimensions.height,
+                width: frameSize,
+                height: frameSize, // Circular frame
+                displaySize
+            };
+            
             const uploadedAvatar = await uploadUserAvatar(user.id, avatarFile, {
-                cropData: {
-                    ...cropData,
-                    displaySize // Pass display size for proper scaling
-                } as any
+                viewportData: {
+                    x: viewportData.x,
+                    y: viewportData.y,
+                    width: viewportData.width,
+                    height: viewportData.height,
+                    displaySize
+                }
             });
             
             if (!uploadedAvatar || !uploadedAvatar.url) {
@@ -303,7 +408,9 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
             setShowAvatarCrop(false);
             setAvatarFile(null);
             setAvatarPreview('');
-            setCropData({ x: 0, y: 0, width: 200, height: 200 });
+            setImageScale(1);
+            setImagePosition({ x: 0, y: 0 });
+            setImageDimensions(null);
             
             // Reload user data to get updated avatar URL
             await loadFreshUserData();
@@ -340,63 +447,235 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
         setShowAvatarCrop(false);
         setAvatarFile(null);
         setAvatarPreview('');
-        setCropData({ x: 0, y: 0, width: 200, height: 200 });
+        setImageScale(1);
+        setImagePosition({ x: 0, y: 0 });
+        setImageDimensions(null);
     };
 
-    const handleCropMouseDown = (e: React.MouseEvent) => {
-        if (!cropContainerRef.current) return;
+    // Handle image dragging (move image behind fixed frame)
+    const handleImageMouseDown = (e: React.MouseEvent) => {
+        if (!cropContainerRef.current || !avatarImageRef.current) return;
+        
         setIsDragging(true);
-        const rect = cropContainerRef.current.getBoundingClientRect();
+        
+        const containerRect = cropContainerRef.current.getBoundingClientRect();
+        
+        // Calculate offset from mouse to current image position
         setDragStart({
-            x: e.clientX - rect.left - cropData.x,
-            y: e.clientY - rect.top - cropData.y
+            x: e.clientX - containerRect.left - imagePosition.x,
+            y: e.clientY - containerRect.top - imagePosition.y
         });
+        
+        e.preventDefault();
+        e.stopPropagation();
     };
 
-    const handleCropMouseMove = (e: React.MouseEvent) => {
-        if (!isDragging || !cropContainerRef.current || !avatarImageRef.current) return;
-        const rect = cropContainerRef.current.getBoundingClientRect();
-        const imgRect = avatarImageRef.current.getBoundingClientRect();
-        
-        const imgDisplayWidth = imgRect.width;
-        const imgDisplayHeight = imgRect.height;
-        
-        // Calculate new position
-        let newX = e.clientX - rect.left - dragStart.x;
-        let newY = e.clientY - rect.top - dragStart.y;
-        
-        // Constrain to image bounds
-        newX = Math.max(0, Math.min(newX, imgDisplayWidth - cropData.width));
-        newY = Math.max(0, Math.min(newY, imgDisplayHeight - cropData.height));
-        
-        setCropData(prev => ({ ...prev, x: newX, y: newY }));
-    };
-
-    const handleCropMouseUp = () => {
+    const handleImageMouseUp = () => {
         setIsDragging(false);
     };
 
-    const handleCropResize = (direction: string, delta: number) => {
-        setCropData(prev => {
-            let newCrop = { ...prev };
-            const minSize = 100;
-            const maxSize = 400;
+    // Add document-level mouse event listeners for smooth dragging
+    useEffect(() => {
+        if (!isDragging || !cropContainerRef.current || !imageDimensions) return;
+        
+        const handleMove = (e: MouseEvent) => {
+            if (!cropContainerRef.current) return;
             
-            if (direction.includes('w')) {
-                newCrop.width = Math.max(minSize, Math.min(maxSize, prev.width + delta));
-            }
-            if (direction.includes('h')) {
-                newCrop.height = Math.max(minSize, Math.min(maxSize, prev.height + delta));
-            }
-            if (direction.includes('x')) {
-                newCrop.x = Math.max(0, prev.x - delta);
-            }
-            if (direction.includes('y')) {
-                newCrop.y = Math.max(0, prev.y - delta);
-            }
+            const containerRect = cropContainerRef.current.getBoundingClientRect();
             
-            return newCrop;
-        });
+            // Calculate new image position
+            const mouseX = e.clientX - containerRect.left;
+            const mouseY = e.clientY - containerRect.top;
+            
+            let newX = mouseX - dragStart.x;
+            let newY = mouseY - dragStart.y;
+            
+            // Constrain image position so it doesn't go too far
+            // Calculate scaled image dimensions
+            const scaledWidth = imageDimensions.width * imageScale;
+            const scaledHeight = imageDimensions.height * imageScale;
+            
+            // Allow some movement but keep image visible within reasonable bounds
+            const maxX = (containerRect.width - scaledWidth) / 2 + containerRect.width * 0.5;
+            const maxY = (containerRect.height - scaledHeight) / 2 + containerRect.height * 0.5;
+            const minX = (containerRect.width - scaledWidth) / 2 - containerRect.width * 0.5;
+            const minY = (containerRect.height - scaledHeight) / 2 - containerRect.height * 0.5;
+            
+            newX = Math.max(minX, Math.min(maxX, newX));
+            newY = Math.max(minY, Math.min(maxY, newY));
+            
+            setImagePosition({ x: newX, y: newY });
+        };
+        
+        const handleUp = () => {
+            setIsDragging(false);
+        };
+        
+        document.addEventListener('mousemove', handleMove);
+        document.addEventListener('mouseup', handleUp);
+        
+        return () => {
+            document.removeEventListener('mousemove', handleMove);
+            document.removeEventListener('mouseup', handleUp);
+        };
+    }, [isDragging, dragStart, imageScale, imageDimensions]);
+
+
+    // Handler for zoom slider (zoom in/out image)
+    const handleZoomChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const newScale = parseFloat(e.target.value);
+        setImageScale(newScale);
+    };
+
+    // Personal ID functions
+    const loadPersonalID = async (userId: number) => {
+        try {
+            const token = localStorage.getItem('nobleco_auth_token');
+            const response = await fetch(`/api/user-personal-ids?userId=${userId}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                },
+            });
+            if (response.ok) {
+                const data = await response.json();
+                if (data && (data.front_image_url || data.back_image_url)) {
+                    setPersonalID(data);
+                } else {
+                    setPersonalID(null);
+                }
+            }
+        } catch (error) {
+            console.error('Error loading personal ID:', error);
+            setPersonalID(null);
+        }
+    };
+
+    const handlePersonalIDUpload = async (type: 'front' | 'back', file: File) => {
+        if (!user?.id) return;
+        
+        setIsUploadingPersonalID(true);
+        setError('');
+
+        try {
+            // Validate file
+            if (!file.type.startsWith('image/')) {
+                throw new Error('Please select a valid image file');
+            }
+            if (file.size > 10 * 1024 * 1024) {
+                throw new Error('Image file is too large. Maximum size is 10MB.');
+            }
+
+            // Convert file to base64 without compression to preserve original quality
+            const reader = new FileReader();
+            const base64Promise = new Promise<string>((resolve, reject) => {
+                reader.onload = () => {
+                    const result = reader.result as string;
+                    // Remove data:image/...;base64, prefix
+                    const base64 = result.split(',')[1];
+                    resolve(base64);
+                };
+                reader.onerror = reject;
+            });
+            reader.readAsDataURL(file);
+
+            const base64Data = await base64Promise;
+            const timestamp = Date.now();
+            const fileExt = file.name.split('.').pop() || 'jpg';
+            const fileName = `${type}_${timestamp}.${fileExt}`;
+            const storagePath = `${user.id}/${fileName}`;
+
+            // Upload to storage via API
+            const token = localStorage.getItem('nobleco_auth_token');
+            const uploadResponse = await fetch(`/api/user-personal-ids?userId=${user.id}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`,
+                },
+                body: JSON.stringify({
+                    [type === 'front' ? 'frontImage' : 'backImage']: base64Data,
+                    fileName: fileName,
+                    storagePath: storagePath,
+                    mimeType: file.type,
+                }),
+            });
+
+            // Read response once
+            const responseText = await uploadResponse.text();
+            
+            if (!uploadResponse.ok) {
+                let errorMessage = 'Failed to upload image';
+                try {
+                    const errorData = JSON.parse(responseText);
+                    errorMessage = errorData.error || errorMessage;
+                } catch (e) {
+                    // If response is not JSON, use the text directly
+                    errorMessage = `Server error: ${uploadResponse.status} - ${responseText.substring(0, 100)}`;
+                }
+                throw new Error(errorMessage);
+            }
+
+            // Parse successful response
+            const result = JSON.parse(responseText);
+
+            // Reload personal ID data
+            await loadPersonalID(user.id);
+        } catch (error: any) {
+            setError(error.message || 'Failed to upload personal ID image');
+            console.error('Personal ID upload error:', error);
+        } finally {
+            setIsUploadingPersonalID(false);
+        }
+    };
+
+    const handlePersonalIDDelete = async (type: 'front' | 'back') => {
+        if (!user?.id || !personalID) return;
+        
+        if (!confirm(`Are you sure you want to delete the ${type === 'front' ? 'front' : 'back'} side image?`)) {
+            return;
+        }
+
+        setIsUploadingPersonalID(true);
+        setError('');
+
+        try {
+            const token = localStorage.getItem('nobleco_auth_token');
+            const response = await fetch(`/api/user-personal-ids?userId=${user.id}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                },
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Failed to delete image');
+            }
+
+            // Update local state
+            setPersonalID(prev => {
+                if (!prev) return null;
+                return {
+                    ...prev,
+                    [type === 'front' ? 'front_image_url' : 'back_image_url']: undefined,
+                    [type === 'front' ? 'front_image_path' : 'back_image_path']: undefined,
+                };
+            });
+        } catch (error: any) {
+            setError(error.message || 'Failed to delete personal ID image');
+            console.error('Personal ID delete error:', error);
+        } finally {
+            setIsUploadingPersonalID(false);
+        }
+    };
+
+    const handlePersonalIDFileSelect = (type: 'front' | 'back', e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            handlePersonalIDUpload(type, file);
+        }
+        // Reset input
+        e.target.value = '';
     };
 
     return (
@@ -423,12 +702,27 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
                             <div className="profile-content">
                     {/* Avatar Section */}
                     <div className="profile-avatar-section">
-                        <div className="profile-avatar-wrapper" style={{ position: 'relative' }}>
+                        <div 
+                            className="profile-avatar-wrapper" 
+                            style={{ 
+                                position: 'relative',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '16px'
+                            }}
+                            onMouseEnter={() => !isEditing && avatar?.url && setIsHoveringAvatar(true)}
+                            onMouseLeave={() => setIsHoveringAvatar(false)}
+                        >
                             {avatar?.url ? (
                                 <img 
                                     className="profile-avatar-large" 
                                     src={avatar.url} 
                                     alt={user.name || 'avatar'}
+                                    style={isEditing ? {
+                                        ...getAvatarViewportStyles(avatar, 180),
+                                        minWidth: '180px',
+                                        minHeight: '180px'
+                                    } : getAvatarViewportStyles(avatar, 120)}
                                     onError={(e) => {
                                         // Fallback to default if image fails to load
                                         const target = e.target as HTMLImageElement;
@@ -438,15 +732,15 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
                                             const fallback = document.createElement('div');
                                             fallback.className = 'profile-avatar-large';
                                             fallback.style.cssText = `
-                                                width: 120px;
-                                                height: 120px;
+                                                width: ${isEditing ? '180px' : '120px'};
+                                                height: ${isEditing ? '180px' : '120px'};
                                                 border-radius: 50%;
                                                 background-color: ${getAvatarColor(user.name)};
                                                 display: flex;
                                                 align-items: center;
                                                 justify-content: center;
                                                 color: white;
-                                                font-size: 48px;
+                                                font-size: ${isEditing ? '72px' : '48px'};
                                                 font-weight: 600;
                                                 text-transform: uppercase;
                                             `;
@@ -459,54 +753,122 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
                                 <div 
                                     className="profile-avatar-large"
                                     style={{
-                                        width: '120px',
-                                        height: '120px',
+                                        width: isEditing ? '180px' : '120px',
+                                        height: isEditing ? '180px' : '120px',
                                         borderRadius: '50%',
                                         backgroundColor: getAvatarColor(user.name || 'User'),
                                         display: 'flex',
                                         alignItems: 'center',
                                         justifyContent: 'center',
                                         color: 'white',
-                                        fontSize: '48px',
+                                        fontSize: isEditing ? '72px' : '48px',
                                         fontWeight: 600,
-                                        textTransform: 'uppercase'
+                                        textTransform: 'uppercase',
+                                        flexShrink: 0
                                     }}
                                 >
                                     {getAvatarInitial(user.name || 'User')}
                                 </div>
                             )}
                             {isEditing && (
-                                <label 
-                                    className="avatar-upload-btn"
+                                <div style={{
+                                    display: 'flex',
+                                    gap: '8px',
+                                    flexDirection: 'column',
+                                    alignItems: 'flex-start',
+                                    justifyContent: 'center'
+                                }}>
+                                    <button
+                                        onClick={handleChangeAvatar}
+                                        disabled={isUploadingAvatar}
+                                        style={{
+                                            background: '#10b981',
+                                            color: 'white',
+                                            border: 'none',
+                                            borderRadius: '50%',
+                                            width: '36px',
+                                            height: '36px',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            cursor: 'pointer',
+                                            boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+                                            transition: 'all 0.2s ease',
+                                            flexShrink: 0
+                                        }}
+                                        title="Upload avatar"
+                                    >
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                            <polyline points="17 8 12 3 7 8" />
+                                            <line x1="12" y1="3" x2="12" y2="15" />
+                                        </svg>
+                                    </button>
+                                    {avatar?.url && (
+                                        <button
+                                            onClick={handleRemoveAvatar}
+                                            disabled={isUploadingAvatar}
+                                            style={{
+                                                background: '#ef4444',
+                                                color: 'white',
+                                                border: 'none',
+                                                borderRadius: '50%',
+                                                width: '36px',
+                                                height: '36px',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                cursor: 'pointer',
+                                                boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+                                                transition: 'all 0.2s ease',
+                                                flexShrink: 0
+                                            }}
+                                            title="Remove avatar"
+                                        >
+                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                <polyline points="3 6 5 6 21 6" />
+                                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                                            </svg>
+                                        </button>
+                                    )}
+                                </div>
+                            )}
+                            {!isEditing && avatar?.url && isHoveringAvatar && (
+                                <button
+                                    className="avatar-view-btn"
+                                    onClick={() => setShowAvatarExpanded(true)}
                                     style={{
                                         position: 'absolute',
-                                        bottom: '8px',
-                                        right: '8px',
-                                        background: '#3b82f6',
+                                        top: '50%',
+                                        left: '50%',
+                                        transform: 'translate(-50%, -50%)',
+                                        background: 'rgba(0, 0, 0, 0.7)',
                                         color: 'white',
                                         border: 'none',
-                                        borderRadius: '50%',
-                                        width: '36px',
-                                        height: '36px',
+                                        borderRadius: '8px',
+                                        padding: '8px 16px',
                                         display: 'flex',
                                         alignItems: 'center',
-                                        justifyContent: 'center',
+                                        gap: '6px',
                                         cursor: 'pointer',
-                                        boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
+                                        fontSize: '0.875rem',
+                                        fontWeight: 600,
+                                        transition: 'all 0.2s ease',
+                                        zIndex: 10
+                                    }}
+                                    onMouseEnter={(e) => {
+                                        e.currentTarget.style.background = 'rgba(0, 0, 0, 0.9)';
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        e.currentTarget.style.background = 'rgba(0, 0, 0, 0.7)';
                                     }}
                                 >
-                                    <input
-                                        type="file"
-                                        accept="image/*"
-                                        onChange={handleAvatarFileSelect}
-                                        style={{ display: 'none' }}
-                                        disabled={isUploadingAvatar}
-                                    />
-                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                                        <circle cx="12" cy="12" r="3" />
                                     </svg>
-                                </label>
+                                    View
+                                </button>
                             )}
                         </div>
                         <div className="profile-level-info">
@@ -533,6 +895,10 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
                                 <div className="profile-field">
                                     <label>Email</label>
                                     <div className="profile-field-value email-display">{user.email}</div>
+                                </div>
+                                <div className="profile-field">
+                                    <label>Phone Number</label>
+                                    <div className="profile-field-value">{user.phone || 'Not set'}</div>
                                 </div>
                                 <div className="profile-field refer-code-field">
                                     <label>Refer Code</label>
@@ -623,19 +989,6 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
                                         <div className="profile-field-value">{formData.name || 'Not set'}</div>
                                     )}
                                 </div>
-                                <div className="profile-field">
-                                    <label>Phone Number</label>
-                                    {isEditing ? (
-                                        <input
-                                            type="tel"
-                                            value={formData.phone}
-                                            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                                            placeholder="Enter your phone number"
-                                        />
-                                    ) : (
-                                        <div className="profile-field-value">{formData.phone || 'Not set'}</div>
-                                    )}
-                                </div>
                                 <div className="profile-field profile-field-full">
                                     <label>Address</label>
                                     {isEditing ? (
@@ -648,6 +1001,168 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
                                     ) : (
                                         <div className="profile-field-value">{formData.address || 'Not set'}</div>
                                     )}
+                                </div>
+                                
+                                {/* Personal ID Field */}
+                                <div className="profile-field profile-field-full personal-id-field">
+                                    <label>Personal ID</label>
+                                    <div className="personal-id-container">
+                                        {/* Front Side */}
+                                        <div className="personal-id-item">
+                                            <div className="personal-id-label">Front Side</div>
+                                            {personalID?.front_image_url ? (
+                                                <div className="personal-id-image-wrapper">
+                                                    <img 
+                                                        src={personalID.front_image_url} 
+                                                        alt="Front side of personal ID"
+                                                        className="personal-id-thumbnail"
+                                                    />
+                                                    {isEditing && (
+                                                        <div className="personal-id-actions">
+                                                            <button
+                                                                className="personal-id-expand-btn"
+                                                                onClick={() => setShowPersonalIDExpanded({ type: 'front' })}
+                                                                title="Expand image"
+                                                            >
+                                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                                    <polyline points="15 3 21 3 21 9" />
+                                                                    <polyline points="9 21 3 21 3 15" />
+                                                                    <line x1="21" y1="3" x2="14" y2="10" />
+                                                                    <line x1="3" y1="21" x2="10" y2="14" />
+                                                                </svg>
+                                                            </button>
+                                                            <button
+                                                                className="personal-id-delete-btn"
+                                                                onClick={() => handlePersonalIDDelete('front')}
+                                                                disabled={isUploadingPersonalID}
+                                                                title="Delete image"
+                                                            >
+                                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                                    <polyline points="3 6 5 6 21 6" />
+                                                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                                                                </svg>
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                    {!isEditing && (
+                                                        <button
+                                                            className="personal-id-expand-btn"
+                                                            onClick={() => setShowPersonalIDExpanded({ type: 'front' })}
+                                                            title="Expand image"
+                                                        >
+                                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                                <polyline points="15 3 21 3 21 9" />
+                                                                <polyline points="9 21 3 21 3 15" />
+                                                                <line x1="21" y1="3" x2="14" y2="10" />
+                                                                <line x1="3" y1="21" x2="10" y2="14" />
+                                                            </svg>
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            ) : (
+                                                isEditing ? (
+                                                    <label className="personal-id-upload-area">
+                                                        <input
+                                                            ref={frontImageInputRef}
+                                                            type="file"
+                                                            accept="image/*"
+                                                            onChange={(e) => handlePersonalIDFileSelect('front', e)}
+                                                            disabled={isUploadingPersonalID}
+                                                            style={{ display: 'none' }}
+                                                        />
+                                                        <div className="personal-id-upload-placeholder">
+                                                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                                                <polyline points="17 8 12 3 7 8" />
+                                                                <line x1="12" y1="3" x2="12" y2="15" />
+                                                            </svg>
+                                                            <span>Upload Front</span>
+                                                        </div>
+                                                    </label>
+                                                ) : (
+                                                    <div className="personal-id-empty">Not uploaded</div>
+                                                )
+                                            )}
+                                        </div>
+
+                                        {/* Back Side */}
+                                        <div className="personal-id-item">
+                                            <div className="personal-id-label">Back Side</div>
+                                            {personalID?.back_image_url ? (
+                                                <div className="personal-id-image-wrapper">
+                                                    <img 
+                                                        src={personalID.back_image_url} 
+                                                        alt="Back side of personal ID"
+                                                        className="personal-id-thumbnail"
+                                                    />
+                                                    {isEditing && (
+                                                        <div className="personal-id-actions">
+                                                            <button
+                                                                className="personal-id-expand-btn"
+                                                                onClick={() => setShowPersonalIDExpanded({ type: 'back' })}
+                                                                title="Expand image"
+                                                            >
+                                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                                    <polyline points="15 3 21 3 21 9" />
+                                                                    <polyline points="9 21 3 21 3 15" />
+                                                                    <line x1="21" y1="3" x2="14" y2="10" />
+                                                                    <line x1="3" y1="21" x2="10" y2="14" />
+                                                                </svg>
+                                                            </button>
+                                                            <button
+                                                                className="personal-id-delete-btn"
+                                                                onClick={() => handlePersonalIDDelete('back')}
+                                                                disabled={isUploadingPersonalID}
+                                                                title="Delete image"
+                                                            >
+                                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                                    <polyline points="3 6 5 6 21 6" />
+                                                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                                                                </svg>
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                    {!isEditing && (
+                                                        <button
+                                                            className="personal-id-expand-btn"
+                                                            onClick={() => setShowPersonalIDExpanded({ type: 'back' })}
+                                                            title="Expand image"
+                                                        >
+                                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                                <polyline points="15 3 21 3 21 9" />
+                                                                <polyline points="9 21 3 21 3 15" />
+                                                                <line x1="21" y1="3" x2="14" y2="10" />
+                                                                <line x1="3" y1="21" x2="10" y2="14" />
+                                                            </svg>
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            ) : (
+                                                isEditing ? (
+                                                    <label className="personal-id-upload-area">
+                                                        <input
+                                                            ref={backImageInputRef}
+                                                            type="file"
+                                                            accept="image/*"
+                                                            onChange={(e) => handlePersonalIDFileSelect('back', e)}
+                                                            disabled={isUploadingPersonalID}
+                                                            style={{ display: 'none' }}
+                                                        />
+                                                        <div className="personal-id-upload-placeholder">
+                                                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                                                <polyline points="17 8 12 3 7 8" />
+                                                                <line x1="12" y1="3" x2="12" y2="15" />
+                                                            </svg>
+                                                            <span>Upload Back</span>
+                                                        </div>
+                                                    </label>
+                                                ) : (
+                                                    <div className="personal-id-empty">Not uploaded</div>
+                                                )
+                                            )}
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -693,6 +1208,55 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
                 </>
             )}
 
+            {/* Avatar Expanded Modal */}
+            {showAvatarExpanded && avatar?.url && (
+                <div className="modal-overlay personal-id-expanded-overlay" onClick={() => setShowAvatarExpanded(false)}>
+                    <div className="personal-id-expanded-modal" onClick={(e) => e.stopPropagation()}>
+                        <div className="personal-id-expanded-header">
+                            <h3>Avatar</h3>
+                            <button className="modal-close" onClick={() => setShowAvatarExpanded(false)}>
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <line x1="18" y1="6" x2="6" y2="18" />
+                                    <line x1="6" y1="6" x2="18" y2="18" />
+                                </svg>
+                            </button>
+                        </div>
+                        <div className="personal-id-expanded-content">
+                            <img 
+                                src={avatar.url} 
+                                alt="User avatar"
+                                className="personal-id-expanded-image"
+                                style={{ maxWidth: '90vw', maxHeight: '90vh', width: 'auto', height: 'auto', objectFit: 'contain' }}
+                            />
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Personal ID Expanded Modal */}
+            {showPersonalIDExpanded && personalID && (
+                <div className="modal-overlay personal-id-expanded-overlay" onClick={() => setShowPersonalIDExpanded(null)}>
+                    <div className="personal-id-expanded-modal" onClick={(e) => e.stopPropagation()}>
+                        <div className="personal-id-expanded-header">
+                            <h3>{showPersonalIDExpanded.type === 'front' ? 'Front Side' : 'Back Side'} - Personal ID</h3>
+                            <button className="modal-close" onClick={() => setShowPersonalIDExpanded(null)}>
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <line x1="18" y1="6" x2="6" y2="18" />
+                                    <line x1="6" y1="6" x2="18" y2="18" />
+                                </svg>
+                            </button>
+                        </div>
+                        <div className="personal-id-expanded-content">
+                            <img 
+                                src={showPersonalIDExpanded.type === 'front' ? personalID.front_image_url : personalID.back_image_url} 
+                                alt={`${showPersonalIDExpanded.type === 'front' ? 'Front' : 'Back'} side of personal ID`}
+                                className="personal-id-expanded-image"
+                            />
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* QR Code Expanded Modal */}
             {showQrModal && user && (
                 <div className="modal-overlay qr-modal-overlay" onClick={closeQrModal}>
@@ -728,20 +1292,63 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
 
             {/* Avatar Crop Modal */}
             {showAvatarCrop && avatarPreview && (
-                <div className="modal-overlay" onClick={handleCropCancel} style={{ zIndex: 10000 }}>
+                <div className="modal-overlay" onClick={handleCropCancel} style={{ zIndex: 10000, background: 'rgba(16, 24, 40, 0.38)', backdropFilter: 'blur(2px)' }}>
                     <div 
                         className="profile-modal-card" 
                         onClick={(e) => e.stopPropagation()}
-                        style={{ maxWidth: '600px', width: '90%' }}
+                        style={{ 
+                            maxWidth: '700px', 
+                            width: '90%',
+                            maxHeight: '90vh',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            overflow: 'hidden',
+                            position: 'relative'
+                        }}
                     >
-                        <div className="modal-header">
+                        <div className="modal-header" style={{ flexShrink: 0 }}>
                             <span>Crop Avatar</span>
                             <button className="modal-close" onClick={handleCropCancel}>✕</button>
                         </div>
-                        <div style={{ padding: '24px' }}>
-                            <p style={{ marginBottom: '16px', fontSize: '0.875rem', color: '#6b7280', textAlign: 'center' }}>
-                                Drag the crop area to reposition, or use the corner handles to resize
-                            </p>
+                        <div style={{ 
+                            padding: '20px',
+                            overflowY: 'auto',
+                            flex: 1,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            minHeight: 0
+                        }}>
+                            <div style={{ marginBottom: '16px', textAlign: 'center', flexShrink: 0 }}>
+                                <label htmlFor="zoom-slider" style={{ 
+                                    display: 'block', 
+                                    marginBottom: '12px', 
+                                    fontSize: '0.875rem', 
+                                    color: '#6b7280',
+                                    fontWeight: 500
+                                }}>
+                                    Zoom: {Math.round(imageScale * 100)}%
+                                </label>
+                                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                                    <input
+                                        id="zoom-slider"
+                                        type="range"
+                                        min="0.5"
+                                        max="3"
+                                        step="0.1"
+                                        value={imageScale}
+                                        onChange={handleZoomChange}
+                                        className="crop-size-slider"
+                                        style={{ 
+                                            width: '80%',
+                                            maxWidth: '400px',
+                                            cursor: 'pointer',
+                                            height: '8px',
+                                            margin: 0,
+                                            verticalAlign: 'middle'
+                                        }}
+                                    />
+                                </div>
+                            </div>
                             {error && (
                                 <div style={{ 
                                     marginBottom: '16px', 
@@ -760,145 +1367,104 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
                                 style={{
                                     position: 'relative',
                                     width: '100%',
-                                    maxWidth: '500px',
+                                    maxWidth: '100%',
                                     margin: '0 auto',
                                     border: '2px solid #e5e7eb',
                                     borderRadius: '8px',
                                     overflow: 'hidden',
                                     cursor: isDragging ? 'grabbing' : 'grab',
-                                    backgroundColor: '#f9fafb'
+                                    backgroundColor: '#f9fafb',
+                                    display: 'flex',
+                                    justifyContent: 'center',
+                                    alignItems: 'center',
+                                    flex: 1,
+                                    minHeight: 0,
+                                    maxHeight: 'calc(90vh - 250px)',
+                                    padding: '20px'
                                 }}
-                                onMouseDown={handleCropMouseDown}
-                                onMouseMove={handleCropMouseMove}
-                                onMouseUp={handleCropMouseUp}
-                                onMouseLeave={handleCropMouseUp}
                             >
-                                <img
-                                    ref={avatarImageRef}
-                                    src={avatarPreview}
-                                    alt="Preview"
-                                    style={{
-                                        width: '100%',
-                                        height: 'auto',
-                                        display: 'block'
-                                    }}
-                                    draggable={false}
-                                    onLoad={(e) => {
-                                        // Initialize crop area when image loads
-                                        const img = e.currentTarget;
-                                        // Use naturalWidth/naturalHeight for actual dimensions, but calculate based on displayed size
-                                        const displayedWidth = img.clientWidth || img.offsetWidth;
-                                        const displayedHeight = img.clientHeight || img.offsetHeight;
-                                        
-                                        if (displayedWidth > 0 && displayedHeight > 0) {
-                                            // Initialize to center square (80% of smaller dimension)
-                                            const size = Math.max(200, Math.min(displayedWidth, displayedHeight) * 0.8);
-                                            const x = Math.max(0, (displayedWidth - size) / 2);
-                                            const y = Math.max(0, (displayedHeight - size) / 2);
-                                            
-                                            setCropData({ 
-                                                x: Math.max(0, Math.min(x, displayedWidth - size)), 
-                                                y: Math.max(0, Math.min(y, displayedHeight - size)), 
-                                                width: Math.min(size, displayedWidth), 
-                                                height: Math.min(size, displayedHeight)
-                                            });
-                                        }
-                                    }}
-                                />
-                                <div
-                                    style={{
-                                        position: 'absolute',
-                                        border: '3px solid #3b82f6',
-                                        boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.5)',
-                                        left: `${cropData.x}px`,
-                                        top: `${cropData.y}px`,
-                                        width: `${cropData.width}px`,
-                                        height: `${cropData.height}px`,
-                                        cursor: 'move',
-                                        boxSizing: 'border-box'
-                                    }}
-                                >
-                                    {/* Resize handles */}
-                                    {['nw', 'ne', 'sw', 'se'].map((corner) => (
-                                        <div
-                                            key={corner}
-                                            style={{
-                                                position: 'absolute',
-                                                width: '12px',
-                                                height: '12px',
-                                                background: '#3b82f6',
-                                                border: '2px solid white',
-                                                borderRadius: '50%',
-                                                ...(corner === 'nw' && { top: '-6px', left: '-6px', cursor: 'nw-resize' }),
-                                                ...(corner === 'ne' && { top: '-6px', right: '-6px', cursor: 'ne-resize' }),
-                                                ...(corner === 'sw' && { bottom: '-6px', left: '-6px', cursor: 'sw-resize' }),
-                                                ...(corner === 'se' && { bottom: '-6px', right: '-6px', cursor: 'se-resize' })
-                                            }}
-                                            onMouseDown={(e) => {
-                                                e.stopPropagation();
-                                                const startX = e.clientX;
-                                                const startY = e.clientY;
-                                                const startWidth = cropData.width;
-                                                const startHeight = cropData.height;
-                                                const startXPos = cropData.x;
-                                                const startYPos = cropData.y;
-
-                                                const handleMove = (moveE: MouseEvent) => {
-                                                    if (!avatarImageRef.current) return;
-                                                    const imgRect = avatarImageRef.current.getBoundingClientRect();
-                                                    const imgDisplayWidth = imgRect.width;
-                                                    const imgDisplayHeight = imgRect.height;
-                                                    
-                                                    const deltaX = moveE.clientX - startX;
-                                                    const deltaY = moveE.clientY - startY;
-                                                    
-                                                    const minSize = Math.min(100, Math.min(imgDisplayWidth, imgDisplayHeight) * 0.2);
-                                                    const maxSize = Math.min(imgDisplayWidth, imgDisplayHeight);
-                                                    
-                                                    if (corner === 'se') {
-                                                        setCropData(prev => ({
-                                                            ...prev,
-                                                            width: Math.max(minSize, Math.min(maxSize, startWidth + deltaX)),
-                                                            height: Math.max(minSize, Math.min(maxSize, startHeight + deltaY))
-                                                        }));
-                                                    } else if (corner === 'sw') {
-                                                        setCropData(prev => ({
-                                                            ...prev,
-                                                            x: Math.max(0, Math.min(startXPos - deltaX, imgDisplayWidth - (startWidth + deltaX))),
-                                                            width: Math.max(minSize, Math.min(maxSize, startWidth + deltaX)),
-                                                            height: Math.max(minSize, Math.min(maxSize, startHeight + deltaY))
-                                                        }));
-                                                    } else if (corner === 'ne') {
-                                                        setCropData(prev => ({
-                                                            ...prev,
-                                                            y: Math.max(0, Math.min(startYPos - deltaY, imgDisplayHeight - (startHeight + deltaY))),
-                                                            width: Math.max(minSize, Math.min(maxSize, startWidth + deltaX)),
-                                                            height: Math.max(minSize, Math.min(maxSize, startHeight + deltaY))
-                                                        }));
-                                                    } else if (corner === 'nw') {
-                                                        setCropData(prev => ({
-                                                            ...prev,
-                                                            x: Math.max(0, Math.min(startXPos - deltaX, imgDisplayWidth - (startWidth + deltaX))),
-                                                            y: Math.max(0, Math.min(startYPos - deltaY, imgDisplayHeight - (startHeight + deltaY))),
-                                                            width: Math.max(minSize, Math.min(maxSize, startWidth + deltaX)),
-                                                            height: Math.max(minSize, Math.min(maxSize, startHeight + deltaY))
-                                                        }));
+                                <div style={{ 
+                                    position: 'relative', 
+                                    display: 'flex',
+                                    justifyContent: 'center',
+                                    alignItems: 'center',
+                                    width: '100%',
+                                    height: '100%',
+                                    overflow: 'hidden'
+                                }}>
+                                    <img
+                                        ref={avatarImageRef}
+                                        src={avatarPreview}
+                                        alt="Preview"
+                                        style={{
+                                            width: imageDimensions ? `${imageDimensions.width * imageScale}px` : 'auto',
+                                            height: imageDimensions ? `${imageDimensions.height * imageScale}px` : 'auto',
+                                            objectFit: 'contain',
+                                            display: 'block',
+                                            transform: `translate(${imagePosition.x}px, ${imagePosition.y}px)`,
+                                            cursor: isDragging ? 'grabbing' : 'grab',
+                                            userSelect: 'none',
+                                            transition: isDragging ? 'none' : 'transform 0.1s ease-out'
+                                        }}
+                                        draggable={false}
+                                        onMouseDown={handleImageMouseDown}
+                                        onLoad={(e) => {
+                                            // Initialize when image loads
+                                            const img = e.currentTarget;
+                                            setTimeout(() => {
+                                                const naturalWidth = img.naturalWidth;
+                                                const naturalHeight = img.naturalHeight;
+                                                
+                                                if (naturalWidth > 0 && naturalHeight > 0) {
+                                                    // Set frame size to fit largest dimension (with some padding)
+                                                    const containerRect = cropContainerRef.current?.getBoundingClientRect();
+                                                    if (containerRect) {
+                                                        const containerAspectRatio = containerRect.width / containerRect.height;
+                                                        const imageAspectRatio = naturalWidth / naturalHeight;
+                                                        
+                                                        let displayedWidth, displayedHeight;
+                                                        if (imageAspectRatio > containerAspectRatio) {
+                                                            displayedWidth = containerRect.width * 0.9;
+                                                            displayedHeight = displayedWidth / imageAspectRatio;
+                                                        } else {
+                                                            displayedHeight = containerRect.height * 0.9;
+                                                            displayedWidth = displayedHeight * imageAspectRatio;
+                                                        }
+                                                        
+                                                        setImageDimensions({ width: displayedWidth, height: displayedHeight });
+                                                        setFrameSize(Math.min(displayedWidth, displayedHeight) * 0.8);
                                                     }
-                                                };
-
-                                                const handleUp = () => {
-                                                    document.removeEventListener('mousemove', handleMove);
-                                                    document.removeEventListener('mouseup', handleUp);
-                                                };
-
-                                                document.addEventListener('mousemove', handleMove);
-                                                document.addEventListener('mouseup', handleUp);
-                                            }}
-                                        />
-                                    ))}
+                                                }
+                                            }, 100);
+                                        }}
+                                    />
+                                    {/* Fixed circular frame overlay */}
+                                    <div
+                                        style={{
+                                            position: 'absolute',
+                                            top: '50%',
+                                            left: '50%',
+                                            transform: 'translate(-50%, -50%)',
+                                            width: `${frameSize}px`,
+                                            height: `${frameSize}px`,
+                                            border: '3px solid #3b82f6',
+                                            borderRadius: '50%',
+                                            boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.5)',
+                                            pointerEvents: 'none',
+                                            zIndex: 10
+                                        }}
+                                    />
                                 </div>
                             </div>
-                            <div style={{ marginTop: '24px', display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+                            <div style={{ 
+                                marginTop: '24px', 
+                                display: 'flex', 
+                                gap: '12px', 
+                                justifyContent: 'flex-end',
+                                flexShrink: 0,
+                                paddingTop: '16px',
+                                borderTop: '1px solid #e5e7eb'
+                            }}>
                                 <button 
                                     className="btn-secondary" 
                                     onClick={handleCropCancel}
@@ -909,10 +1475,10 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
                                 <button 
                                     className="btn-primary" 
                                     onClick={handleCropConfirm}
-                                    disabled={isUploadingAvatar || !cropData.width || !cropData.height}
+                                    disabled={isUploadingAvatar || !imageDimensions}
                                     style={{
-                                        opacity: (isUploadingAvatar || !cropData.width || !cropData.height) ? 0.6 : 1,
-                                        cursor: (isUploadingAvatar || !cropData.width || !cropData.height) ? 'not-allowed' : 'pointer'
+                                        opacity: (isUploadingAvatar || !imageDimensions) ? 0.6 : 1,
+                                        cursor: (isUploadingAvatar || !imageDimensions) ? 'not-allowed' : 'pointer'
                                     }}
                                 >
                                     {isUploadingAvatar ? (

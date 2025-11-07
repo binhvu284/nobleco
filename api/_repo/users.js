@@ -103,36 +103,40 @@ export async function updateUserPasswordHashed(id, password) {
   return true;
 }
 
-export async function createUser({ email, name, password, role, points, level, status, referred_by }) {
+export async function createUser({ email, name, phone, password, role, points, level, status, referred_by, phone_verified }) {
   const supabase = getSupabase();
   const payload = {
     email,
     name,
+    phone,
     password: password ? await bcrypt.hash(password, 10) : null,
     role: role === 'admin' ? 'admin' : 'user',
     points: points ?? 0,
     level: level ?? 'guest',
     status: status ?? 'active',
     referred_by: referred_by ?? null,
+    phone_verified: phone_verified ?? false,
   };
   let { data, error } = await supabase
     .from('users')
     .insert(payload)
-    .select('id, email, name, role, points, level, status, created_at, referred_by')
+    .select('id, email, name, role, points, level, status, created_at, referred_by, phone, phone_verified')
     .single();
   if (error && /column\s+"?role"?\s+does not exist/i.test(error.message)) {
     const resp = await supabase
       .from('users')
       .insert({ 
         email, 
-        name, 
+        name,
+        phone,
         password: payload.password, 
         points: payload.points, 
         level: payload.level, 
         status: payload.status,
-        referred_by: payload.referred_by
+        referred_by: payload.referred_by,
+        phone_verified: payload.phone_verified
       })
-      .select('id, email, name, points, level, status, created_at, referred_by')
+      .select('id, email, name, points, level, status, created_at, referred_by, phone, phone_verified')
       .single();
     if (resp.error) throw new Error(resp.error.message);
     return normalize({ ...resp.data, role: 'user' });
