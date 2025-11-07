@@ -1288,7 +1288,7 @@ export default function AdminUsers() {
                                                 width: '48px',
                                                 height: '48px',
                                                 borderRadius: '50%',
-                                                backgroundColor: getAvatarColor(editSeniorConsultantModal.currentSeniorConsultantName),
+                                                backgroundColor: getAvatarColor(editSeniorConsultantModal.currentSeniorConsultantName || ''),
                                                 display: 'flex',
                                                 alignItems: 'center',
                                                 justifyContent: 'center',
@@ -1297,7 +1297,7 @@ export default function AdminUsers() {
                                                 fontWeight: '600',
                                                 flexShrink: 0
                                             }}>
-                                                {getAvatarInitial(editSeniorConsultantModal.currentSeniorConsultantName)}
+                                                {getAvatarInitial(editSeniorConsultantModal.currentSeniorConsultantName || '')}
                                             </div>
                                             <div style={{ 
                                                 display: 'flex',
