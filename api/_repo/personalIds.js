@@ -6,6 +6,7 @@ import { getSupabase } from '../_db.js';
 
 /**
  * Get personal ID for a user
+ * Regenerates fresh signed URLs for images to prevent expiry issues
  */
 export async function getPersonalID(userId) {
   const supabase = getSupabase();
@@ -19,7 +20,45 @@ export async function getPersonalID(userId) {
     throw error;
   }
 
-  return data || null;
+  if (!data) return null;
+
+  // Regenerate fresh signed URLs for images (they expire after 1 hour)
+  const bucket = 'user-personal-ids';
+  const result = { ...data };
+
+  // Regenerate front image URL if path exists
+  if (data.front_image_path) {
+    try {
+      const { data: urlData } = await supabase.storage
+        .from(bucket)
+        .createSignedUrl(data.front_image_path, 3600); // 1 hour expiry
+      
+      if (urlData?.signedUrl) {
+        result.front_image_url = urlData.signedUrl;
+      }
+    } catch (err) {
+      console.error('Error generating front image signed URL:', err);
+      // Keep existing URL if regeneration fails
+    }
+  }
+
+  // Regenerate back image URL if path exists
+  if (data.back_image_path) {
+    try {
+      const { data: urlData } = await supabase.storage
+        .from(bucket)
+        .createSignedUrl(data.back_image_path, 3600); // 1 hour expiry
+      
+      if (urlData?.signedUrl) {
+        result.back_image_url = urlData.signedUrl;
+      }
+    } catch (err) {
+      console.error('Error generating back image signed URL:', err);
+      // Keep existing URL if regeneration fails
+    }
+  }
+
+  return result;
 }
 
 /**

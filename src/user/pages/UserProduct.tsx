@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import UserLayout from '../components/UserLayout';
 import ImageGallery from '../../components/ImageGallery';
 import {
@@ -83,6 +83,7 @@ export default function UserProduct() {
     const [categories, setCategories] = useState<Category[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
+    const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
     const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
     const [cart, setCart] = useState<CartItem[]>([]);
@@ -147,19 +148,29 @@ export default function UserProduct() {
         }
     };
 
-    // Filter products
-    const filteredProducts = products.filter(product => {
-        const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            product.short_description.toLowerCase().includes(searchQuery.toLowerCase());
-        
-        const matchesCategory = selectedCategory === null ||
-            product.categories.some(cat => cat.id === selectedCategory);
+    // Debounce search query
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedSearchQuery(searchQuery);
+        }, 300);
+        return () => clearTimeout(timer);
+    }, [searchQuery]);
 
-        return matchesSearch && matchesCategory;
-    });
+    // Memoize filtered products
+    const filteredProducts = useMemo(() => {
+        return products.filter(product => {
+            const matchesSearch = product.name.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
+                product.short_description.toLowerCase().includes(debouncedSearchQuery.toLowerCase());
+            
+            const matchesCategory = selectedCategory === null ||
+                product.categories.some(cat => cat.id === selectedCategory);
+
+            return matchesSearch && matchesCategory;
+        });
+    }, [products, debouncedSearchQuery, selectedCategory]);
 
     // Cart functions
-    const addToCart = (product: Product) => {
+    const addToCart = useCallback((product: Product) => {
         setAddingToCart(product.id);
         setTimeout(() => {
             setCart(prev => {
@@ -175,11 +186,11 @@ export default function UserProduct() {
             });
             setAddingToCart(null);
         }, 300);
-    };
+    }, []);
 
-    const updateCartQuantity = (productId: number, quantity: number) => {
+    const updateCartQuantity = useCallback((productId: number, quantity: number) => {
         if (quantity <= 0) {
-            removeFromCart(productId);
+            setCart(prev => prev.filter(item => item.product.id !== productId));
             return;
         }
         setCart(prev =>
@@ -189,30 +200,31 @@ export default function UserProduct() {
                     : item
             )
         );
-    };
+    }, []);
 
-    const removeFromCart = (productId: number) => {
+    const removeFromCart = useCallback((productId: number) => {
         setCart(prev => prev.filter(item => item.product.id !== productId));
-    };
+    }, []);
 
-    const getTotalItems = () => {
+    const getTotalItems = useCallback(() => {
         return cart.reduce((sum, item) => sum + item.quantity, 0);
-    };
+    }, [cart]);
 
-    const getTotalPrice = () => {
+    const getTotalPrice = useCallback(() => {
         return cart.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
-    };
+    }, [cart]);
 
-    const handleProductClick = (product: Product) => {
+    const handleProductClick = useCallback((product: Product) => {
         setSelectedProduct(product);
         setShowProductDetail(true);
         setIsFullscreen(false);
-    };
+    }, []);
 
-    const handleCloseDetail = () => {
+    const handleCloseDetail = useCallback(() => {
         setShowProductDetail(false);
+        setSelectedProduct(null);
         setIsFullscreen(false);
-    };
+    }, []);
 
     const toggleFullscreen = () => {
         setIsFullscreen(!isFullscreen);

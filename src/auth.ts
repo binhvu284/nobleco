@@ -13,6 +13,7 @@ export interface User {
     commission?: number;
     phone?: string;
     address?: string;
+    location?: string;
     avatar?: string;
     created_at?: string;
 }

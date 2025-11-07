@@ -5,6 +5,7 @@ import { getAvatarInitial, getAvatarColor, getAvatarViewportStyles } from '../..
 
 export default function AdminProfileModal({ open, onClose }: { open: boolean; onClose: () => void }) {
     const [user, setUser] = useState<User | null>(null);
+    const [isLoading, setIsLoading] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [error, setError] = useState('');
@@ -35,13 +36,24 @@ export default function AdminProfileModal({ open, onClose }: { open: boolean; on
     useEffect(() => {
         if (open) {
             loadFreshUserData();
+        } else {
+            // Reset state when modal closes
+            setUser(null);
+            setIsLoading(false);
+            setIsEditing(false);
+            setError('');
         }
     }, [open]);
 
     const loadFreshUserData = async () => {
+        setIsLoading(true);
+        setError('');
         try {
             const currentUser = getCurrentUser();
-            if (!currentUser?.id) return;
+            if (!currentUser?.id) {
+                setIsLoading(false);
+                return;
+            }
 
             // Fetch fresh data from database
             const response = await fetch(`/api/users/${currentUser.id}`);
@@ -72,6 +84,7 @@ export default function AdminProfileModal({ open, onClose }: { open: boolean; on
                 window.dispatchEvent(new Event('storage'));
             } else {
                 // Fallback to localStorage if API fails
+                console.log('Using cached user data from localStorage');
                 setUser(currentUser);
                 setFormData({
                     name: currentUser.name || '',
@@ -92,6 +105,7 @@ export default function AdminProfileModal({ open, onClose }: { open: boolean; on
                 });
             }
         } finally {
+            setIsLoading(false);
             setIsEditing(false);
             setError('');
         }
@@ -450,7 +464,7 @@ export default function AdminProfileModal({ open, onClose }: { open: boolean; on
         setIsEditing(false);
     };
 
-    if (!open || !user) return null;
+    if (!open) return null;
 
     return (
         <>
@@ -461,7 +475,17 @@ export default function AdminProfileModal({ open, onClose }: { open: boolean; on
                     <button className="modal-close" aria-label="Close" onClick={onClose}>✕</button>
                 </div>
                 
-                <div className="profile-content">
+                {isLoading ? (
+                    <div className="profile-loading">
+                        <div className="loading-spinner">
+                            <div className="spinner-ring"></div>
+                            <div className="spinner-ring"></div>
+                            <div className="spinner-ring"></div>
+                        </div>
+                        <p>Loading profile...</p>
+                    </div>
+                ) : user ? (
+                    <div className="profile-content">
                     {/* Avatar Section */}
                     <div className="profile-avatar-section">
                         <div 
@@ -695,7 +719,15 @@ export default function AdminProfileModal({ open, onClose }: { open: boolean; on
                             </button>
                         </div>
                     )}
-                </div>
+                    </div>
+                ) : (
+                    <div className="profile-error">
+                        <p>Failed to load profile data. Please try again.</p>
+                        <button className="btn-primary" onClick={loadFreshUserData}>
+                            Retry
+                        </button>
+                    </div>
+                )}
             </div>
 
             {/* Avatar Expanded Modal */}
