@@ -38,7 +38,7 @@ export function getAvatarColor(name: string): string {
  * @returns CSS styles object for the image
  */
 export function getAvatarViewportStyles(avatar: UserAvatar | null, displaySize: number): React.CSSProperties {
-    if (!avatar || !avatar.url || avatar.viewport_x === null || avatar.viewport_y === null || avatar.viewport_size === null || !avatar.width || !avatar.height) {
+    if (!avatar || !avatar.url || avatar.viewport_x === null || avatar.viewport_x === undefined || avatar.viewport_y === null || avatar.viewport_y === undefined || avatar.viewport_size === null || avatar.viewport_size === undefined || !avatar.width || !avatar.height) {
         // No viewport data or dimensions, show full image with circular clip
         return {
             width: `${displaySize}px`,
@@ -51,11 +51,11 @@ export function getAvatarViewportStyles(avatar: UserAvatar | null, displaySize: 
 
     // Calculate the actual viewport size in pixels
     const largerDimension = Math.max(avatar.width, avatar.height);
-    const viewportSizePx = largerDimension * avatar.viewport_size;
+    const viewportSizePx = largerDimension * (avatar.viewport_size ?? 1);
     
     // Calculate the center position in pixels
-    const centerX = avatar.viewport_x * avatar.width;
-    const centerY = avatar.viewport_y * avatar.height;
+    const centerX = (avatar.viewport_x ?? 0.5) * avatar.width;
+    const centerY = (avatar.viewport_y ?? 0.5) * avatar.height;
     
     // Calculate object-position percentage (relative to image dimensions)
     const objectPositionX = (centerX / avatar.width) * 100;

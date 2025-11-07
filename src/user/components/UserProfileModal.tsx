@@ -106,7 +106,7 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
                 });
                 
                 // Load avatar
-                await loadUserAvatar(freshUser.id);
+                await loadUserAvatar(Number(freshUser.id));
                 
                 // Update avatar state if user data includes avatar URL
                 if (freshUser.avatar) {
@@ -114,7 +114,7 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
                 }
                 
                 // Load personal ID
-                await loadPersonalID(freshUser.id);
+                await loadPersonalID(Number(freshUser.id));
                 
                 // Generate QR code
                 if (freshUser.refer_code) {
@@ -334,7 +334,7 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
         setError('');
 
         try {
-            await deleteUserAvatar(user.id);
+            await deleteUserAvatar(Number(user.id));
             setAvatar(null);
             
             // Reload user data
@@ -415,7 +415,7 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
                 displaySize
             };
             
-            const uploadedAvatar = await uploadUserAvatar(user.id, avatarFile, {
+            const uploadedAvatar = await uploadUserAvatar(Number(user.id), avatarFile, {
                 viewportData: {
                     x: viewportData.x,
                     y: viewportData.y,
@@ -611,7 +611,7 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
 
             // Upload to storage via API
             const token = localStorage.getItem('nobleco_auth_token');
-            const uploadResponse = await fetch(`/api/user-personal-ids?userId=${user.id}`, {
+            const uploadResponse = await fetch(`/api/user-personal-ids?userId=${Number(user.id)}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -644,7 +644,7 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
             const result = JSON.parse(responseText);
 
             // Reload personal ID data
-            await loadPersonalID(user.id);
+            await loadPersonalID(Number(user.id));
         } catch (error: any) {
             setError(error.message || 'Failed to upload personal ID image');
             console.error('Personal ID upload error:', error);
@@ -665,7 +665,7 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
 
         try {
             const token = localStorage.getItem('nobleco_auth_token');
-            const response = await fetch(`/api/user-personal-ids?userId=${user.id}`, {
+            const response = await fetch(`/api/user-personal-ids?userId=${Number(user.id)}`, {
                 method: 'DELETE',
                 headers: {
                     'Authorization': `Bearer ${token}`,

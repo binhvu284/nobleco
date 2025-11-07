@@ -159,19 +159,21 @@ export async function uploadUserAvatar(
     });
 
   if (uploadError) {
+    const errorAny = uploadError as any;
     console.error('Avatar upload error (full error object):', {
       error: uploadError,
       message: uploadError.message,
-      statusCode: uploadError.statusCode,
-      error_description: uploadError.error_description,
-      name: uploadError.name,
+      statusCode: errorAny.statusCode,
+      error_description: errorAny.error_description,
+      name: errorAny.name,
       storagePath,
       bucket: 'user-avatars'
     });
     
     // Extract error message from various possible formats
-    const errorMessage = uploadError.message || uploadError.error_description || uploadError.error || String(uploadError);
+    const errorMessage = uploadError.message || errorAny.error_description || errorAny.error || String(uploadError);
     const errorString = errorMessage.toLowerCase();
+    const statusCode = errorAny.statusCode;
     
     // Provide more specific error messages based on error content
     if (errorString.includes('bucket not found') || errorString.includes('does not exist')) {
@@ -181,13 +183,13 @@ export async function uploadUserAvatar(
       errorString.includes('rls') ||
       errorString.includes('permission denied') ||
       errorString.includes('unauthorized') ||
-      uploadError.statusCode === 403 ||
-      uploadError.statusCode === 401
+      statusCode === 403 ||
+      statusCode === 401
     ) {
       // Log the actual error for debugging
       console.error('Storage permissions error details:', {
         message: errorMessage,
-        statusCode: uploadError.statusCode,
+        statusCode: statusCode,
         error: uploadError
       });
       throw new Error(`Storage permissions error: ${errorMessage}\n\nPlease check:\n1. Bucket "user-avatars" exists and is public\n2. Storage policies allow INSERT operations\n3. Policies are correctly configured in Supabase Dashboard`);
