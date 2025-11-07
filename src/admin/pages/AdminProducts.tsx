@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import AdminLayout from '../components/AdminLayout';
-import { IconPlus, IconSearch, IconFilter, IconList, IconGrid, IconMoreVertical, IconEdit, IconTrash2, IconEye, IconPackage, IconLayout, IconChevronDown, IconChevronUp, IconCheck, IconX, IconImage, IconActivity } from '../components/icons';
+import { IconPlus, IconSearch, IconFilter, IconList, IconGrid, IconMoreVertical, IconEdit, IconTrash2, IconEye, IconPackage, IconLayout, IconChevronDown, IconChevronUp, IconCheck, IconX, IconImage, IconHistory } from '../components/icons';
 import ProductDetailModal from '../components/ProductDetailModal';
 import ConfirmModal from '../components/ConfirmModal';
 import UpdateDataModal from '../components/UpdateDataModal';
@@ -74,7 +74,35 @@ export default function AdminProducts() {
     const [mobileColumns, setMobileColumns] = useState<1 | 2 | 3>(1);
     const [showColumnDropdown, setShowColumnDropdown] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
+    const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
     const [activeDropdown, setActiveDropdown] = useState<number | null>(null);
+
+    // Debounce search term
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedSearchTerm(searchTerm);
+        }, 300);
+        return () => clearTimeout(timer);
+    }, [searchTerm]);
+
+    // Close dropdown when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (e: MouseEvent) => {
+            if (activeDropdown !== null) {
+                const target = e.target as HTMLElement;
+                if (!target.closest('.unified-dropdown')) {
+                    setActiveDropdown(null);
+                }
+            }
+        };
+
+        if (activeDropdown !== null) {
+            document.addEventListener('mousedown', handleClickOutside);
+            return () => {
+                document.removeEventListener('mousedown', handleClickOutside);
+            };
+        }
+    }, [activeDropdown]);
     const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
     const [showDetailModal, setShowDetailModal] = useState(false);
     const [deleteLoading, setDeleteLoading] = useState(false);
@@ -113,82 +141,89 @@ export default function AdminProducts() {
         fetchCategories();
     }, []);
 
-    const filteredProducts = products.filter(product => {
-        // Search filter
-        const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            product.category_names.some(cat => cat.toLowerCase().includes(searchTerm.toLowerCase()));
-        
-        // Category filter
-        const matchesCategory = selectedCategories.length === 0 || 
-            product.categories.some(cat => selectedCategories.includes(cat.id));
-        
-        // Status filter
-        const matchesStatus = filterStatus === 'all' || product.status === filterStatus;
-        
-        // Price range filter
-        const matchesPrice = (!priceRange.min || product.price >= parseFloat(priceRange.min)) &&
-            (!priceRange.max || product.price <= parseFloat(priceRange.max));
-        
-        return matchesSearch && matchesCategory && matchesStatus && matchesPrice;
-    });
+    // Memoize filtered products
+    const filteredProducts = useMemo(() => {
+        return products.filter(product => {
+            // Search filter
+            const matchesSearch = product.name.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+                product.category_names.some(cat => cat.toLowerCase().includes(debouncedSearchTerm.toLowerCase()));
+            
+            // Category filter
+            const matchesCategory = selectedCategories.length === 0 || 
+                product.categories.some(cat => selectedCategories.includes(cat.id));
+            
+            // Status filter
+            const matchesStatus = filterStatus === 'all' || product.status === filterStatus;
+            
+            // Price range filter
+            const matchesPrice = (!priceRange.min || product.price >= parseFloat(priceRange.min)) &&
+                (!priceRange.max || product.price <= parseFloat(priceRange.max));
+            
+            return matchesSearch && matchesCategory && matchesStatus && matchesPrice;
+        });
+    }, [products, debouncedSearchTerm, selectedCategories, filterStatus, priceRange]);
 
-    // Calculate active/inactive counts
-    const activeCount = products.filter(p => p.status === 'active').length;
-    const inactiveCount = products.filter(p => p.status === 'inactive').length;
+    // Memoize active/inactive counts
+    const { activeCount, inactiveCount } = useMemo(() => {
+        return {
+            activeCount: products.filter(p => p.status === 'active').length,
+            inactiveCount: products.filter(p => p.status === 'inactive').length
+        };
+    }, [products]);
 
-    // Sort products
-    const sortedProducts = [...filteredProducts].sort((a, b) => {
-        if (!sortColumn) return 0;
-        
-        let aValue: string | number;
-        let bValue: string | number;
-        
-        switch (sortColumn) {
-            case 'name':
-                aValue = a.name.toLowerCase();
-                bValue = b.name.toLowerCase();
-                break;
-            case 'sku':
-                aValue = (a.sku || '').toLowerCase();
-                bValue = (b.sku || '').toLowerCase();
-                break;
-            case 'stock':
-                aValue = a.stock ?? 0;
-                bValue = b.stock ?? 0;
-                break;
-            case 'price':
-                aValue = a.price ?? 0;
-                bValue = b.price ?? 0;
-                break;
-            default:
-                return 0;
-        }
-        
-        if (typeof aValue === 'string' && typeof bValue === 'string') {
-            if (sortDirection === 'asc') {
-                return aValue.localeCompare(bValue);
-            } else {
-                return bValue.localeCompare(aValue);
+    // Memoize sorted products
+    const sortedProducts = useMemo(() => {
+        return [...filteredProducts].sort((a, b) => {
+            if (!sortColumn) return 0;
+            
+            let aValue: string | number;
+            let bValue: string | number;
+            
+            switch (sortColumn) {
+                case 'name':
+                    aValue = a.name.toLowerCase();
+                    bValue = b.name.toLowerCase();
+                    break;
+                case 'sku':
+                    aValue = (a.sku || '').toLowerCase();
+                    bValue = (b.sku || '').toLowerCase();
+                    break;
+                case 'stock':
+                    aValue = a.stock ?? 0;
+                    bValue = b.stock ?? 0;
+                    break;
+                case 'price':
+                    aValue = a.price ?? 0;
+                    bValue = b.price ?? 0;
+                    break;
+                default:
+                    return 0;
             }
-        } else {
-            if (sortDirection === 'asc') {
-                return (aValue as number) - (bValue as number);
+            
+            if (typeof aValue === 'string' && typeof bValue === 'string') {
+                if (sortDirection === 'asc') {
+                    return aValue.localeCompare(bValue);
+                } else {
+                    return bValue.localeCompare(aValue);
+                }
             } else {
-                return (bValue as number) - (aValue as number);
+                if (sortDirection === 'asc') {
+                    return (aValue as number) - (bValue as number);
+                } else {
+                    return (bValue as number) - (aValue as number);
+                }
             }
-        }
-    });
+        });
+    }, [filteredProducts, sortColumn, sortDirection]);
 
-    const handleSort = (column: 'name' | 'sku' | 'stock' | 'price') => {
+    const handleSort = useCallback((column: 'name' | 'sku' | 'stock' | 'price') => {
         if (sortColumn === column) {
-            // Toggle direction if clicking the same column
             setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
         } else {
-            // Set new column and default to ascending
             setSortColumn(column);
             setSortDirection('asc');
         }
-    };
+    }, [sortColumn, sortDirection]);
 
     // Fetch products from API
     useEffect(() => {
@@ -298,22 +333,22 @@ export default function AdminProducts() {
         };
     }, [showColumnDropdown]);
 
-    const handleViewDetail = (product: Product) => {
+    const handleViewDetail = useCallback((product: Product) => {
+        setActiveDropdown(null);
         setSelectedProduct(product);
         setShowDetailModal(true);
-        setActiveDropdown(null);
-    };
+    }, []);
 
-    const handleCloseDetail = () => {
+    const handleCloseDetail = useCallback(() => {
         setShowDetailModal(false);
         setSelectedProduct(null);
-    };
+    }, []);
 
-    const handleDeleteClick = (productId: number, productName: string) => {
+    const handleDeleteClick = useCallback((productId: number, productName: string) => {
+        setActiveDropdown(null);
         setProductToDelete({ id: productId, name: productName });
         setShowDeleteConfirm(true);
-        setActiveDropdown(null);
-    };
+    }, []);
 
     const handleDeleteConfirm = async () => {
         if (!productToDelete) return;
@@ -396,13 +431,13 @@ export default function AdminProducts() {
 
     const [showAddProductModal, setShowAddProductModal] = useState(false);
 
-    const handleEditProduct = (product: Product) => {
+    const handleEditProduct = useCallback((product: Product) => {
         setActiveDropdown(null);
         setEditingProduct(product);
         setShowAddProductModal(true);
-    };
+    }, []);
 
-    const handleStatusChange = async (productId: number, productName: string, newStatus: 'active' | 'inactive') => {
+    const handleStatusChange = useCallback(async (productId: number, productName: string, newStatus: 'active' | 'inactive') => {
         setActiveDropdown(null);
         
         try {
@@ -443,7 +478,7 @@ export default function AdminProducts() {
             // Hide error notification after 5 seconds
             setTimeout(() => setNotification(null), 5000);
         }
-    };
+    }, []);
 
     return (
         <AdminLayout title="Products Management">
@@ -474,7 +509,7 @@ export default function AdminProducts() {
                             title="View Activity Log"
                             onClick={() => setShowActivityLog(true)}
                         >
-                            <IconActivity />
+                            <IconHistory />
                             <span>Activity Log</span>
                         </button>
                         <button 
@@ -654,6 +689,9 @@ export default function AdminProducts() {
                 {!loading && !error && (
                     <div className="products-count-bar">
                         <div className="products-status-counts">
+                            <span className="products-count-text">
+                                Total Products: <strong>{filteredProducts.length}</strong>
+                            </span>
                             <span className="status-count active">
                                 Active: <strong>{activeCount}</strong>
                             </span>
@@ -661,9 +699,6 @@ export default function AdminProducts() {
                                 Inactive: <strong>{inactiveCount}</strong>
                             </span>
                         </div>
-                        <span className="products-count-text">
-                            Total Products: <strong>{filteredProducts.length}</strong>
-                        </span>
                     </div>
                 )}
 
@@ -823,18 +858,22 @@ export default function AdminProducts() {
                                             </span>
                                         </td>
                                         <td onClick={(e) => e.stopPropagation()}>
-                                            <div className={`unified-dropdown ${activeDropdown === product.id ? 'active' : ''}`}>
+                                            <div 
+                                                className={`unified-dropdown ${activeDropdown === product.id ? 'active' : ''}`}
+                                                onClick={(e) => e.stopPropagation()}
+                                            >
                                                 <button
                                                     className="unified-more-btn"
                                                     onClick={(e) => {
                                                         e.stopPropagation();
                                                         setActiveDropdown(activeDropdown === product.id ? null : product.id);
                                                     }}
+                                                    title="More Actions"
                                                 >
                                                     <IconMoreVertical />
                                                 </button>
                                                 {activeDropdown === product.id && (
-                                                    <div className="unified-dropdown-menu">
+                                                    <div className="unified-dropdown-menu" onClick={(e) => e.stopPropagation()}>
                                                         <button 
                                                             className="unified-dropdown-item"
                                                             onClick={() => handleViewDetail(product)}
@@ -906,13 +945,17 @@ export default function AdminProducts() {
                                         <span>📦</span>
                                     )}
                                     <div className="product-card-actions" onClick={(e) => e.stopPropagation()}>
-                                        <div className={`unified-dropdown ${activeDropdown === product.id ? 'active' : ''}`}>
+                                        <div 
+                                            className={`unified-dropdown ${activeDropdown === product.id ? 'active' : ''}`}
+                                            onClick={(e) => e.stopPropagation()}
+                                        >
                                             <button
                                                 className="unified-more-btn"
                                                 onClick={(e) => {
                                                     e.stopPropagation();
                                                     setActiveDropdown(activeDropdown === product.id ? null : product.id);
                                                 }}
+                                                title="More Actions"
                                             >
                                                 <IconMoreVertical />
                                             </button>
@@ -1108,6 +1151,25 @@ export default function AdminProducts() {
                                 </div>
                             </div>
                             <div className="filter-popup-group">
+                                <label className="filter-popup-label">Price Range</label>
+                                <div className="filter-price-range">
+                                    <input
+                                        type="number"
+                                        placeholder="Min price"
+                                        value={priceRange.min}
+                                        onChange={(e) => setPriceRange({ ...priceRange, min: e.target.value })}
+                                        style={{ width: '100%', padding: '8px 12px', border: '1px solid #e5e7eb', borderRadius: '6px', marginBottom: '8px' }}
+                                    />
+                                    <input
+                                        type="number"
+                                        placeholder="Max price"
+                                        value={priceRange.max}
+                                        onChange={(e) => setPriceRange({ ...priceRange, max: e.target.value })}
+                                        style={{ width: '100%', padding: '8px 12px', border: '1px solid #e5e7eb', borderRadius: '6px' }}
+                                    />
+                                </div>
+                            </div>
+                            <div className="filter-popup-group">
                                 <label className="filter-popup-label">Status</label>
                                 <div className="filter-radio-group">
                                     <label className="filter-radio-item">
@@ -1140,26 +1202,6 @@ export default function AdminProducts() {
                                         />
                                         <span>Inactive</span>
                                     </label>
-                                </div>
-                            </div>
-                        </div>
-                            <div className="filter-popup-group">
-                                <label className="filter-popup-label">Price Range</label>
-                                <div className="filter-price-range">
-                                    <input
-                                        type="number"
-                                        placeholder="Min price"
-                                        value={priceRange.min}
-                                        onChange={(e) => setPriceRange({ ...priceRange, min: e.target.value })}
-                                        style={{ width: '100%', padding: '8px 12px', border: '1px solid #e5e7eb', borderRadius: '6px', marginBottom: '8px' }}
-                                    />
-                                    <input
-                                        type="number"
-                                        placeholder="Max price"
-                                        value={priceRange.max}
-                                        onChange={(e) => setPriceRange({ ...priceRange, max: e.target.value })}
-                                        style={{ width: '100%', padding: '8px 12px', border: '1px solid #e5e7eb', borderRadius: '6px' }}
-                                    />
                                 </div>
                             </div>
                         </div>
