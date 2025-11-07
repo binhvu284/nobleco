@@ -73,7 +73,7 @@ export default function AdminProfileModal({ open, onClose }: { open: boolean; on
                 });
                 
                 // Load avatar
-                await loadUserAvatar(freshUser.id);
+                await loadUserAvatar(Number(freshUser.id));
                 
                 // Update avatar state if user data includes avatar URL
                 if (freshUser.avatar) {
@@ -248,7 +248,7 @@ export default function AdminProfileModal({ open, onClose }: { open: boolean; on
         setError('');
 
         try {
-            await deleteUserAvatar(user.id);
+            await deleteUserAvatar(Number(user.id));
             setAvatar(null);
             await loadFreshUserData();
             
@@ -325,7 +325,7 @@ export default function AdminProfileModal({ open, onClose }: { open: boolean; on
                 displaySize
             };
             
-            const uploadedAvatar = await uploadUserAvatar(user.id, avatarFile, {
+            const uploadedAvatar = await uploadUserAvatar(Number(user.id), avatarFile, {
                 viewportData: {
                     x: viewportData.x,
                     y: viewportData.y,

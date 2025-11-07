@@ -171,7 +171,7 @@ export default function AddProductModal({ open, onClose, onSuccess, product }: A
                 type: '',
                 center_stone_size_mm: '',
                 ni_tay: '',
-                shape: '',
+                shape: [] as string[],
                 dimensions: '',
                 stone_count: '',
                 carat_weight_ct: '',
