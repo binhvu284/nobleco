@@ -45,6 +45,59 @@ CREATE TABLE public.commission_rates (
   updated_at timestamp with time zone NOT NULL DEFAULT now(),
   CONSTRAINT commission_rates_pkey PRIMARY KEY (id)
 );
+CREATE TABLE public.order_items (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  order_id bigint NOT NULL,
+  product_id bigint NOT NULL,
+  product_name text NOT NULL,
+  product_sku text,
+  product_price numeric NOT NULL CHECK (product_price >= 0::numeric),
+  quantity integer NOT NULL DEFAULT 1 CHECK (quantity > 0),
+  unit_price numeric NOT NULL CHECK (unit_price >= 0::numeric),
+  discount_amount numeric NOT NULL DEFAULT 0 CHECK (discount_amount >= 0::numeric),
+  line_total numeric NOT NULL CHECK (line_total >= 0::numeric),
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT order_items_pkey PRIMARY KEY (id),
+  CONSTRAINT order_items_order_id_fkey FOREIGN KEY (order_id) REFERENCES public.orders(id),
+  CONSTRAINT order_items_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(id)
+);
+CREATE TABLE public.orders (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  order_number text NOT NULL UNIQUE,
+  subtotal_amount numeric NOT NULL DEFAULT 0 CHECK (subtotal_amount >= 0::numeric),
+  discount_amount numeric NOT NULL DEFAULT 0 CHECK (discount_amount >= 0::numeric),
+  tax_amount numeric NOT NULL DEFAULT 0 CHECK (tax_amount >= 0::numeric),
+  total_amount numeric NOT NULL DEFAULT 0 CHECK (total_amount >= 0::numeric),
+  status text NOT NULL DEFAULT 'pending'::text CHECK (status = ANY (ARRAY['pending'::text, 'processing'::text, 'confirmed'::text, 'shipped'::text, 'delivered'::text, 'completed'::text, 'cancelled'::text, 'refunded'::text])),
+  payment_method text CHECK (payment_method = ANY (ARRAY['cash'::text, 'card'::text, 'bank_transfer'::text, 'credit'::text, 'other'::text])),
+  payment_status text DEFAULT 'pending'::text CHECK (payment_status = ANY (ARRAY['pending'::text, 'partial'::text, 'paid'::text, 'failed'::text, 'refunded'::text])),
+  payment_date timestamp with time zone,
+  client_id bigint,
+  created_by bigint NOT NULL,
+  notes text,
+  shipping_address text,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  completed_at timestamp with time zone,
+  cancelled_at timestamp with time zone,
+  CONSTRAINT orders_pkey PRIMARY KEY (id),
+  CONSTRAINT orders_client_id_fkey FOREIGN KEY (client_id) REFERENCES public.clients(id),
+  CONSTRAINT orders_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id)
+);
+CREATE TABLE public.otps (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  phone text NOT NULL,
+  code text NOT NULL,
+  purpose text NOT NULL CHECK (purpose = ANY (ARRAY['signup'::text, 'password_reset'::text])),
+  user_id bigint,
+  expires_at timestamp with time zone NOT NULL,
+  verified boolean DEFAULT false,
+  attempts integer DEFAULT 0,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT otps_pkey PRIMARY KEY (id),
+  CONSTRAINT otps_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+);
 CREATE TABLE public.product_categories (
   id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
   product_id bigint NOT NULL,
@@ -93,17 +146,17 @@ CREATE TABLE public.products (
   serial_number text,
   supplier_id text,
   center_stone_size_mm numeric,
-  ni_tay numeric,
   shape text,
   dimensions text,
   stone_count integer,
   carat_weight_ct numeric,
   gold_purity text,
   product_weight_g numeric,
-  type text,
   inventory_value numeric,
   last_synced_at timestamp with time zone,
   sync_status text DEFAULT 'pending'::text CHECK (sync_status = ANY (ARRAY['pending'::text, 'synced'::text, 'failed'::text, 'syncing'::text])),
+  ni_tay numeric,
+  type text,
   CONSTRAINT products_pkey PRIMARY KEY (id),
   CONSTRAINT products_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id),
   CONSTRAINT products_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES public.users(id)
@@ -150,10 +203,45 @@ CREATE TABLE public.third_party_integrations (
   updated_at timestamp with time zone NOT NULL DEFAULT now(),
   CONSTRAINT third_party_integrations_pkey PRIMARY KEY (id)
 );
+CREATE TABLE public.user_avatars (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  user_id bigint NOT NULL UNIQUE,
+  storage_path text NOT NULL,
+  url text NOT NULL,
+  file_size integer,
+  width integer,
+  height integer,
+  mime_type text,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  viewport_x numeric,
+  viewport_y numeric,
+  viewport_size numeric,
+  CONSTRAINT user_avatars_pkey PRIMARY KEY (id),
+  CONSTRAINT user_avatars_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.user_personal_ids (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  user_id bigint NOT NULL UNIQUE,
+  front_image_path text NOT NULL,
+  front_image_url text NOT NULL,
+  back_image_path text,
+  back_image_url text,
+  file_size integer,
+  mime_type text,
+  verified boolean DEFAULT false,
+  verified_at timestamp with time zone,
+  verified_by bigint,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT user_personal_ids_pkey PRIMARY KEY (id),
+  CONSTRAINT user_personal_ids_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
+  CONSTRAINT user_personal_ids_verified_by_fkey FOREIGN KEY (verified_by) REFERENCES public.users(id)
+);
 CREATE TABLE public.users (
   id bigint NOT NULL DEFAULT nextval('users_id_seq'::regclass),
   email text UNIQUE,
-  name text UNIQUE,
+  name text,
   password text,
   role text NOT NULL DEFAULT 'user'::text,
   points integer DEFAULT 0,
@@ -165,5 +253,7 @@ CREATE TABLE public.users (
   phone text,
   address text,
   referred_by text,
+  phone_verified boolean DEFAULT false,
+  location character varying,
   CONSTRAINT users_pkey PRIMARY KEY (id)
 );

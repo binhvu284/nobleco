@@ -11,6 +11,8 @@ import UserWallet from './user/pages/UserWallet';
 import UserOrders from './user/pages/UserOrders';
 import UserTraining from './user/pages/UserTraining';
 import UserClient from './user/pages/UserClient';
+import Checkout from './user/pages/Checkout';
+import Payment from './user/pages/Payment';
 import Inbox from './user/pages/Inbox';
 import Library from './user/pages/Library';
 import TrainingMaterials from './user/pages/TrainingMaterials';
@@ -45,6 +47,8 @@ export default function App() {
                 <Route path="/orders" element={<UserOrders />} />
                 <Route path="/training" element={<UserTraining />} />
                 <Route path="/client" element={<UserClient />} />
+                <Route path="/checkout" element={<Checkout />} />
+                <Route path="/payment" element={<Payment />} />
                 <Route path="/library" element={<Library />} />
                 <Route path="/training-materials" element={<TrainingMaterials />} />
             </Route>

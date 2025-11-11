@@ -1,4 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
+import { createPortal } from 'react-dom';
+import { useNavigate } from 'react-router-dom';
 import UserLayout from '../components/UserLayout';
 import ImageGallery from '../../components/ImageGallery';
 import {
@@ -79,6 +81,7 @@ const formatVND = (amount: number): string => {
 };
 
 export default function UserProduct() {
+    const navigate = useNavigate();
     const [products, setProducts] = useState<Product[]>([]);
     const [categories, setCategories] = useState<Category[]>([]);
     const [loading, setLoading] = useState(true);
@@ -478,7 +481,7 @@ export default function UserProduct() {
                 </div>
 
                 {/* Shopping Cart Sidebar */}
-                {showCart && (
+                {showCart && createPortal(
                     <>
                         <div className="cart-overlay" onClick={() => setShowCart(false)} />
                         <div className="cart-sidebar">
@@ -542,7 +545,13 @@ export default function UserProduct() {
                                                 <span>Total:</span>
                                                 <span className="total-price">{formatVND(getTotalPrice())}</span>
                                             </div>
-                                            <button className="checkout-btn">
+                                            <button 
+                                                className="checkout-btn"
+                                                onClick={() => {
+                                                    navigate('/checkout', { state: { cartItems: cart } });
+                                                    setShowCart(false);
+                                                }}
+                                            >
                                                 Proceed to Checkout
                                             </button>
                                         </div>
@@ -550,11 +559,12 @@ export default function UserProduct() {
                                 )}
                             </div>
                         </div>
-                    </>
+                    </>,
+                    document.body
                 )}
 
                 {/* Product Detail Modal */}
-                {showProductDetail && selectedProduct && (
+                {showProductDetail && selectedProduct && createPortal(
                     <>
                         <div className="product-detail-overlay" onClick={handleCloseDetail} />
                         <div className={`product-detail-modal ${isFullscreen ? 'fullscreen' : ''}`}>
@@ -688,7 +698,8 @@ export default function UserProduct() {
                                 </div>
                             </div>
                         </div>
-                    </>
+                    </>,
+                    document.body
                 )}
             </div>
         </UserLayout>
