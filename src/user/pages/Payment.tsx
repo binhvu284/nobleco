@@ -103,7 +103,7 @@ export default function Payment() {
 
     if (!orderData) {
         return (
-            <UserLayout>
+            <UserLayout title="Payment">
                 <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
                     <p>Loading...</p>
                 </div>
@@ -131,7 +131,7 @@ export default function Payment() {
     };
 
     return (
-        <UserLayout>
+        <UserLayout title="Payment">
             <div className="payment-container">
                 <div className="payment-header">
                     <button className="back-btn" onClick={handleBackToCheckout}>

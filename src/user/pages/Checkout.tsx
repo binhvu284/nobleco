@@ -208,7 +208,7 @@ export default function Checkout() {
 
     if (loading) {
         return (
-            <UserLayout>
+            <UserLayout title="Checkout">
                 <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
                     <p>Loading...</p>
                 </div>
@@ -218,7 +218,7 @@ export default function Checkout() {
 
     if (cartItems.length === 0) {
         return (
-            <UserLayout>
+            <UserLayout title="Checkout">
                 <div className="checkout-container">
                     <div className="checkout-empty">
                         <IconPackage />
@@ -234,7 +234,7 @@ export default function Checkout() {
     }
 
     return (
-        <UserLayout>
+        <UserLayout title="Checkout">
             <div className="checkout-container">
                 <div className="checkout-header">
                     <button className="back-btn" onClick={() => navigate('/product')}>
