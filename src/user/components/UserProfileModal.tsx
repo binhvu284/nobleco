@@ -49,6 +49,7 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
     const [isHoveringAvatar, setIsHoveringAvatar] = useState(false);
     const [showLocationDropdown, setShowLocationDropdown] = useState(false);
     const locationDropdownRef = useRef<HTMLDivElement>(null);
+    const [notification, setNotification] = useState<{ type: 'success' | 'error', message: string, id: string } | null>(null);
 
     // Close location dropdown when clicking outside
     useEffect(() => {
@@ -173,6 +174,36 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
             setQrCodeUrl(qrDataUrl);
         } catch (err) {
             console.error('Error generating QR code:', err);
+        }
+    };
+
+    const getReferLink = () => {
+        if (!user?.refer_code) return '';
+        return `${window.location.origin}/signup?ref=${user.refer_code}`;
+    };
+
+    const copyReferCode = async () => {
+        if (!user?.refer_code) return;
+        try {
+            await navigator.clipboard.writeText(user.refer_code);
+            setNotification({ type: 'success', message: 'Refer code copied!', id: 'refer-code' });
+            setTimeout(() => setNotification(null), 2000);
+        } catch (err) {
+            setNotification({ type: 'error', message: 'Failed to copy refer code', id: 'refer-code' });
+            setTimeout(() => setNotification(null), 3000);
+        }
+    };
+
+    const copyReferLink = async () => {
+        const referLink = getReferLink();
+        if (!referLink) return;
+        try {
+            await navigator.clipboard.writeText(referLink);
+            setNotification({ type: 'success', message: 'Link copied!', id: 'refer-link' });
+            setTimeout(() => setNotification(null), 2000);
+        } catch (err) {
+            setNotification({ type: 'error', message: 'Failed to copy link', id: 'refer-link' });
+            setTimeout(() => setNotification(null), 3000);
         }
     };
 
@@ -930,58 +961,96 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
                                     <p className="field-description">
                                         Share your unique refer code to invite others to become your junior advisor.
                                     </p>
-                                    <div className="refer-code-container">
-                                        <div className={user.refer_code ? "refer-code-value" : "profile-field-value non-editable"}>
-                                            <span>{user.refer_code || 'N/A'}</span>
-                                            {user.refer_code && (
-                                                <button 
-                                                    className="copy-btn" 
-                                                    title="Copy refer code"
-                                                    onClick={() => {
-                                                        navigator.clipboard.writeText(user.refer_code || '');
-                                                    }}
-                                                >
-                                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                                                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-                                                    </svg>
-                                                </button>
-                                            )}
-                                        </div>
-                                        {qrCodeUrl && (
-                                            <div className="qr-code-section">
-                                                
-                                                <div className="qr-code-preview">
-                                                    <img src={qrCodeUrl} alt="QR Code" />
-                                                    <div className="qr-actions">
-                                                        <button 
-                                                            className="qr-action-btn" 
-                                                            title="Expand QR Code"
-                                                            onClick={expandQRCode}
-                                                        >
-                                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                                <polyline points="15 3 21 3 21 9" />
-                                                                <polyline points="9 21 3 21 3 15" />
-                                                                <line x1="21" y1="3" x2="14" y2="10" />
-                                                                <line x1="3" y1="21" x2="10" y2="14" />
-                                                            </svg>
-                                                        </button>
-                                                        <button 
-                                                            className="qr-action-btn" 
-                                                            title="Download QR Code"
-                                                            onClick={downloadQRCode}
-                                                        >
-                                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                                                                <polyline points="7 10 12 15 17 10" />
-                                                                <line x1="12" y1="15" x2="12" y2="3" />
-                                                            </svg>
-                                                        </button>
-                                                    </div>
+                                    {user.refer_code ? (
+                                        <div className="refer-code-compact-container">
+                                            {/* Refer Code Row */}
+                                            <div className="refer-code-row">
+                                                <div className="refer-code-value-compact">
+                                                    <span>{user.refer_code}</span>
+                                                    <button 
+                                                        className="copy-btn-inline" 
+                                                        title="Copy refer code"
+                                                        onClick={copyReferCode}
+                                                    >
+                                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                                                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                                                        </svg>
+                                                    </button>
+                                                    {notification && notification.id === 'refer-code' && (
+                                                        <div className={`inline-notification ${notification.type}`}>
+                                                            {notification.type === 'success' ? '✓' : '✕'} {notification.message}
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
-                                        )}
-                                    </div>
+
+                                            {/* Referral Link Row */}
+                                            <div className="refer-link-row">
+                                                <label className="refer-link-label">Referral Link</label>
+                                                <div className="refer-link-value-compact">
+                                                    <input
+                                                        type="text"
+                                                        readOnly
+                                                        value={getReferLink()}
+                                                        className="refer-link-input"
+                                                        onClick={(e) => (e.target as HTMLInputElement).select()}
+                                                    />
+                                                    <button 
+                                                        className="copy-btn-inline" 
+                                                        title="Copy referral link"
+                                                        onClick={copyReferLink}
+                                                    >
+                                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                                                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                                                        </svg>
+                                                    </button>
+                                                    {notification && notification.id === 'refer-link' && (
+                                                        <div className={`inline-notification ${notification.type}`}>
+                                                            {notification.type === 'success' ? '✓' : '✕'} {notification.message}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            {/* QR Code Row */}
+                                            {qrCodeUrl && (
+                                                <div className="qr-code-row">
+                                                    <div className="qr-code-horizontal">
+                                                        <img src={qrCodeUrl} alt="QR Code" className="qr-code-image" />
+                                                        <div className="qr-actions-horizontal">
+                                                            <button 
+                                                                className="qr-action-btn-horizontal" 
+                                                                title="Expand QR Code"
+                                                                onClick={expandQRCode}
+                                                            >
+                                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                                    <polyline points="15 3 21 3 21 9" />
+                                                                    <polyline points="9 21 3 21 3 15" />
+                                                                    <line x1="21" y1="3" x2="14" y2="10" />
+                                                                    <line x1="3" y1="21" x2="10" y2="14" />
+                                                                </svg>
+                                                            </button>
+                                                            <button 
+                                                                className="qr-action-btn-horizontal" 
+                                                                title="Download QR Code"
+                                                                onClick={downloadQRCode}
+                                                            >
+                                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                                                    <polyline points="7 10 12 15 17 10" />
+                                                                    <line x1="12" y1="15" x2="12" y2="3" />
+                                                                </svg>
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    ) : (
+                                        <div className="profile-field-value non-editable">N/A</div>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -1259,7 +1328,7 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
 
                                 {/* Action Buttons */}
                                 {isEditing && (
-                                    <div className="profile-actions">
+                                    <div className="profile-actions profile-actions-fixed">
                                         <button className="btn-secondary" onClick={handleCancel} disabled={isSaving}>
                                             Cancel
                                         </button>
@@ -1362,6 +1431,7 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
                     </div>
                 </div>
             )}
+
 
             {/* Avatar Crop Modal */}
             {showAvatarCrop && avatarPreview && (
