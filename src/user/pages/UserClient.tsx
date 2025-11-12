@@ -521,23 +521,7 @@ export default function UserClient() {
                                         {client.name.charAt(0).toUpperCase()}
                                     </div>
                                     <div className="client-card-info">
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                                            <h3>{client.name}</h3>
-                                            {client.completed_orders_count !== undefined && (
-                                                <span className="orders-badge" style={{
-                                                    display: 'inline-block',
-                                                    padding: '2px 8px',
-                                                    backgroundColor: 'var(--primary)',
-                                                    color: 'white',
-                                                    borderRadius: '10px',
-                                                    fontSize: '11px',
-                                                    fontWeight: '600',
-                                                    whiteSpace: 'nowrap'
-                                                }}>
-                                                    {client.completed_orders_count} orders
-                                                </span>
-                                            )}
-                                        </div>
+                                        <h3>{client.name}</h3>
                                         <p className="client-phone">{client.phone}</p>
                                     </div>
                                     <div className="client-actions">
@@ -596,14 +580,6 @@ export default function UserClient() {
                                             <span>{client.email}</span>
                                         </div>
                                     )}
-                                    <div className="client-detail">
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                            <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                                            <circle cx="8.5" cy="7" r="4"/>
-                                            <path d="M20 8v6M23 11h-6"/>
-                                        </svg>
-                                        <span>Order Made: <strong>{client.completed_orders_count || 0}</strong></span>
-                                    </div>
                                 </div>
 
                                 <div className="client-card-footer">
