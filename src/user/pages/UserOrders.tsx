@@ -1,7 +1,9 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import UserLayout from '../components/UserLayout';
 import { getCurrentUser } from '../../auth';
 import OrderDetailModal from '../components/OrderDetailModal';
+import ConfirmModal from '../../admin/components/ConfirmModal';
 import {
     IconSearch,
     IconFilter,
@@ -9,7 +11,9 @@ import {
     IconGrid,
     IconEye,
     IconMoreVertical,
-    IconPackage
+    IconPackage,
+    IconShoppingBag,
+    IconTrash2
 } from '../../admin/components/icons';
 
 // Order status type based on database schema
@@ -56,6 +60,8 @@ const formatDate = (dateString: string): string => {
 };
 
 export default function UserOrders() {
+    const navigate = useNavigate();
+    const location = useLocation();
     const [orders, setOrders] = useState<Order[]>([]);
     const [loading, setLoading] = useState(true);
     const [viewMode, setViewMode] = useState<'table' | 'card'>(
@@ -69,6 +75,9 @@ export default function UserOrders() {
     const [isMobile, setIsMobile] = useState(false);
     const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
     const [showOrderDetail, setShowOrderDetail] = useState(false);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [orderToDelete, setOrderToDelete] = useState<Order | null>(null);
+    const [deleteLoading, setDeleteLoading] = useState(false);
 
     // Debounce search term
     useEffect(() => {
@@ -93,31 +102,37 @@ export default function UserOrders() {
         return () => window.removeEventListener('resize', checkMobile);
     }, [viewMode]);
 
-    // Load orders
-    useEffect(() => {
-        loadOrders();
-    }, []);
-
-    const loadOrders = async () => {
+    const loadOrders = useCallback(async () => {
         try {
             setLoading(true);
             const currentUser = getCurrentUser();
             if (!currentUser?.id) {
                 setOrders([]);
+                setLoading(false);
                 return;
             }
 
-            // TODO: Replace with actual API endpoint
-            // For now, using mock data structure
-            // const userId = typeof currentUser.id === 'string' ? parseInt(currentUser.id, 10) : currentUser.id;
-            // const response = await fetch(`/api/orders?created_by=${userId}`);
-            // if (response.ok) {
-            //     const data = await response.json();
-            //     setOrders(data || []);
-            // }
+            const userId = typeof currentUser.id === 'string' ? parseInt(currentUser.id, 10) : currentUser.id;
+            const authToken = localStorage.getItem('nobleco_auth_token');
+            
+            const response = await fetch(`/api/orders?created_by=${userId}`, {
+                headers: {
+                    'Authorization': `Bearer ${authToken}`
+                }
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                console.log('Orders loaded:', data?.length || 0, 'orders');
+                setOrders(data || []);
+            } else {
+                const errorData = await response.json().catch(() => ({}));
+                console.error('Failed to load orders:', response.status, errorData);
+                setOrders([]);
+            }
 
-            // Mock data for UI development
-            const mockOrders: Order[] = [
+            // Mock data for UI development (fallback)
+            /*const mockOrders: Order[] = [
                 {
                     id: 1,
                     order_number: 'ORD-2024-00001',
@@ -210,16 +225,38 @@ export default function UserOrders() {
                     cancelled_at: '2024-01-18T12:00:00Z',
                     item_count: 5
                 }
-            ];
+            ];*/
 
-            setOrders(mockOrders);
+            // setOrders(mockOrders); // Commented out - using real API
         } catch (error) {
             console.error('Error loading orders:', error);
             setOrders([]);
         } finally {
             setLoading(false);
         }
-    };
+    }, []); // Empty deps - function doesn't depend on any state/props
+
+    // Load orders on mount and when navigating back to this page
+    useEffect(() => {
+        // Only reload if we're on the orders page
+        if (location.pathname === '/orders') {
+            loadOrders();
+        }
+    }, [location.pathname, loadOrders]); // Reload when navigating to /orders page
+
+    // Also reload when page becomes visible (user switches back to tab/window)
+    useEffect(() => {
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible' && location.pathname === '/orders') {
+                loadOrders();
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+        };
+    }, [location.pathname, loadOrders]);
 
     // Filter orders
     const filteredOrders = useMemo(() => {
@@ -268,6 +305,83 @@ export default function UserOrders() {
         setSelectedOrderId(orderId);
         setShowOrderDetail(true);
         setActiveDropdown(null);
+    };
+
+    // Handle checkout (for processing orders)
+    const handleCheckout = async (orderId: number) => {
+        const order = orders.find(o => o.id === orderId);
+        if (!order) return;
+
+        try {
+            const authToken = localStorage.getItem('nobleco_auth_token');
+            const response = await fetch(`/api/orders/${orderId}`, {
+                headers: {
+                    'Authorization': `Bearer ${authToken}`
+                }
+            });
+
+            if (response.ok) {
+                const orderData = await response.json();
+                // Navigate to checkout with order data
+                navigate('/checkout', {
+                    state: {
+                        orderId: orderData.id,
+                        // You may need to reconstruct cartItems from order items
+                        // For now, redirecting to checkout page
+                    }
+                });
+            } else {
+                alert('Failed to load order details');
+            }
+        } catch (error) {
+            console.error('Error loading order:', error);
+            alert('Failed to load order details');
+        }
+        setActiveDropdown(null);
+    };
+
+    // Handle delete click (show confirmation modal)
+    const handleDeleteClick = (order: Order) => {
+        setOrderToDelete(order);
+        setShowDeleteConfirm(true);
+        setActiveDropdown(null);
+    };
+
+    // Handle delete cancel
+    const handleDeleteCancel = () => {
+        setShowDeleteConfirm(false);
+        setOrderToDelete(null);
+    };
+
+    // Handle delete confirm (for processing orders)
+    const handleDeleteConfirm = async () => {
+        if (!orderToDelete) return;
+
+        try {
+            setDeleteLoading(true);
+            const authToken = localStorage.getItem('nobleco_auth_token');
+            const response = await fetch(`/api/orders/${orderToDelete.id}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${authToken}`
+                }
+            });
+
+            if (response.ok) {
+                // Remove order from list
+                setOrders(orders.filter(o => o.id !== orderToDelete.id));
+                setShowDeleteConfirm(false);
+                setOrderToDelete(null);
+            } else {
+                const error = await response.json().catch(() => ({ error: 'Failed to delete order' }));
+                throw new Error(error.error || 'Failed to delete order');
+            }
+        } catch (error) {
+            console.error('Error deleting order:', error);
+            alert((error as Error).message || 'Failed to delete order');
+        } finally {
+            setDeleteLoading(false);
+        }
     };
 
     // Toggle dropdown
@@ -439,8 +553,16 @@ export default function UserOrders() {
                     </div>
                 </div>
 
+                {/* Loading State */}
+                {loading && (
+                    <div className="orders-loading">
+                        <div className="loading-spinner"></div>
+                        <p>Loading orders...</p>
+                    </div>
+                )}
+
                 {/* Table View */}
-                {viewMode === 'table' && !isMobile ? (
+                {!loading && viewMode === 'table' && !isMobile ? (
                     <div className="orders-table-container">
                         <table className="orders-table">
                             <thead>
@@ -457,7 +579,16 @@ export default function UserOrders() {
                             </thead>
                             <tbody>
                                 {filteredOrders.map((order) => (
-                                    <tr key={order.id}>
+                                    <tr 
+                                        key={order.id}
+                                        className="order-row-clickable"
+                                        onClick={(e) => {
+                                            // Don't trigger if clicking on dropdown button
+                                            if (!(e.target as Element).closest('.unified-dropdown')) {
+                                                handleViewDetail(order.id);
+                                            }
+                                        }}
+                                    >
                                         <td>
                                             <span className="order-code">{order.order_number}</span>
                                         </td>
@@ -508,6 +639,24 @@ export default function UserOrders() {
                                                             <IconEye />
                                                             View Detail
                                                         </button>
+                                                        {order.status === 'processing' && (
+                                                            <>
+                                                                <button
+                                                                    className="unified-dropdown-item"
+                                                                    onClick={() => handleCheckout(order.id)}
+                                                                >
+                                                                    <IconShoppingBag />
+                                                                    Checkout
+                                                                </button>
+                                                                <button
+                                                                    className="unified-dropdown-item danger"
+                                                                    onClick={() => handleDeleteClick(order)}
+                                                                >
+                                                                    <IconTrash2 />
+                                                                    Delete
+                                                                </button>
+                                                            </>
+                                                        )}
                                                     </div>
                                                 )}
                                             </div>
@@ -527,9 +676,19 @@ export default function UserOrders() {
                     </div>
                 ) : (
                     /* Card View */
-                    <div className="orders-grid">
-                        {filteredOrders.map((order) => (
-                            <div key={order.id} className="order-card">
+                    !loading && (
+                        <div className="orders-grid">
+                            {filteredOrders.map((order) => (
+                                <div 
+                                    key={order.id} 
+                                    className="order-card order-card-clickable"
+                                    onClick={(e) => {
+                                        // Don't trigger if clicking on dropdown button
+                                        if (!(e.target as Element).closest('.unified-dropdown')) {
+                                            handleViewDetail(order.id);
+                                        }
+                                    }}
+                                >
                                 <div className="card-header">
                                     <div className="card-title">
                                         <span className="order-code">{order.order_number}</span>
@@ -548,7 +707,8 @@ export default function UserOrders() {
                                             <div className="unified-dropdown-menu">
                                                 <button
                                                     className="unified-dropdown-item"
-                                                    onClick={() => {
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
                                                         handleViewDetail(order.id);
                                                         setActiveDropdown(null);
                                                     }}
@@ -556,6 +716,32 @@ export default function UserOrders() {
                                                     <IconEye />
                                                     View Detail
                                                 </button>
+                                                {order.status === 'processing' && (
+                                                    <>
+                                                        <button
+                                                            className="unified-dropdown-item"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                handleCheckout(order.id);
+                                                                setActiveDropdown(null);
+                                                            }}
+                                                        >
+                                                            <IconShoppingBag />
+                                                            Checkout
+                                                        </button>
+                                                        <button
+                                                            className="unified-dropdown-item danger"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                handleDeleteClick(order);
+                                                                setActiveDropdown(null);
+                                                            }}
+                                                        >
+                                                            <IconTrash2 />
+                                                            Delete
+                                                        </button>
+                                                    </>
+                                                )}
                                             </div>
                                         )}
                                     </div>
@@ -597,14 +783,15 @@ export default function UserOrders() {
                             </div>
                         ))}
 
-                        {filteredOrders.length === 0 && (
-                            <div className="empty-state">
-                                <IconPackage />
-                                <h3>No orders found</h3>
-                                <p>Try adjusting your search or filter criteria</p>
-                            </div>
-                        )}
-                    </div>
+                            {filteredOrders.length === 0 && (
+                                <div className="empty-state">
+                                    <IconPackage />
+                                    <h3>No orders found</h3>
+                                    <p>Try adjusting your search or filter criteria</p>
+                                </div>
+                            )}
+                        </div>
+                    )
                 )}
 
                 {/* Order Detail Modal */}
@@ -615,6 +802,19 @@ export default function UserOrders() {
                         setShowOrderDetail(false);
                         setSelectedOrderId(null);
                     }}
+                />
+
+                {/* Delete Confirmation Modal */}
+                <ConfirmModal
+                    open={showDeleteConfirm}
+                    onClose={handleDeleteCancel}
+                    onConfirm={handleDeleteConfirm}
+                    title="Delete Order"
+                    message={orderToDelete ? `Are you sure you want to delete order ${orderToDelete.order_number}? This action cannot be undone.` : 'Are you sure you want to delete this order?'}
+                    confirmText="Delete"
+                    cancelText="Cancel"
+                    type="danger"
+                    loading={deleteLoading}
                 />
             </div>
         </UserLayout>

@@ -7,10 +7,12 @@ interface Client {
     name: string;
     phone: string | null;
     email: string | null;
+    gender?: 'Male' | 'Female' | 'Other';
     birthday: string | null;
     location: string | null;
     description: string | null;
     order_count: number;
+    completed_orders_count?: number;
     created_by: number | null;
     created_by_user: {
         id: number;
@@ -110,138 +112,155 @@ export default function ClientDetailModal({ open, onClose, client }: ClientDetai
                 <div className="modal-body">
                     <div className="client-detail-info">
                         {/* Client Avatar & Name Section */}
-                        <div className="client-detail-header">
+                        <div className="client-detail-header" style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '24px' }}>
                             <div className="client-detail-avatar">
                                 {client.name.split(' ').map(n => n[0]).join('').toUpperCase()}
                             </div>
-                            <div className="client-detail-header-info">
-                                <h1 className="client-detail-name">{client.name}</h1>
-                            </div>
+                            <h1 className="client-detail-name" style={{ margin: 0 }}>{client.name}</h1>
                         </div>
 
-                        {/* Contact Information */}
-                        <div className="detail-section">
-                            <h3 className="detail-section-title">Contact Information</h3>
-                            <div className="detail-grid">
-                                <div className="detail-row">
-                                    <div className="detail-label-wrapper">
-                                        <label>Email</label>
+                        {/* Contact Information and Business Information - Side by Side */}
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+                            {/* Contact Information */}
+                            <div className="detail-section">
+                                <h3 className="detail-section-title">Contact Information</h3>
+                                <div className="detail-grid">
+                                    <div className="detail-row">
+                                        <div className="detail-label-wrapper">
+                                            <label>Email</label>
+                                        </div>
+                                        <div className="detail-value-wrapper">
+                                            <span className="detail-value-text" style={{ color: client.email ? 'inherit' : 'var(--muted)' }}>
+                                                {client.email || 'N/A'}
+                                            </span>
+                                        </div>
                                     </div>
-                                    <div className="detail-value-wrapper">
-                                        <span className="detail-value-text">{client.email || 'N/A'}</span>
+                                    <div className="detail-row">
+                                        <div className="detail-label-wrapper">
+                                            <label>Phone</label>
+                                        </div>
+                                        <div className="detail-value-wrapper">
+                                            <span className="detail-value-text" style={{ color: client.phone ? 'inherit' : 'var(--muted)' }}>
+                                                {client.phone || 'N/A'}
+                                            </span>
+                                        </div>
                                     </div>
-                                </div>
-                                <div className="detail-row">
-                                    <div className="detail-label-wrapper">
-                                        <label>Phone</label>
+                                    <div className="detail-row">
+                                        <div className="detail-label-wrapper">
+                                            <label>Gender</label>
+                                        </div>
+                                        <div className="detail-value-wrapper">
+                                            <span className="detail-value-text" style={{ color: client.gender ? 'inherit' : 'var(--muted)' }}>
+                                                {client.gender || 'N/A'}
+                                            </span>
+                                        </div>
                                     </div>
-                                    <div className="detail-value-wrapper">
-                                        <span className="detail-value-text">{client.phone || 'N/A'}</span>
+                                    <div className="detail-row">
+                                        <div className="detail-label-wrapper">
+                                            <label>Birthday</label>
+                                        </div>
+                                        <div className="detail-value-wrapper">
+                                            <span className="detail-value-text" style={{ color: client.birthday ? 'inherit' : 'var(--muted)' }}>
+                                                {client.birthday ? (
+                                                    <>
+                                                        {formatDateShort(client.birthday)}
+                                                        {age !== null && <span className="age-badge"> ({age} years old)</span>}
+                                                    </>
+                                                ) : 'N/A'}
+                                            </span>
+                                        </div>
                                     </div>
-                                </div>
-                                <div className="detail-row">
-                                    <div className="detail-label-wrapper">
-                                        <label>Birthday</label>
-                                    </div>
-                                    <div className="detail-value-wrapper">
-                                        <span className="detail-value-text">
-                                            {client.birthday ? (
-                                                <>
-                                                    {formatDateShort(client.birthday)}
-                                                    {age !== null && <span className="age-badge"> ({age} years old)</span>}
-                                                </>
-                                            ) : 'N/A'}
-                                        </span>
-                                    </div>
-                                </div>
-                                <div className="detail-row">
-                                    <div className="detail-label-wrapper">
-                                        <label>Location</label>
-                                    </div>
-                                    <div className="detail-value-wrapper">
-                                        <span className="detail-value-text">{client.location || 'N/A'}</span>
+                                    <div className="detail-row">
+                                        <div className="detail-label-wrapper">
+                                            <label>Location</label>
+                                        </div>
+                                        <div className="detail-value-wrapper">
+                                            <span className="detail-value-text" style={{ color: client.location ? 'inherit' : 'var(--muted)' }}>
+                                                {client.location || 'N/A'}
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
 
-                        {/* Business Information */}
-                        <div className="detail-section">
-                            <h3 className="detail-section-title">Business Information</h3>
-                            <div className="detail-grid">
-                                <div className="detail-row">
-                                    <div className="detail-label-wrapper">
-                                        <label>Orders Made</label>
+                            {/* Business Information */}
+                            <div className="detail-section">
+                                <h3 className="detail-section-title">Business Information</h3>
+                                <div className="detail-grid">
+                                    <div className="detail-row">
+                                        <div className="detail-label-wrapper">
+                                            <label>Orders Made</label>
+                                        </div>
+                                        <div className="detail-value-wrapper">
+                                            <span className="orders-badge-large">{client.completed_orders_count || 0}</span>
+                                        </div>
                                     </div>
-                                    <div className="detail-value-wrapper">
-                                        <span className="orders-badge-large">{client.order_count}</span>
-                                    </div>
-                                </div>
-                                <div className="detail-row">
-                                    <div className="detail-label-wrapper">
-                                        <label>Created By</label>
-                                    </div>
-                                    <div className="detail-value-wrapper">
-                                        {client.created_by_user ? (
-                                            <div className="created-by-info">
-                                                {creatorAvatar ? (
-                                                    <img 
-                                                        src={creatorAvatar} 
-                                                        alt={client.created_by_user.name}
-                                                        className="creator-avatar-img-modal"
-                                                        onError={(e) => {
-                                                            const target = e.target as HTMLImageElement;
-                                                            target.style.display = 'none';
-                                                            const fallback = target.nextElementSibling as HTMLElement;
-                                                            if (fallback) fallback.style.display = 'flex';
+                                    <div className="detail-row">
+                                        <div className="detail-label-wrapper">
+                                            <label>Created By</label>
+                                        </div>
+                                        <div className="detail-value-wrapper">
+                                            {client.created_by_user ? (
+                                                <div className="created-by-info">
+                                                    {creatorAvatar ? (
+                                                        <img 
+                                                            src={creatorAvatar} 
+                                                            alt={client.created_by_user.name}
+                                                            className="creator-avatar-img-modal"
+                                                            onError={(e) => {
+                                                                const target = e.target as HTMLImageElement;
+                                                                target.style.display = 'none';
+                                                                const fallback = target.nextElementSibling as HTMLElement;
+                                                                if (fallback) fallback.style.display = 'flex';
+                                                            }}
+                                                        />
+                                                    ) : null}
+                                                    <div 
+                                                        className="creator-avatar-small"
+                                                        style={{
+                                                            display: creatorAvatar ? 'none' : 'flex',
+                                                            backgroundColor: getAvatarColor(client.created_by_user.name)
                                                         }}
-                                                    />
-                                                ) : null}
-                                                <div 
-                                                    className="creator-avatar-small"
-                                                    style={{
-                                                        display: creatorAvatar ? 'none' : 'flex',
-                                                        backgroundColor: getAvatarColor(client.created_by_user.name)
-                                                    }}
-                                                >
-                                                    {getAvatarInitial(client.created_by_user.name)}
+                                                    >
+                                                        {getAvatarInitial(client.created_by_user.name)}
+                                                    </div>
+                                                    <div className="creator-details">
+                                                        <div className="creator-name">{client.created_by_user.name}</div>
+                                                        <div className="creator-refer-code">Ref: {client.created_by_user.refer_code}</div>
+                                                    </div>
                                                 </div>
-                                                <div className="creator-details">
-                                                    <div className="creator-name">{client.created_by_user.name}</div>
-                                                    <div className="creator-refer-code">Ref: {client.created_by_user.refer_code}</div>
-                                                </div>
-                                            </div>
-                                        ) : <span className="detail-value-text">N/A</span>}
+                                            ) : <span className="detail-value-text">N/A</span>}
+                                        </div>
                                     </div>
-                                </div>
-                                <div className="detail-row">
-                                    <div className="detail-label-wrapper">
-                                        <label>Created Date</label>
+                                    <div className="detail-row">
+                                        <div className="detail-label-wrapper">
+                                            <label>Created Date</label>
+                                        </div>
+                                        <div className="detail-value-wrapper">
+                                            <span className="detail-value-text">{formatDate(client.created_at)}</span>
+                                        </div>
                                     </div>
-                                    <div className="detail-value-wrapper">
-                                        <span className="detail-value-text">{formatDate(client.created_at)}</span>
-                                    </div>
-                                </div>
-                                <div className="detail-row">
-                                    <div className="detail-label-wrapper">
-                                        <label>Last Updated</label>
-                                    </div>
-                                    <div className="detail-value-wrapper">
-                                        <span className="detail-value-text">{formatDate(client.updated_at)}</span>
+                                    <div className="detail-row">
+                                        <div className="detail-label-wrapper">
+                                            <label>Last Updated</label>
+                                        </div>
+                                        <div className="detail-value-wrapper">
+                                            <span className="detail-value-text">{formatDate(client.updated_at)}</span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
                         {/* Description */}
-                        {client.description && (
-                            <div className="detail-section">
-                                <h3 className="detail-section-title">Notes & Description</h3>
-                                <div className="detail-description">
-                                    <p>{client.description}</p>
-                                </div>
+                        <div className="detail-section">
+                            <h3 className="detail-section-title">Notes & Description</h3>
+                            <div className="detail-description">
+                                <p style={{ color: client.description ? 'inherit' : 'var(--muted)' }}>
+                                    {client.description || 'N/A'}
+                                </p>
                             </div>
-                        )}
+                        </div>
                     </div>
                 </div>
             </div>

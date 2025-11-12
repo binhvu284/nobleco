@@ -124,6 +124,7 @@ export default function AdminProducts() {
     const [availableCategories, setAvailableCategories] = useState<Category[]>([]);
     const [showActivityLog, setShowActivityLog] = useState(false);
     const [priceRange, setPriceRange] = useState({ min: '', max: '' });
+    const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
 
     // Fetch categories for filter
     useEffect(() => {
@@ -140,6 +141,39 @@ export default function AdminProducts() {
         };
         fetchCategories();
     }, []);
+
+    // Close category dropdown when clicking outside
+    useEffect(() => {
+        if (!showCategoryDropdown) return;
+
+        const handleClickOutside = (event: MouseEvent) => {
+            const target = event.target as Element;
+            if (!target.closest('.filter-category-selector')) {
+                setShowCategoryDropdown(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [showCategoryDropdown]);
+
+    // Handle category toggle
+    const handleCategoryToggle = (categoryId: number) => {
+        if (selectedCategories.includes(categoryId)) {
+            setSelectedCategories(selectedCategories.filter(id => id !== categoryId));
+        } else {
+            setSelectedCategories([...selectedCategories, categoryId]);
+        }
+    };
+
+    // Get selected category names
+    const selectedCategoryNames = useMemo(() => {
+        return availableCategories
+            .filter(cat => selectedCategories.includes(cat.id))
+            .map(cat => cat.name);
+    }, [availableCategories, selectedCategories]);
 
     // Memoize filtered products
     const filteredProducts = useMemo(() => {
@@ -1119,60 +1153,104 @@ export default function AdminProducts() {
             {/* Filter Popup */}
             {showFilterPopup && (
                 <>
-                    <div className="filter-popup-overlay active" onClick={() => setShowFilterPopup(false)} />
+                    <div className="filter-popup-overlay active" onClick={() => {
+                        setShowFilterPopup(false);
+                        setShowCategoryDropdown(false);
+                    }} />
                     <div className={`filter-popup ${showFilterPopup ? 'active' : ''}`}>
                         <div className="filter-popup-header">
                             <h3 className="filter-popup-title">Filters</h3>
-                            <button className="filter-popup-close" onClick={() => setShowFilterPopup(false)}>×</button>
+                            <button className="filter-popup-close" onClick={() => {
+                                setShowFilterPopup(false);
+                                setShowCategoryDropdown(false);
+                            }}>×</button>
                         </div>
                         <div className="filter-popup-body">
                             <div className="filter-popup-group">
                                 <label className="filter-popup-label">Categories</label>
-                                <div className="filter-checkbox-group">
-                                    {availableCategories.map(category => (
-                                        <label key={category.id} className="filter-checkbox-item">
-                                            <input
-                                                type="checkbox"
-                                                checked={selectedCategories.includes(category.id)}
-                                                onChange={(e) => {
-                                                    if (e.target.checked) {
-                                                        setSelectedCategories([...selectedCategories, category.id]);
-                                                    } else {
-                                                        setSelectedCategories(selectedCategories.filter(id => id !== category.id));
-                                                    }
-                                                }}
-                                            />
-                                            <span>{category.name}</span>
-                                        </label>
-                                    ))}
-                                    {availableCategories.length === 0 && (
-                                        <span style={{ color: 'var(--muted)', fontSize: '0.875rem' }}>No categories available</span>
+                                <div className="filter-category-selector">
+                                    <button
+                                        type="button"
+                                        className={`filter-category-dropdown-toggle ${showCategoryDropdown ? 'active' : ''}`}
+                                        onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
+                                    >
+                                        <span>
+                                            {selectedCategoryNames.length > 0
+                                                ? `${selectedCategoryNames.length} categor${selectedCategoryNames.length === 1 ? 'y' : 'ies'} selected`
+                                                : 'Select categories'}
+                                        </span>
+                                        <span className="dropdown-arrow">▼</span>
+                                    </button>
+                                    {showCategoryDropdown && (
+                                        <div className="filter-category-dropdown-menu">
+                                            {availableCategories.length === 0 ? (
+                                                <div className="dropdown-empty">No categories available</div>
+                                            ) : (
+                                                availableCategories.map(category => {
+                                                    const isSelected = selectedCategories.includes(category.id);
+                                                    return (
+                                                        <label
+                                                            key={category.id}
+                                                            className={`filter-category-dropdown-item ${isSelected ? 'selected' : ''}`}
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                handleCategoryToggle(category.id);
+                                                            }}
+                                                        >
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={isSelected}
+                                                                onChange={(e) => {
+                                                                    e.stopPropagation();
+                                                                }}
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    handleCategoryToggle(category.id);
+                                                                }}
+                                                            />
+                                                            <span 
+                                                                className="category-color-dot"
+                                                                style={{ backgroundColor: category.color }}
+                                                            />
+                                                            <span>{category.name}</span>
+                                                        </label>
+                                                    );
+                                                })
+                                            )}
+                                        </div>
                                     )}
                                 </div>
                             </div>
                             <div className="filter-popup-group">
                                 <label className="filter-popup-label">Price Range</label>
                                 <div className="filter-price-range">
-                                    <input
-                                        type="number"
-                                        placeholder="Min price"
-                                        value={priceRange.min}
-                                        onChange={(e) => setPriceRange({ ...priceRange, min: e.target.value })}
-                                        style={{ width: '100%', padding: '8px 12px', border: '1px solid #e5e7eb', borderRadius: '6px', marginBottom: '8px' }}
-                                    />
-                                    <input
-                                        type="number"
-                                        placeholder="Max price"
-                                        value={priceRange.max}
-                                        onChange={(e) => setPriceRange({ ...priceRange, max: e.target.value })}
-                                        style={{ width: '100%', padding: '8px 12px', border: '1px solid #e5e7eb', borderRadius: '6px' }}
-                                    />
+                                    <div className="filter-price-input-wrapper">
+                                        <span className="filter-price-prefix">₫</span>
+                                        <input
+                                            type="number"
+                                            className="filter-price-input"
+                                            placeholder="Min price"
+                                            value={priceRange.min}
+                                            onChange={(e) => setPriceRange({ ...priceRange, min: e.target.value })}
+                                        />
+                                    </div>
+                                    <div className="filter-price-separator">to</div>
+                                    <div className="filter-price-input-wrapper">
+                                        <span className="filter-price-prefix">₫</span>
+                                        <input
+                                            type="number"
+                                            className="filter-price-input"
+                                            placeholder="Max price"
+                                            value={priceRange.max}
+                                            onChange={(e) => setPriceRange({ ...priceRange, max: e.target.value })}
+                                        />
+                                    </div>
                                 </div>
                             </div>
                             <div className="filter-popup-group">
                                 <label className="filter-popup-label">Status</label>
-                                <div className="filter-radio-group">
-                                    <label className="filter-radio-item">
+                                <div className="filter-status-group">
+                                    <label className={`filter-status-item ${filterStatus === 'all' ? 'active' : ''}`}>
                                         <input
                                             type="radio"
                                             name="status"
@@ -1180,9 +1258,9 @@ export default function AdminProducts() {
                                             checked={filterStatus === 'all'}
                                             onChange={(e) => setFilterStatus(e.target.value as 'all' | 'active' | 'inactive')}
                                         />
-                                        <span>All</span>
+                                        <span className="filter-status-label">All</span>
                                     </label>
-                                    <label className="filter-radio-item">
+                                    <label className={`filter-status-item ${filterStatus === 'active' ? 'active' : ''}`}>
                                         <input
                                             type="radio"
                                             name="status"
@@ -1190,9 +1268,12 @@ export default function AdminProducts() {
                                             checked={filterStatus === 'active'}
                                             onChange={(e) => setFilterStatus(e.target.value as 'all' | 'active' | 'inactive')}
                                         />
-                                        <span>Active</span>
+                                        <span className="filter-status-label">
+                                            <span className="filter-status-indicator active"></span>
+                                            Active
+                                        </span>
                                     </label>
-                                    <label className="filter-radio-item">
+                                    <label className={`filter-status-item ${filterStatus === 'inactive' ? 'active' : ''}`}>
                                         <input
                                             type="radio"
                                             name="status"
@@ -1200,7 +1281,10 @@ export default function AdminProducts() {
                                             checked={filterStatus === 'inactive'}
                                             onChange={(e) => setFilterStatus(e.target.value as 'all' | 'active' | 'inactive')}
                                         />
-                                        <span>Inactive</span>
+                                        <span className="filter-status-label">
+                                            <span className="filter-status-indicator inactive"></span>
+                                            Inactive
+                                        </span>
                                     </label>
                                 </div>
                             </div>
@@ -1212,13 +1296,17 @@ export default function AdminProducts() {
                                     setSelectedCategories([]);
                                     setFilterStatus('all');
                                     setPriceRange({ min: '', max: '' });
+                                    setShowCategoryDropdown(false);
                                 }}
                             >
                                 Clear All
                             </button>
                             <button
                                 className="btn-primary"
-                                onClick={() => setShowFilterPopup(false)}
+                                onClick={() => {
+                                    setShowFilterPopup(false);
+                                    setShowCategoryDropdown(false);
+                                }}
                             >
                                 Apply Filters
                             </button>

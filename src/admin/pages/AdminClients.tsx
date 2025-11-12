@@ -22,6 +22,7 @@ interface Client {
     location: string | null;
     description: string | null;
     order_count: number;
+    completed_orders_count?: number;
     created_by: number | null;
     created_by_user: {
         id: number;
@@ -308,7 +309,10 @@ export default function AdminClients() {
                                 {loading ? (
                                     <tr>
                                         <td colSpan={6} style={{ textAlign: 'center', padding: '40px' }}>
-                                            Loading clients...
+                                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+                                                <div className="loading-spinner"></div>
+                                                <p style={{ color: 'var(--muted)', margin: 0 }}>Loading clients...</p>
+                                            </div>
                                         </td>
                                     </tr>
                                 ) : error ? (
@@ -360,7 +364,7 @@ export default function AdminClients() {
                                             </td>
                                             <td>{client.phone || 'N/A'}</td>
                                             <td>
-                                                <span className="orders-badge">{client.order_count}</span>
+                                                <span className="orders-badge">{client.completed_orders_count || 0}</span>
                                             </td>
                                             <td>
                                                 <div className="made-by">
@@ -449,6 +453,7 @@ export default function AdminClients() {
                     <div className="clients-grid clients-grid-2">
                         {loading ? (
                             <div className="empty-state">
+                                <div className="loading-spinner"></div>
                                 <p>Loading clients...</p>
                             </div>
                         ) : error ? (

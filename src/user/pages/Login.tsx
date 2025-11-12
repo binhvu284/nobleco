@@ -1,10 +1,26 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { login, isAuthenticated, getUserRole } from '../../auth';
+import AuthFooter from '../../components/AuthFooter';
 
 export default function Login() {
     const navigate = useNavigate();
     const location = useLocation();
+
+    useEffect(() => {
+        // Add auth-page class to body/html/root for scrolling
+        document.body.classList.add('auth-page');
+        document.documentElement.classList.add('auth-page');
+        const root = document.getElementById('root');
+        if (root) root.classList.add('auth-page');
+
+        return () => {
+            // Cleanup on unmount
+            document.body.classList.remove('auth-page');
+            document.documentElement.classList.remove('auth-page');
+            if (root) root.classList.remove('auth-page');
+        };
+    }, []);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [remember, setRemember] = useState(true);
@@ -126,10 +142,11 @@ export default function Login() {
                     </button>
                 </form>
                 <div className="auth-footer">
-                    <span>Don’t have account?</span>
+                    <span>Don't have account?</span>
                     <Link to="/signup" className="auth-link">Sign up</Link>
                 </div>
             </div>
+            <AuthFooter />
         </div>
     );
 }

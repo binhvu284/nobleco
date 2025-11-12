@@ -1,10 +1,26 @@
 import { FormEvent, useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import OTPVerification from '../components/OTPVerification';
+import AuthFooter from '../../components/AuthFooter';
 
 export default function SignUp() {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
+
+    useEffect(() => {
+        // Add auth-page class to body/html/root for scrolling
+        document.body.classList.add('auth-page');
+        document.documentElement.classList.add('auth-page');
+        const root = document.getElementById('root');
+        if (root) root.classList.add('auth-page');
+
+        return () => {
+            // Cleanup on unmount
+            document.body.classList.remove('auth-page');
+            document.documentElement.classList.remove('auth-page');
+            if (root) root.classList.remove('auth-page');
+        };
+    }, []);
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [phone, setPhone] = useState('');
@@ -238,6 +254,7 @@ export default function SignUp() {
                     <Link to="/login" className="auth-link">Sign in</Link>
                 </div>
             </div>
+            <AuthFooter />
         </div>
     );
 }

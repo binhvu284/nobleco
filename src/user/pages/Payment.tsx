@@ -5,18 +5,19 @@ import {
     IconX,
     IconChevronLeft,
     IconCheck,
-    IconPackage
+    IconPackage,
+    IconCreditCard
 } from '../../admin/components/icons';
 import QRCode from 'qrcode';
 
 // QR Code Display Component
-function QRCodeDisplay({ value }: { value: string }) {
+function QRCodeDisplay({ value, size = 150 }: { value: string; size?: number }) {
     const [qrDataUrl, setQrDataUrl] = useState<string>('');
 
     useEffect(() => {
         QRCode.toDataURL(value, {
-            width: 200,
-            margin: 2,
+            width: size,
+            margin: 1,
             color: {
                 dark: '#000000',
                 light: '#FFFFFF'
@@ -24,10 +25,10 @@ function QRCodeDisplay({ value }: { value: string }) {
         })
             .then(url => setQrDataUrl(url))
             .catch(err => console.error('Error generating QR code:', err));
-    }, [value]);
+    }, [value, size]);
 
     if (!qrDataUrl) {
-        return <div className="qr-loading">Generating QR code...</div>;
+        return <div className="qr-loading">Generating...</div>;
     }
 
     return <img src={qrDataUrl} alt="Bank Transfer QR Code" className="qr-code-image" />;
@@ -80,6 +81,7 @@ export default function Payment() {
 
     // Order data from location state
     const [orderData, setOrderData] = useState<{
+        orderId?: number;
         cartItems: CartItem[];
         clientId: number;
         client: Client;
@@ -91,6 +93,7 @@ export default function Payment() {
         taxAmount: number;
         total: number;
     } | null>(null);
+    const [completingOrder, setCompletingOrder] = useState(false);
 
     useEffect(() => {
         if (location.state) {
@@ -117,9 +120,44 @@ export default function Payment() {
     const cashReceivedNum = parseFloat(cashReceived) || 0;
     const change = cashReceivedNum > total ? cashReceivedNum - total : 0;
 
-    const handleCompleteOrder = () => {
-        // TODO: Save order to database
-        setOrderCompleted(true);
+    const handleCompleteOrder = async () => {
+        if (!orderData?.orderId) {
+            alert('Order ID is missing');
+            return;
+        }
+
+        try {
+            setCompletingOrder(true);
+            const authToken = localStorage.getItem('nobleco_auth_token');
+            
+            const response = await fetch(`/api/orders/${orderData.orderId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${authToken}`
+                },
+                body: JSON.stringify({
+                    status: 'completed',
+                    payment_method: paymentMethod,
+                    payment_status: 'paid',
+                    payment_date: new Date().toISOString()
+                })
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || 'Failed to complete order');
+            }
+
+            setOrderCompleted(true);
+            // Clear cart from localStorage
+            localStorage.removeItem('cart');
+        } catch (error) {
+            console.error('Error completing order:', error);
+            alert((error as Error).message || 'Failed to complete order. Please try again.');
+        } finally {
+            setCompletingOrder(false);
+        }
     };
 
     const handleBackToCheckout = () => {
@@ -138,62 +176,10 @@ export default function Payment() {
                         <IconChevronLeft />
                         Back to Checkout
                     </button>
-                    <h1>Payment</h1>
                 </div>
 
                 <div className="payment-content">
                     <div className="payment-main">
-                        {/* Order Summary */}
-                        <section className="payment-section">
-                            <h2>Order Summary</h2>
-                            <div className="payment-order-items">
-                                {cartItems.map(item => (
-                                    <div key={item.product.id} className="payment-order-item">
-                                        <div className="payment-order-item-image">
-                                            {item.product.images && item.product.images.length > 0 ? (
-                                                <img
-                                                    src={item.product.images[0].url}
-                                                    alt={item.product.name}
-                                                />
-                                            ) : (
-                                                <IconPackage />
-                                            )}
-                                        </div>
-                                        <div className="payment-order-item-details">
-                                            <h3>{item.product.name}</h3>
-                                            <div className="payment-order-item-meta">
-                                                <span>Qty: {item.quantity}</span>
-                                                <span>{formatVND(item.product.price * item.quantity)}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                            <div className="payment-summary-breakdown">
-                                <div className="summary-row">
-                                    <span>Subtotal</span>
-                                    <span>{formatVND(subtotal)}</span>
-                                </div>
-                                {discountAmount > 0 && (
-                                    <div className="summary-row discount">
-                                        <span>Discount</span>
-                                        <span>-{formatVND(discountAmount)}</span>
-                                    </div>
-                                )}
-                                {taxAmount > 0 && (
-                                    <div className="summary-row">
-                                        <span>Tax</span>
-                                        <span>{formatVND(taxAmount)}</span>
-                                    </div>
-                                )}
-                                <div className="summary-divider"></div>
-                                <div className="summary-row total">
-                                    <span>Total Amount</span>
-                                    <span>{formatVND(total)}</span>
-                                </div>
-                            </div>
-                        </section>
-
                         {/* Payment Method Selection */}
                         <section className="payment-section">
                             <h2>Select Payment Method</h2>
@@ -280,9 +266,9 @@ export default function Payment() {
                                     <button
                                         className="complete-order-btn"
                                         onClick={handleCompleteOrder}
-                                        disabled={!cashReceived || cashReceivedNum < total}
+                                        disabled={!cashReceived || cashReceivedNum < total || completingOrder}
                                     >
-                                        Confirm Order Complete
+                                        {completingOrder ? 'Processing...' : 'Confirm Order Complete'}
                                     </button>
                                 </div>
                             </section>
@@ -293,51 +279,106 @@ export default function Payment() {
                             <section className="payment-section">
                                 <h2>Bank Transfer Information</h2>
                                 <div className="bank-transfer-info">
-                                    <div className="bank-info-card">
-                                        <div className="bank-info-row">
-                                            <span className="bank-info-label">Bank Name:</span>
-                                            <span className="bank-info-value">{BANK_INFO.name}</span>
+                                    <div className="bank-transfer-grid">
+                                        <div className="bank-info-card">
+                                            <div className="bank-info-row">
+                                                <span className="bank-info-label">Bank Name:</span>
+                                                <span className="bank-info-value">{BANK_INFO.name}</span>
+                                            </div>
+                                            <div className="bank-info-row">
+                                                <span className="bank-info-label">Account Owner:</span>
+                                                <span className="bank-info-value">{BANK_INFO.accountOwner}</span>
+                                            </div>
+                                            <div className="bank-info-row">
+                                                <span className="bank-info-label">Account Number:</span>
+                                                <span className="bank-info-value copyable" onClick={() => {
+                                                    navigator.clipboard.writeText(BANK_INFO.accountNumber);
+                                                    alert('Account number copied to clipboard!');
+                                                }}>
+                                                    {BANK_INFO.accountNumber}
+                                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                                    </svg>
+                                                </span>
+                                            </div>
+                                            <div className="bank-info-row">
+                                                <span className="bank-info-label">Amount:</span>
+                                                <span className="bank-info-value amount">{formatVND(total)}</span>
+                                            </div>
                                         </div>
-                                        <div className="bank-info-row">
-                                            <span className="bank-info-label">Account Owner:</span>
-                                            <span className="bank-info-value">{BANK_INFO.accountOwner}</span>
+                                        <div className="bank-qr-section">
+                                            <h3>QR Code</h3>
+                                            <div className="bank-qr-code">
+                                                <QRCodeDisplay
+                                                    value={`${BANK_INFO.name}|${BANK_INFO.accountNumber}|${total}`}
+                                                    size={140}
+                                                />
+                                            </div>
+                                            <p className="bank-qr-note">Scan with banking app</p>
                                         </div>
-                                        <div className="bank-info-row">
-                                            <span className="bank-info-label">Account Number:</span>
-                                            <span className="bank-info-value copyable" onClick={() => {
-                                                navigator.clipboard.writeText(BANK_INFO.accountNumber);
-                                                alert('Account number copied to clipboard!');
-                                            }}>
-                                                {BANK_INFO.accountNumber}
-                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                                                </svg>
-                                            </span>
-                                        </div>
-                                        <div className="bank-info-row">
-                                            <span className="bank-info-label">Amount:</span>
-                                            <span className="bank-info-value amount">{formatVND(total)}</span>
-                                        </div>
-                                    </div>
-                                    <div className="bank-qr-section">
-                                        <h3>Scan QR Code to Transfer</h3>
-                                        <div className="bank-qr-code">
-                                            <QRCodeDisplay
-                                                value={`${BANK_INFO.name}|${BANK_INFO.accountNumber}|${total}`}
-                                            />
-                                        </div>
-                                        <p className="bank-qr-note">Scan this QR code with your banking app to transfer the amount</p>
                                     </div>
                                     <button
                                         className="complete-order-btn"
                                         onClick={handleCompleteOrder}
+                                        disabled={completingOrder}
                                     >
-                                        Confirm Order Complete
+                                        {completingOrder ? 'Processing...' : 'Confirm Order Complete'}
                                     </button>
                                 </div>
                             </section>
                         )}
+
+                        {/* Order Summary */}
+                        <section className="payment-section">
+                            <h2>Order Summary</h2>
+                            <div className="payment-order-items">
+                                {cartItems.map(item => (
+                                    <div key={item.product.id} className="payment-order-item">
+                                        <div className="payment-order-item-image">
+                                            {item.product.images && item.product.images.length > 0 ? (
+                                                <img
+                                                    src={item.product.images[0].url}
+                                                    alt={item.product.name}
+                                                />
+                                            ) : (
+                                                <IconPackage />
+                                            )}
+                                        </div>
+                                        <div className="payment-order-item-details">
+                                            <h3>{item.product.name}</h3>
+                                            <div className="payment-order-item-meta">
+                                                <span>Qty: {item.quantity}</span>
+                                                <span>{formatVND(item.product.price * item.quantity)}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                            <div className="payment-summary-breakdown">
+                                <div className="summary-row">
+                                    <span>Subtotal</span>
+                                    <span>{formatVND(subtotal)}</span>
+                                </div>
+                                {discountAmount > 0 && (
+                                    <div className="summary-row discount">
+                                        <span>Discount</span>
+                                        <span>-{formatVND(discountAmount)}</span>
+                                    </div>
+                                )}
+                                {taxAmount > 0 && (
+                                    <div className="summary-row">
+                                        <span>Tax</span>
+                                        <span>{formatVND(taxAmount)}</span>
+                                    </div>
+                                )}
+                                <div className="summary-divider"></div>
+                                <div className="summary-row total">
+                                    <span>Total Amount</span>
+                                    <span>{formatVND(total)}</span>
+                                </div>
+                            </div>
+                        </section>
                     </div>
                 </div>
 

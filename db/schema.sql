@@ -32,6 +32,7 @@ CREATE TABLE public.clients (
   created_by bigint,
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  gender text CHECK (gender = ANY (ARRAY['Male'::text, 'Female'::text, 'Other'::text])),
   CONSTRAINT clients_pkey PRIMARY KEY (id),
   CONSTRAINT clients_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id)
 );

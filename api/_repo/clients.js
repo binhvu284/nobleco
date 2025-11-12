@@ -1,6 +1,35 @@
 import { getSupabase } from '../_db.js';
 
 /**
+ * Get completed orders count for a client
+ */
+async function getCompletedOrdersCount(clientId) {
+  const supabase = getSupabase();
+  
+  // Ensure clientId is converted to number for proper comparison
+  const clientIdNum = typeof clientId === 'string' ? parseInt(clientId, 10) : Number(clientId);
+  
+  if (isNaN(clientIdNum) || clientIdNum <= 0) {
+    console.warn(`Invalid clientId for completed orders count: ${clientId}`);
+    return 0;
+  }
+  
+  const { count, error } = await supabase
+    .from('orders')
+    .select('*', { count: 'exact', head: true })
+    .eq('client_id', clientIdNum)
+    .eq('status', 'completed');
+  
+  if (error) {
+    console.error(`Error counting completed orders for client ${clientIdNum}:`, error);
+    return 0;
+  }
+  
+  console.log(`Client ${clientIdNum} has ${count || 0} completed orders`);
+  return count || 0;
+}
+
+/**
  * Normalize client data
  */
 function normalize(c) {
@@ -9,10 +38,12 @@ function normalize(c) {
     name: c.name || '',
     phone: c.phone || null,
     email: c.email || null,
+    gender: c.gender || null,
     birthday: c.birthday || null,
     location: c.location || null,
     description: c.description || null,
     order_count: c.order_count || 0,
+    completed_orders_count: c.orders_made || 0, // Use orders_made column from database
     created_by: c.created_by || null,
     created_by_user: c.created_by_user || null, // Joined user data
     created_at: c.created_at,
@@ -29,7 +60,19 @@ export async function listClients(userId = null) {
   let query = supabase
     .from('clients')
     .select(`
-      *,
+      id,
+      name,
+      phone,
+      email,
+      gender,
+      birthday,
+      location,
+      description,
+      order_count,
+      orders_made,
+      created_by,
+      created_at,
+      updated_at,
       created_by_user:users!clients_created_by_fkey (
         id,
         name,
@@ -59,6 +102,7 @@ export async function listClients(userId = null) {
     throw new Error(`Error fetching clients: ${error.message}`);
   }
 
+  // Orders made count is now stored in the orders_made column, no need to calculate
   return (data || []).map(normalize);
 }
 
@@ -71,7 +115,19 @@ export async function getClientById(id) {
   const { data: client, error } = await supabase
     .from('clients')
     .select(`
-      *,
+      id,
+      name,
+      phone,
+      email,
+      gender,
+      birthday,
+      location,
+      description,
+      order_count,
+      orders_made,
+      created_by,
+      created_at,
+      updated_at,
       created_by_user:users!clients_created_by_fkey (
         id,
         name,
@@ -85,6 +141,7 @@ export async function getClientById(id) {
     throw new Error(`Error fetching client: ${error.message}`);
   }
 
+  // Orders made count is now stored in the orders_made column, no need to calculate
   return normalize(client);
 }
 
@@ -100,6 +157,7 @@ export async function createClient(clientData, userId) {
       name: clientData.name,
       phone: clientData.phone || null,
       email: clientData.email || null,
+      gender: clientData.gender || null,
       birthday: clientData.birthday || null,
       location: clientData.location || null,
       description: clientData.description || null,
@@ -132,6 +190,7 @@ export async function updateClient(id, clientData) {
   if (clientData.name !== undefined) updateData.name = clientData.name;
   if (clientData.phone !== undefined) updateData.phone = clientData.phone;
   if (clientData.email !== undefined) updateData.email = clientData.email;
+  if (clientData.gender !== undefined) updateData.gender = clientData.gender;
   if (clientData.birthday !== undefined) updateData.birthday = clientData.birthday;
   if (clientData.location !== undefined) updateData.location = clientData.location;
   if (clientData.description !== undefined) updateData.description = clientData.description;

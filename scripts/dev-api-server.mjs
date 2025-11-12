@@ -16,6 +16,8 @@ import syncHandler from '../api/integrations/sync.js';
 import testHandler from '../api/integrations/test.js';
 import listHandler from '../api/integrations/list.js';
 import supabaseConfigHandler from '../api/supabase-config.js';
+import ordersHandler from '../api/orders/index.js';
+import orderByIdHandler from '../api/orders/[id].js';
 
 const app = express();
 app.use(express.json({ limit: '50mb' })); // Increase limit for base64 image uploads
@@ -49,6 +51,19 @@ app.all('/api/users/wallet', (req, res) => {
 app.all('/api/products', toRoute(productsHandler));
 app.all('/api/categories', toRoute(categoriesHandler));
 app.all('/api/clients', toRoute(clientsHandler));
+app.all('/api/orders', toRoute(ordersHandler));
+app.get('/api/orders/:id', (req, res) => {
+  req.query = { ...req.query, id: req.params.id };
+  return orderByIdHandler(req, res);
+});
+app.put('/api/orders/:id', (req, res) => {
+  req.query = { ...req.query, id: req.params.id };
+  return orderByIdHandler(req, res);
+});
+app.delete('/api/orders/:id', (req, res) => {
+  req.query = { ...req.query, id: req.params.id };
+  return orderByIdHandler(req, res);
+});
 app.all('/api/commission-rates', toRoute(commissionRatesHandler));
 app.all('/api/product-images', toRoute(productImagesHandler));
 app.all('/api/user-avatars', toRoute(userAvatarsHandler));

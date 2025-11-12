@@ -201,7 +201,7 @@ export default function AdminSettingModal({ open, onClose }: { open: boolean; on
 
     return (
         <>
-            <div className="modal-overlay" onClick={onClose} />
+            <div className="settings-modal-overlay" onClick={onClose} />
             <div className="settings-modal" role="dialog" aria-modal="true">
                 <div className="settings-header">
                     <h2>Settings</h2>
@@ -215,28 +215,28 @@ export default function AdminSettingModal({ open, onClose }: { open: boolean; on
                             className={`settings-sidebar-item ${activeSection === 'general' ? 'active' : ''}`}
                             onClick={() => setActiveSection('general')}
                         >
-                            <IconSettings style={{ marginRight: '8px' }} />
+                            <IconSettings />
                             General
                         </button>
                         <button 
                             className={`settings-sidebar-item ${activeSection === 'account' ? 'active' : ''}`}
                             onClick={() => setActiveSection('account')}
                         >
-                            <IconUser style={{ marginRight: '8px' }} />
+                            <IconUser />
                             Account
                         </button>
                         <button 
                             className={`settings-sidebar-item ${activeSection === 'notification' ? 'active' : ''}`}
                             onClick={() => setActiveSection('notification')}
                         >
-                            <IconBell style={{ marginRight: '8px' }} />
+                            <IconBell />
                             Notification
                         </button>
                         <button 
                             className={`settings-sidebar-item ${activeSection === 'security' ? 'active' : ''}`}
                             onClick={() => setActiveSection('security')}
                         >
-                            <IconShield style={{ marginRight: '8px' }} />
+                            <IconShield />
                             Security
                         </button>
                     </div>

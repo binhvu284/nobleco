@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { logout, getCurrentUser } from '../../auth';
-import { IconUser, IconSettings, IconLogout, IconDashboard, IconUsers, IconBox, IconWallet, IconShoppingBag, IconBook, IconMenu, IconAddressBook, IconMail, IconLibrary } from '../../admin/components/icons';
+import { IconUser, IconSettings, IconLogout, IconDashboard, IconUsers, IconBox, IconWallet, IconShoppingBag, IconBook, IconMenu, IconAddressBook, IconMail, IconLibrary, IconCreditCard } from '../../admin/components/icons';
 import { useState as useModalState } from 'react';
 import UserProfileModal from './UserProfileModal';
 import UserSettingModal from './UserSettingModal';
@@ -125,6 +125,8 @@ export default function UserHeader({ title, mobileMenuOpen, onMobileMenuToggle }
         if (location.pathname.startsWith('/product')) return <IconBox style={{ marginRight: 8 }} />;
         if (location.pathname.startsWith('/wallet')) return <IconWallet style={{ marginRight: 8 }} />;
         if (location.pathname.startsWith('/orders')) return <IconShoppingBag style={{ marginRight: 8 }} />;
+        if (location.pathname.startsWith('/checkout')) return <IconShoppingBag style={{ marginRight: 8 }} />;
+        if (location.pathname.startsWith('/payment')) return <IconCreditCard style={{ marginRight: 8 }} />;
         if (location.pathname.startsWith('/training')) return <IconBook style={{ marginRight: 8 }} />;
         if (location.pathname.startsWith('/library')) return <IconLibrary style={{ marginRight: 8 }} />;
         if (location.pathname.startsWith('/training-materials')) return <IconBook style={{ marginRight: 8 }} />;
