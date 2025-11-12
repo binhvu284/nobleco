@@ -331,12 +331,6 @@ export default function OrderDetailModal({ open, orderId, onClose }: OrderDetail
                                                         <span>{order.client.gender || 'N/A'}</span>
                                                     </div>
                                                 </div>
-                                                {order.client.email && (
-                                                    <div className="order-detail-field">
-                                                        <label style={{ color: 'var(--muted)', fontWeight: '500' }}>Email</label>
-                                                        <span>{order.client.email}</span>
-                                                    </div>
-                                                )}
                                             </>
                                         ) : (
                                             <div className="order-detail-field">
