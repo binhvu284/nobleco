@@ -379,7 +379,7 @@ export default function UserDetailModal({ open, onClose, user, onEditReferrer }:
                             <h4>Hierarchy</h4>
                             <div className="detail-list">
                                 <div className="detail-row">
-                                    <span className="detail-label">Senior Consultant</span>
+                                    <span className="detail-label">Senior Jewelry Consultant</span>
                                     <div className="detail-value" style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'flex-start' }}>
                                         {loadingHierarchy ? (
                                             'Loading...'
@@ -520,11 +520,11 @@ export default function UserDetailModal({ open, onClose, user, onEditReferrer }:
                                     </div>
                                 </div>
                                 <div className="detail-row">
-                                    <span className="detail-label">Direct Junior Advisors</span>
+                                    <span className="detail-label">Direct Jewelry Advisors</span>
                                     <span className="detail-value">{loadingHierarchy ? 'Loading...' : directInferiorsCount}</span>
                                 </div>
                                 <div className="detail-row">
-                                    <span className="detail-label">Indirect Junior Advisors</span>
+                                    <span className="detail-label">Indirect Jewelry Advisors</span>
                                     <span className="detail-value">{loadingHierarchy ? 'Loading...' : indirectInferiorsCount}</span>
                                 </div>
                             </div>

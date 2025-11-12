@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { useNavigate } from 'react-router-dom';
 import {
     IconX,
     IconMaximize,
@@ -7,7 +8,9 @@ import {
     IconPackage,
     IconUser,
     IconCreditCard,
-    IconFileText
+    IconFileText,
+    IconMapPin,
+    IconShoppingBag
 } from '../../admin/components/icons';
 
 // Order status type
@@ -44,6 +47,7 @@ interface Order {
         name: string;
         phone: string;
         email?: string;
+        gender?: 'Male' | 'Female' | 'Other';
         location?: string;
     };
     created_by: number;
@@ -90,6 +94,7 @@ interface OrderDetailModalProps {
 }
 
 export default function OrderDetailModal({ open, orderId, onClose }: OrderDetailModalProps) {
+    const navigate = useNavigate();
     const [order, setOrder] = useState<Order | null>(null);
     const [loading, setLoading] = useState(false);
     const [isFullscreen, setIsFullscreen] = useState(false);
@@ -116,69 +121,31 @@ export default function OrderDetailModal({ open, orderId, onClose }: OrderDetail
     const loadOrderDetail = async (id: number) => {
         try {
             setLoading(true);
-            // TODO: Replace with actual API endpoint
-            // const response = await fetch(`/api/orders/${id}`);
-            // if (response.ok) {
-            //     const data = await response.json();
-            //     setOrder(data);
-            // }
+            const authToken = localStorage.getItem('nobleco_auth_token');
+            
+            if (!authToken) {
+                console.error('Auth token not found');
+                setLoading(false);
+                return;
+            }
 
-            // Mock data for UI development
-            const mockOrder: Order = {
-                id: id,
-                order_number: `ORD-2024-${String(id).padStart(5, '0')}`,
-                subtotal_amount: 5000000,
-                discount_amount: 500000,
-                tax_amount: 0,
-                total_amount: 4500000,
-                status: 'completed',
-                payment_method: 'cash',
-                payment_status: 'paid',
-                payment_date: '2024-01-15T10:35:00Z',
-                client_id: 1,
-                client: {
-                    id: 1,
-                    name: 'Nguyễn Văn A',
-                    phone: '0901234567',
-                    email: 'nguyenvana@example.com',
-                    location: 'Vietnam'
-                },
-                created_by: 1,
-                notes: 'Please handle with care. Customer prefers morning delivery.',
-                shipping_address: '123 Main Street, District 1, Ho Chi Minh City',
-                created_at: '2024-01-15T10:30:00Z',
-                updated_at: '2024-01-15T10:35:00Z',
-                completed_at: '2024-01-15T10:35:00Z',
-                cancelled_at: null,
-                items: [
-                    {
-                        id: 1,
-                        product_id: 1,
-                        product_name: 'Diamond Ring - Classic',
-                        product_sku: 'RING-001',
-                        product_price: 2000000,
-                        quantity: 1,
-                        unit_price: 2000000,
-                        discount_amount: 200000,
-                        line_total: 1800000
-                    },
-                    {
-                        id: 2,
-                        product_id: 2,
-                        product_name: 'Gold Necklace - Elegant',
-                        product_sku: 'NECK-002',
-                        product_price: 1500000,
-                        quantity: 2,
-                        unit_price: 1500000,
-                        discount_amount: 300000,
-                        line_total: 2700000
-                    }
-                ]
-            };
+            const response = await fetch(`/api/orders/${id}`, {
+                headers: {
+                    'Authorization': `Bearer ${authToken}`
+                }
+            });
 
-            setOrder(mockOrder);
+            if (response.ok) {
+                const data = await response.json();
+                setOrder(data);
+            } else {
+                const errorData = await response.json().catch(() => ({}));
+                console.error('Failed to load order detail:', response.status, errorData);
+                alert('Failed to load order details');
+            }
         } catch (error) {
             console.error('Error loading order detail:', error);
+            alert('Failed to load order details');
         } finally {
             setLoading(false);
         }
@@ -186,6 +153,17 @@ export default function OrderDetailModal({ open, orderId, onClose }: OrderDetail
 
     const toggleFullscreen = () => {
         setIsFullscreen(!isFullscreen);
+    };
+
+    const handleCheckout = () => {
+        if (order && order.status === 'processing') {
+            navigate('/checkout', {
+                state: {
+                    orderId: order.id
+                }
+            });
+            onClose();
+        }
     };
 
     const getStatusDisplay = (status: OrderStatus) => {
@@ -230,6 +208,16 @@ export default function OrderDetailModal({ open, orderId, onClose }: OrderDetail
                         )}
                     </div>
                     <div className="order-detail-header-actions">
+                        {order && order.status === 'processing' && (
+                            <button
+                                className="order-detail-checkout-btn"
+                                onClick={handleCheckout}
+                                title="Go to Checkout"
+                            >
+                                <IconShoppingBag />
+                                Checkout
+                            </button>
+                        )}
                         {!isMobile && (
                             <button
                                 className="order-detail-expand"
@@ -257,120 +245,107 @@ export default function OrderDetailModal({ open, orderId, onClose }: OrderDetail
                         </div>
                     ) : order ? (
                         <div className="order-detail-content">
-                            {/* Order Information Section */}
-                            <section className="order-detail-section">
-                                <h3 className="order-detail-section-title">
-                                    <IconPackage />
-                                    Order Information
-                                </h3>
-                                <div className="order-detail-grid">
-                                    <div className="order-detail-field">
-                                        <label>Order Number</label>
-                                        <span className="order-number">{order.order_number}</span>
-                                    </div>
-                                    <div className="order-detail-field">
-                                        <label>Order Status</label>
-                                        <span className={`status-badge ${getStatusDisplay(order.status).class}`}>
-                                            {getStatusDisplay(order.status).label}
-                                        </span>
-                                    </div>
-                                    <div className="order-detail-field">
-                                        <label>Created Date</label>
-                                        <span>{formatDateTime(order.created_at)}</span>
-                                    </div>
-                                    <div className="order-detail-field">
-                                        <label>Last Updated</label>
-                                        <span>{formatDateTime(order.updated_at)}</span>
-                                    </div>
-                                    {order.completed_at && (
-                                        <div className="order-detail-field">
-                                            <label>Completed Date</label>
-                                            <span>{formatDateTime(order.completed_at)}</span>
+                            {/* Order Information and Client Section - Side by Side */}
+                            <div className="order-detail-sections-row">
+                                {/* Order Information Section */}
+                                <section className="order-detail-section compact">
+                                    <h3 className="order-detail-section-title">
+                                        <IconPackage />
+                                        Order Information
+                                    </h3>
+                                    <div className="order-detail-grid compact-grid">
+                                        {/* Order Number and Location on same line */}
+                                        <div className="order-detail-field-row">
+                                            <div className="order-detail-field">
+                                                <label style={{ color: 'var(--muted)', fontWeight: '500' }}>Order Number</label>
+                                                <span className="order-number">{order.order_number}</span>
+                                            </div>
+                                            <div className="order-detail-field">
+                                                <label style={{ color: 'var(--muted)', fontWeight: '500' }}>Order Location</label>
+                                                {order.shipping_address ? (
+                                                    <span>
+                                                        <IconMapPin style={{ width: '14px', height: '14px', display: 'inline-block', marginRight: '6px', verticalAlign: 'middle' }} />
+                                                        {order.shipping_address}
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-muted">N/A</span>
+                                                )}
+                                            </div>
                                         </div>
-                                    )}
-                                    {order.cancelled_at && (
-                                        <div className="order-detail-field">
-                                            <label>Cancelled Date</label>
-                                            <span>{formatDateTime(order.cancelled_at)}</span>
+                                        {/* Created Date and Last Updated/Completed Date on same line */}
+                                        <div className="order-detail-field-row">
+                                            <div className="order-detail-field">
+                                                <label style={{ color: 'var(--muted)', fontWeight: '500' }}>Created Date</label>
+                                                <span>{formatDateTime(order.created_at)}</span>
+                                            </div>
+                                            <div className="order-detail-field">
+                                                {order.status === 'completed' && order.completed_at ? (
+                                                    <>
+                                                        <label style={{ color: 'var(--muted)', fontWeight: '500' }}>Completed Date</label>
+                                                        <span>{formatDateTime(order.completed_at)}</span>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <label style={{ color: 'var(--muted)', fontWeight: '500' }}>Last Updated</label>
+                                                        <span>{formatDateTime(order.updated_at)}</span>
+                                                    </>
+                                                )}
+                                            </div>
                                         </div>
-                                    )}
-                                </div>
-                            </section>
+                                        {/* Cancelled date on separate line if exists */}
+                                        {order.cancelled_at && (
+                                            <div className="order-detail-field">
+                                                <label style={{ color: 'var(--muted)', fontWeight: '500' }}>Cancelled Date</label>
+                                                <span>{formatDateTime(order.cancelled_at)}</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                </section>
 
-                            {/* Client Information Section */}
-                            {order.client && (
-                                <section className="order-detail-section">
+                                {/* Client Information Section */}
+                                <section className="order-detail-section compact">
                                     <h3 className="order-detail-section-title">
                                         <IconUser />
                                         Client Information
                                     </h3>
-                                    <div className="order-detail-grid">
-                                        <div className="order-detail-field">
-                                            <label>Client Name</label>
-                                            <span>{order.client.name}</span>
-                                        </div>
-                                        <div className="order-detail-field">
-                                            <label>Phone</label>
-                                            <span>{order.client.phone}</span>
-                                        </div>
-                                        {order.client.email && (
+                                    <div className="order-detail-grid compact-grid">
+                                        {order.client ? (
+                                            <>
+                                                <div className="order-detail-field-row">
+                                                    <div className="order-detail-field">
+                                                        <label style={{ color: 'var(--muted)', fontWeight: '500' }}>Client Name</label>
+                                                        <span>{order.client.name}</span>
+                                                    </div>
+                                                    <div className="order-detail-field">
+                                                        <label style={{ color: 'var(--muted)', fontWeight: '500' }}>Phone</label>
+                                                        <span>{order.client.phone}</span>
+                                                    </div>
+                                                </div>
+                                                <div className="order-detail-field-row">
+                                                    <div className="order-detail-field">
+                                                        <label style={{ color: 'var(--muted)', fontWeight: '500' }}>Location</label>
+                                                        <span>{order.client.location || 'N/A'}</span>
+                                                    </div>
+                                                    <div className="order-detail-field">
+                                                        <label style={{ color: 'var(--muted)', fontWeight: '500' }}>Gender</label>
+                                                        <span>{order.client.gender || 'N/A'}</span>
+                                                    </div>
+                                                </div>
+                                                {order.client.email && (
+                                                    <div className="order-detail-field">
+                                                        <label style={{ color: 'var(--muted)', fontWeight: '500' }}>Email</label>
+                                                        <span>{order.client.email}</span>
+                                                    </div>
+                                                )}
+                                            </>
+                                        ) : (
                                             <div className="order-detail-field">
-                                                <label>Email</label>
-                                                <span>{order.client.email}</span>
-                                            </div>
-                                        )}
-                                        {order.client.location && (
-                                            <div className="order-detail-field">
-                                                <label>Location</label>
-                                                <span>{order.client.location}</span>
+                                                <span className="text-muted">No client assigned</span>
                                             </div>
                                         )}
                                     </div>
                                 </section>
-                            )}
-
-                            {/* Shipping Information Section */}
-                            {order.shipping_address && (
-                                <section className="order-detail-section">
-                                    <h3 className="order-detail-section-title">
-                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-                                            <circle cx="12" cy="10" r="3"></circle>
-                                        </svg>
-                                        Shipping Information
-                                    </h3>
-                                    <div className="order-detail-field full-width">
-                                        <label>Shipping Address</label>
-                                        <span>{order.shipping_address}</span>
-                                    </div>
-                                </section>
-                            )}
-
-                            {/* Payment Information Section */}
-                            <section className="order-detail-section">
-                                <h3 className="order-detail-section-title">
-                                    <IconCreditCard />
-                                    Payment Information
-                                </h3>
-                                <div className="order-detail-grid">
-                                    <div className="order-detail-field">
-                                        <label>Payment Method</label>
-                                        <span>{getPaymentMethodDisplay(order.payment_method)}</span>
-                                    </div>
-                                    <div className="order-detail-field">
-                                        <label>Payment Status</label>
-                                        <span className={`payment-status payment-status-${order.payment_status}`}>
-                                            {order.payment_status.charAt(0).toUpperCase() + order.payment_status.slice(1)}
-                                        </span>
-                                    </div>
-                                    {order.payment_date && (
-                                        <div className="order-detail-field">
-                                            <label>Payment Date</label>
-                                            <span>{formatDateTime(order.payment_date)}</span>
-                                        </div>
-                                    )}
-                                </div>
-                            </section>
+                            </div>
 
                             {/* Order Items Section */}
                             {order.items && order.items.length > 0 && (
@@ -450,6 +425,18 @@ export default function OrderDetailModal({ open, orderId, onClose }: OrderDetail
                                         <span>Total Amount</span>
                                         <span>{formatVND(order.total_amount)}</span>
                                     </div>
+                                    {order.payment_method && (
+                                        <>
+                                            <div className="order-summary-divider"></div>
+                                            <div className="order-summary-row">
+                                                <span>
+                                                    <IconCreditCard style={{ width: '16px', height: '16px', display: 'inline-block', marginRight: '6px', verticalAlign: 'middle' }} />
+                                                    Payment Method
+                                                </span>
+                                                <span>{getPaymentMethodDisplay(order.payment_method)}</span>
+                                            </div>
+                                        </>
+                                    )}
                                 </div>
                             </section>
 
@@ -478,4 +465,5 @@ export default function OrderDetailModal({ open, orderId, onClose }: OrderDetail
         document.body
     );
 }
+
 

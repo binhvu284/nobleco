@@ -1,5 +1,6 @@
 import { FormEvent, useState, useEffect, useRef } from 'react';
 import { login } from '../../auth';
+import AuthFooter from '../../components/AuthFooter';
 
 interface OTPVerificationProps {
   phone: string;
@@ -18,6 +19,21 @@ export default function OTPVerification({ phone, userId, email, password, onSucc
   const [resendCooldown, setResendCooldown] = useState(0);
   const [isVerifying, setIsVerifying] = useState(false);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  useEffect(() => {
+    // Add auth-page class to body/html/root for scrolling
+    document.body.classList.add('auth-page');
+    document.documentElement.classList.add('auth-page');
+    const root = document.getElementById('root');
+    if (root) root.classList.add('auth-page');
+
+    return () => {
+      // Cleanup on unmount
+      document.body.classList.remove('auth-page');
+      document.documentElement.classList.remove('auth-page');
+      if (root) root.classList.remove('auth-page');
+    };
+  }, []);
 
   // Format phone number for display (mask middle digits)
   const formatPhone = (phoneNumber: string) => {
@@ -216,6 +232,7 @@ export default function OTPVerification({ phone, userId, email, password, onSucc
           </button>
         </form>
       </div>
+      <AuthFooter />
     </div>
   );
 }

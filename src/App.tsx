@@ -32,7 +32,7 @@ export default function App() {
     return (
         <Routes>
             {/* Public routes - accessible without authentication */}
-            <Route path="/" element={<Home />} />
+            <Route path="/" element={<Navigate to="/login" replace />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<SignUp />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />

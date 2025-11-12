@@ -1,8 +1,24 @@
 import { FormEvent, useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import AuthFooter from '../../components/AuthFooter';
 
 export default function ForgotPassword() {
     const navigate = useNavigate();
+
+    useEffect(() => {
+        // Add auth-page class to body/html/root for scrolling
+        document.body.classList.add('auth-page');
+        document.documentElement.classList.add('auth-page');
+        const root = document.getElementById('root');
+        if (root) root.classList.add('auth-page');
+
+        return () => {
+            // Cleanup on unmount
+            document.body.classList.remove('auth-page');
+            document.documentElement.classList.remove('auth-page');
+            if (root) root.classList.remove('auth-page');
+        };
+    }, []);
     const [phone, setPhone] = useState('');
     const [step, setStep] = useState<'phone' | 'otp' | 'reset'>('phone');
     const [error, setError] = useState('');
@@ -338,6 +354,7 @@ export default function ForgotPassword() {
                     <Link to="/login" className="auth-link">Back to sign in</Link>
                 </div>
             </div>
+            <AuthFooter />
         </div>
     );
 }

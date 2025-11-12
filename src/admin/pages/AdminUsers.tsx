@@ -7,7 +7,9 @@ import {
     IconList, 
     IconGrid,
     IconPlus,
-    IconMoreVertical 
+    IconMoreVertical,
+    IconChevronUp,
+    IconChevronDown
 } from '../components/icons';
 import { getAvatarInitial, getAvatarColor } from '../../utils/avatarUtils';
 
@@ -33,10 +35,12 @@ type Row = {
     id: string | number;
     name: string;
     email: string;
+    phone?: string;
     level: Level;
     points: number;
     status: Status;
     createdAt: string;
+    createdAtDate?: Date; // For sorting
 };
 
 export default function AdminUsers() {
@@ -49,7 +53,14 @@ export default function AdminUsers() {
     const [searchQuery, setSearchQuery] = useState('');
     const [filterLevel, setFilterLevel] = useState<Level | 'all'>('all');
     const [filterStatus, setFilterStatus] = useState<Status | 'all'>('all');
-    const [filterDate, setFilterDate] = useState<string>('');
+    const [filterDateFrom, setFilterDateFrom] = useState<string>('');
+    const [filterDateTo, setFilterDateTo] = useState<string>('');
+    const [filterPointsMin, setFilterPointsMin] = useState<string>('');
+    const [filterPointsMax, setFilterPointsMax] = useState<string>('');
+
+    // Sorting states
+    const [sortColumn, setSortColumn] = useState<'name' | 'email' | 'phone' | 'points' | 'status' | 'createdAt' | null>(null);
+    const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
     // View mode states
     const [viewMode, setViewMode] = useState<'table' | 'card'>('table');
@@ -501,6 +512,16 @@ export default function AdminUsers() {
         }
     };
 
+    // Handle sort
+    const handleSort = (column: 'name' | 'email' | 'phone' | 'points' | 'status' | 'createdAt') => {
+        if (sortColumn === column) {
+            setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+        } else {
+            setSortColumn(column);
+            setSortDirection('asc');
+        }
+    };
+
     // Filter and search logic
     const filteredRows = useMemo(() => {
         // Build display rows from API data
@@ -508,13 +529,16 @@ export default function AdminUsers() {
             id: u.id,
             name: u.name || (u.email ? u.email.split('@')[0] : ''),
             email: u.email,
+            phone: u.phone,
             level: (u.level as Level) || 'guest',
             points: u.points ?? 0,
             status: (u.status as Status) || 'active',
             createdAt: u.created_at ? new Date(u.created_at).toLocaleString() : '',
+            createdAtDate: u.created_at ? new Date(u.created_at) : undefined,
         }));
 
-        return rows.filter((row) => {
+        // Apply filters
+        let filtered = rows.filter((row) => {
             // Search filter (id, name, or email)
             const matchesSearch = searchQuery === '' ||
                 String(row.id).toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -527,12 +551,106 @@ export default function AdminUsers() {
             // Status filter
             const matchesStatus = filterStatus === 'all' || row.status === filterStatus;
 
-            // Date filter
-            const matchesDate = filterDate === '' || row.createdAt.startsWith(filterDate);
+            // Date range filter
+            let matchesDate = true;
+            if (filterDateFrom || filterDateTo) {
+                if (row.createdAtDate) {
+                    const rowDate = new Date(row.createdAtDate);
+                    rowDate.setHours(0, 0, 0, 0);
+                    
+                    if (filterDateFrom) {
+                        const fromDate = new Date(filterDateFrom);
+                        fromDate.setHours(0, 0, 0, 0);
+                        if (rowDate < fromDate) matchesDate = false;
+                    }
+                    
+                    if (filterDateTo) {
+                        const toDate = new Date(filterDateTo);
+                        toDate.setHours(23, 59, 59, 999);
+                        if (rowDate > toDate) matchesDate = false;
+                    }
+                } else {
+                    matchesDate = false;
+                }
+            }
 
-            return matchesSearch && matchesLevel && matchesStatus && matchesDate;
+            // Points range filter
+            let matchesPoints = true;
+            if (filterPointsMin !== '') {
+                const minPoints = parseInt(filterPointsMin, 10);
+                if (isNaN(minPoints) || row.points < minPoints) matchesPoints = false;
+            }
+            if (filterPointsMax !== '') {
+                const maxPoints = parseInt(filterPointsMax, 10);
+                if (isNaN(maxPoints) || row.points > maxPoints) matchesPoints = false;
+            }
+
+            return matchesSearch && matchesLevel && matchesStatus && matchesDate && matchesPoints;
         });
-    }, [users, searchQuery, filterLevel, filterStatus, filterDate]);
+
+        // Apply sorting
+        if (sortColumn) {
+            filtered = [...filtered].sort((a, b) => {
+                let aValue: string | number | Date | undefined;
+                let bValue: string | number | Date | undefined;
+
+                switch (sortColumn) {
+                    case 'name':
+                        aValue = a.name.toLowerCase();
+                        bValue = b.name.toLowerCase();
+                        break;
+                    case 'email':
+                        aValue = a.email.toLowerCase();
+                        bValue = b.email.toLowerCase();
+                        break;
+                    case 'phone':
+                        aValue = (a.phone || '').toLowerCase();
+                        bValue = (b.phone || '').toLowerCase();
+                        break;
+                    case 'points':
+                        aValue = a.points;
+                        bValue = b.points;
+                        break;
+                    case 'status':
+                        aValue = a.status.toLowerCase();
+                        bValue = b.status.toLowerCase();
+                        break;
+                    case 'createdAt':
+                        aValue = a.createdAtDate || new Date(0);
+                        bValue = b.createdAtDate || new Date(0);
+                        break;
+                    default:
+                        return 0;
+                }
+
+                if (aValue === undefined && bValue === undefined) return 0;
+                if (aValue === undefined) return 1;
+                if (bValue === undefined) return -1;
+
+                if (aValue instanceof Date && bValue instanceof Date) {
+                    return sortDirection === 'asc' 
+                        ? aValue.getTime() - bValue.getTime()
+                        : bValue.getTime() - aValue.getTime();
+                }
+
+                if (typeof aValue === 'number' && typeof bValue === 'number') {
+                    return sortDirection === 'asc' 
+                        ? aValue - bValue
+                        : bValue - aValue;
+                }
+
+                if (typeof aValue === 'string' && typeof bValue === 'string') {
+                    return sortDirection === 'asc'
+                        ? aValue.localeCompare(bValue)
+                        : bValue.localeCompare(aValue);
+                }
+
+                return 0;
+            });
+        }
+
+        return filtered;
+    }, [users, searchQuery, filterLevel, filterStatus, filterDateFrom, filterDateTo, filterPointsMin, filterPointsMax, sortColumn, sortDirection]);
 
     return (
         <AdminLayout title="User Management">
@@ -550,7 +668,11 @@ export default function AdminUsers() {
                                 className="search-input"
                             />
                         </div>
-                        <button className="btn-filter" title="Filter">
+                        <button 
+                            className="btn-filter" 
+                            title="Filter"
+                            onClick={() => setFilterPopupOpen(true)}
+                        >
                             <IconFilter />
                         </button>
                     </div>
@@ -594,13 +716,73 @@ export default function AdminUsers() {
                         <table className="table">
                         <thead>
                             <tr>
-                                <th style={{ width: 180 }}>Name</th>
-                                <th style={{ width: 220 }}>Email</th>
-                                <th style={{ width: 150 }}>Phone</th>
+                                <th 
+                                    style={{ width: 180, cursor: 'pointer', userSelect: 'none' }}
+                                    onClick={() => handleSort('name')}
+                                >
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                        Name
+                                        {sortColumn === 'name' && (
+                                            sortDirection === 'asc' ? <IconChevronUp width={14} height={14} /> : <IconChevronDown width={14} height={14} />
+                                        )}
+                                    </div>
+                                </th>
+                                <th 
+                                    style={{ width: 220, cursor: 'pointer', userSelect: 'none' }}
+                                    onClick={() => handleSort('email')}
+                                >
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                        Email
+                                        {sortColumn === 'email' && (
+                                            sortDirection === 'asc' ? <IconChevronUp width={14} height={14} /> : <IconChevronDown width={14} height={14} />
+                                        )}
+                                    </div>
+                                </th>
+                                <th 
+                                    style={{ width: 150, cursor: 'pointer', userSelect: 'none' }}
+                                    onClick={() => handleSort('phone')}
+                                >
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                        Phone
+                                        {sortColumn === 'phone' && (
+                                            sortDirection === 'asc' ? <IconChevronUp width={14} height={14} /> : <IconChevronDown width={14} height={14} />
+                                        )}
+                                    </div>
+                                </th>
                                 <th style={{ width: 150 }}>Level</th>
-                                <th style={{ width: 90 }}>Points</th>
-                                <th style={{ width: 110 }}>Status</th>
-                                <th style={{ width: 160 }}>Created at</th>
+                                <th 
+                                    style={{ width: 90, cursor: 'pointer', userSelect: 'none' }}
+                                    onClick={() => handleSort('points')}
+                                >
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                        Points
+                                        {sortColumn === 'points' && (
+                                            sortDirection === 'asc' ? <IconChevronUp width={14} height={14} /> : <IconChevronDown width={14} height={14} />
+                                        )}
+                                    </div>
+                                </th>
+                                <th 
+                                    style={{ width: 110, cursor: 'pointer', userSelect: 'none' }}
+                                    onClick={() => handleSort('status')}
+                                >
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                        Status
+                                        {sortColumn === 'status' && (
+                                            sortDirection === 'asc' ? <IconChevronUp width={14} height={14} /> : <IconChevronDown width={14} height={14} />
+                                        )}
+                                    </div>
+                                </th>
+                                <th 
+                                    style={{ width: 160, cursor: 'pointer', userSelect: 'none' }}
+                                    onClick={() => handleSort('createdAt')}
+                                >
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                        Created at
+                                        {sortColumn === 'createdAt' && (
+                                            sortDirection === 'asc' ? <IconChevronUp width={14} height={14} /> : <IconChevronDown width={14} height={14} />
+                                        )}
+                                    </div>
+                                </th>
                                 <th style={{ width: 60 }}></th>
                             </tr>
                         </thead>
@@ -1055,7 +1237,7 @@ export default function AdminUsers() {
                 </div>
             )}
 
-            {/* Mobile Filter Popup */}
+            {/* Filter Popup */}
             {filterPopupOpen && (
                 <>
                     <div className="filter-popup-overlay active" onClick={() => setFilterPopupOpen(false)} />
@@ -1080,6 +1262,28 @@ export default function AdminUsers() {
                                 </select>
                             </div>
                             <div className="filter-popup-group">
+                                <label className="filter-popup-label">Points Range</label>
+                                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                    <input
+                                        type="number"
+                                        placeholder="Min"
+                                        value={filterPointsMin}
+                                        onChange={(e) => setFilterPointsMin(e.target.value)}
+                                        className="filter-price-input"
+                                        style={{ flex: 1 }}
+                                    />
+                                    <span style={{ color: '#6b7280' }}>to</span>
+                                    <input
+                                        type="number"
+                                        placeholder="Max"
+                                        value={filterPointsMax}
+                                        onChange={(e) => setFilterPointsMax(e.target.value)}
+                                        className="filter-price-input"
+                                        style={{ flex: 1 }}
+                                    />
+                                </div>
+                            </div>
+                            <div className="filter-popup-group">
                                 <label className="filter-popup-label">Status</label>
                                 <select
                                     value={filterStatus}
@@ -1092,13 +1296,27 @@ export default function AdminUsers() {
                                 </select>
                             </div>
                             <div className="filter-popup-group">
-                                <label className="filter-popup-label">Created Date</label>
-                                <input
-                                    type="date"
-                                    value={filterDate}
-                                    onChange={(e) => setFilterDate(e.target.value)}
-                                    className="filter-date"
-                                />
+                                <label className="filter-popup-label">Created Date Range</label>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                    <div>
+                                        <label style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px', display: 'block' }}>From</label>
+                                        <input
+                                            type="date"
+                                            value={filterDateFrom}
+                                            onChange={(e) => setFilterDateFrom(e.target.value)}
+                                            className="filter-date"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px', display: 'block' }}>To</label>
+                                        <input
+                                            type="date"
+                                            value={filterDateTo}
+                                            onChange={(e) => setFilterDateTo(e.target.value)}
+                                            className="filter-date"
+                                        />
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         <div className="filter-popup-footer">
@@ -1107,7 +1325,10 @@ export default function AdminUsers() {
                                 onClick={() => {
                                     setFilterLevel('all');
                                     setFilterStatus('all');
-                                    setFilterDate('');
+                                    setFilterDateFrom('');
+                                    setFilterDateTo('');
+                                    setFilterPointsMin('');
+                                    setFilterPointsMax('');
                                 }}
                             >
                                 Clear All

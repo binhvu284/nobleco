@@ -1,97 +1,100 @@
 import { useState, useEffect } from 'react';
 import AdminLayout from '../components/AdminLayout';
 import { IconSearch, IconFilter, IconList, IconGrid, IconEye, IconTrash2, IconMoreVertical } from '../components/icons';
+import { getCurrentUser } from '../../auth';
 
-// Order status type
-type OrderStatus = 'pending' | 'processing' | 'completed' | 'cancelled';
+// Order status type based on database schema
+type OrderStatus = 'pending' | 'processing' | 'confirmed' | 'shipped' | 'delivered' | 'completed' | 'cancelled' | 'refunded';
 
-// Order interface
+// Order interface based on database schema
 interface Order {
-    id: string;
-    orderCode: string;
-    productCount: number;
-    orderValue: number;
+    id: number;
+    order_number: string;
+    subtotal_amount: number;
+    discount_amount: number;
+    tax_amount: number;
+    total_amount: number;
     status: OrderStatus;
-    createdAt: string;
-    createdBy: {
+    payment_method: 'cash' | 'card' | 'bank_transfer' | 'credit' | 'other' | null;
+    payment_status: 'pending' | 'partial' | 'paid' | 'failed' | 'refunded';
+    client_id: number | null;
+    client?: {
+        id: number;
+        name: string;
+        phone: string;
+        email?: string;
+    };
+    created_by: number;
+    creator?: {
+        id: number;
         name: string;
         email: string;
-        avatar?: string;
     };
+    created_at: string;
+    updated_at: string;
+    item_count?: number;
 }
 
-// Mock data
-const mockOrders: Order[] = [
-    {
-        id: '1',
-        orderCode: 'ORD-2024-001',
-        productCount: 3,
-        orderValue: 299.99,
-        status: 'completed',
-        createdAt: '2024-01-15',
-        createdBy: {
-            name: 'John Doe',
-            email: 'john.doe@example.com',
-        }
-    },
-    {
-        id: '2',
-        orderCode: 'ORD-2024-002',
-        productCount: 5,
-        orderValue: 499.50,
-        status: 'processing',
-        createdAt: '2024-01-14',
-        createdBy: {
-            name: 'Jane Smith',
-            email: 'jane.smith@example.com',
-        }
-    },
-    {
-        id: '3',
-        orderCode: 'ORD-2024-003',
-        productCount: 2,
-        orderValue: 150.00,
-        status: 'pending',
-        createdAt: '2024-01-13',
-        createdBy: {
-            name: 'Mike Johnson',
-            email: 'mike.j@example.com',
-        }
-    },
-    {
-        id: '4',
-        orderCode: 'ORD-2024-004',
-        productCount: 8,
-        orderValue: 750.25,
-        status: 'completed',
-        createdAt: '2024-01-12',
-        createdBy: {
-            name: 'Sarah Wilson',
-            email: 'sarah.w@example.com',
-        }
-    },
-    {
-        id: '5',
-        orderCode: 'ORD-2024-005',
-        productCount: 1,
-        orderValue: 89.99,
-        status: 'cancelled',
-        createdAt: '2024-01-11',
-        createdBy: {
-            name: 'Robert Brown',
-            email: 'robert.b@example.com',
-        }
-    },
-];
+// Format number as VND currency
+const formatVND = (amount: number): string => {
+    return new Intl.NumberFormat('vi-VN').format(amount) + ' ₫';
+};
+
+// Format date
+const formatDate = (dateString: string): string => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('vi-VN', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+    });
+};
 
 export default function AdminOrders() {
-    const [orders, setOrders] = useState<Order[]>(mockOrders);
+    const [orders, setOrders] = useState<Order[]>([]);
+    const [loading, setLoading] = useState(true);
     const [viewMode, setViewMode] = useState<'table' | 'card'>('table');
     const [searchTerm, setSearchTerm] = useState('');
     const [filterStatus, setFilterStatus] = useState<OrderStatus | 'all'>('all');
     const [showFilterDropdown, setShowFilterDropdown] = useState(false);
-    const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
+    const [activeDropdown, setActiveDropdown] = useState<number | null>(null);
     const [isMobile, setIsMobile] = useState(false);
+
+    // Load orders
+    useEffect(() => {
+        loadOrders();
+    }, []);
+
+    const loadOrders = async () => {
+        try {
+            setLoading(true);
+            const currentUser = getCurrentUser();
+            if (!currentUser || currentUser.role !== 'admin') {
+                setOrders([]);
+                return;
+            }
+
+            const authToken = localStorage.getItem('nobleco_auth_token');
+            const response = await fetch('/api/orders', {
+                headers: {
+                    'Authorization': `Bearer ${authToken}`
+                }
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                setOrders(data || []);
+            } else {
+                console.error('Failed to load orders');
+                setOrders([]);
+            }
+        } catch (error) {
+            console.error('Error loading orders:', error);
+            setOrders([]);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     // Detect mobile view
     useEffect(() => {
@@ -111,9 +114,10 @@ export default function AdminOrders() {
     // Filter orders
     const filteredOrders = orders.filter(order => {
         const matchesSearch = 
-            order.orderCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            order.createdBy.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            order.createdBy.email.toLowerCase().includes(searchTerm.toLowerCase());
+            order.order_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            order.client?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            order.creator?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            order.creator?.email.toLowerCase().includes(searchTerm.toLowerCase());
         
         const matchesStatus = filterStatus === 'all' || order.status === filterStatus;
         
@@ -125,28 +129,66 @@ export default function AdminOrders() {
         const statusConfig = {
             pending: { label: 'Pending', class: 'status-pending' },
             processing: { label: 'Processing', class: 'status-processing' },
+            confirmed: { label: 'Confirmed', class: 'status-confirmed' },
+            shipped: { label: 'Shipped', class: 'status-shipped' },
+            delivered: { label: 'Delivered', class: 'status-delivered' },
             completed: { label: 'Completed', class: 'status-completed' },
             cancelled: { label: 'Cancelled', class: 'status-cancelled' },
+            refunded: { label: 'Refunded', class: 'status-refunded' },
         };
-        return statusConfig[status];
+        return statusConfig[status] || { label: status, class: 'status-pending' };
+    };
+
+    // Get payment method display
+    const getPaymentMethodDisplay = (method: string | null) => {
+        if (!method) return 'N/A';
+        const methodMap: Record<string, string> = {
+            cash: 'Cash',
+            card: 'Card',
+            bank_transfer: 'Bank Transfer',
+            credit: 'Credit',
+            other: 'Other'
+        };
+        return methodMap[method] || method;
     };
 
     // Handle view detail
-    const handleViewDetail = (orderId: string) => {
+    const handleViewDetail = (orderId: number) => {
         console.log('View order detail:', orderId);
-        // TODO: Navigate to order detail page
+        // TODO: Navigate to order detail page or open modal
     };
 
     // Handle delete
-    const handleDelete = (orderId: string) => {
-        if (confirm('Are you sure you want to delete this order?')) {
-            setOrders(orders.filter(o => o.id !== orderId));
-            setActiveDropdown(null);
+    const handleDelete = async (orderId: number) => {
+        if (!confirm('Are you sure you want to delete this order?')) {
+            return;
         }
+
+        try {
+            const authToken = localStorage.getItem('nobleco_auth_token');
+            const response = await fetch(`/api/orders/${orderId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${authToken}`
+                }
+            });
+
+            if (response.ok) {
+                setOrders(orders.filter(o => o.id !== orderId));
+                alert('Order deleted successfully');
+            } else {
+                const error = await response.json();
+                throw new Error(error.error || 'Failed to delete order');
+            }
+        } catch (error) {
+            console.error('Error deleting order:', error);
+            alert((error as Error).message || 'Failed to delete order');
+        }
+        setActiveDropdown(null);
     };
 
     // Toggle dropdown
-    const toggleDropdown = (orderId: string) => {
+    const toggleDropdown = (orderId: number) => {
         setActiveDropdown(activeDropdown === orderId ? null : orderId);
     };
 
@@ -232,6 +274,33 @@ export default function AdminOrders() {
                                         Completed
                                     </button>
                                     <button 
+                                        className={`filter-option ${filterStatus === 'confirmed' ? 'active' : ''}`}
+                                        onClick={() => {
+                                            setFilterStatus('confirmed');
+                                            setShowFilterDropdown(false);
+                                        }}
+                                    >
+                                        Confirmed
+                                    </button>
+                                    <button 
+                                        className={`filter-option ${filterStatus === 'shipped' ? 'active' : ''}`}
+                                        onClick={() => {
+                                            setFilterStatus('shipped');
+                                            setShowFilterDropdown(false);
+                                        }}
+                                    >
+                                        Shipped
+                                    </button>
+                                    <button 
+                                        className={`filter-option ${filterStatus === 'delivered' ? 'active' : ''}`}
+                                        onClick={() => {
+                                            setFilterStatus('delivered');
+                                            setShowFilterDropdown(false);
+                                        }}
+                                    >
+                                        Delivered
+                                    </button>
+                                    <button 
                                         className={`filter-option ${filterStatus === 'cancelled' ? 'active' : ''}`}
                                         onClick={() => {
                                             setFilterStatus('cancelled');
@@ -239,6 +308,15 @@ export default function AdminOrders() {
                                         }}
                                     >
                                         Cancelled
+                                    </button>
+                                    <button 
+                                        className={`filter-option ${filterStatus === 'refunded' ? 'active' : ''}`}
+                                        onClick={() => {
+                                            setFilterStatus('refunded');
+                                            setShowFilterDropdown(false);
+                                        }}
+                                    >
+                                        Refunded
                                     </button>
                                 </div>
                             )}
@@ -287,13 +365,13 @@ export default function AdminOrders() {
                                 {filteredOrders.map((order) => (
                                     <tr key={order.id}>
                                         <td>
-                                            <span className="order-code">{order.orderCode}</span>
+                                            <span className="order-code">{order.order_number}</span>
                                         </td>
                                         <td>
-                                            <span className="product-count">{order.productCount} items</span>
+                                            <span className="product-count">{order.item_count || 0} items</span>
                                         </td>
                                         <td>
-                                            <span className="order-value">${order.orderValue.toFixed(2)}</span>
+                                            <span className="order-value">{formatVND(order.total_amount)}</span>
                                         </td>
                                         <td>
                                             <span className={`status-badge ${getStatusDisplay(order.status).class}`}>
@@ -301,18 +379,22 @@ export default function AdminOrders() {
                                             </span>
                                         </td>
                                         <td>
-                                            <span className="order-date">{order.createdAt}</span>
+                                            <span className="order-date">{formatDate(order.created_at)}</span>
                                         </td>
                                         <td>
-                                            <div className="user-info">
-                                                <div className="user-avatar">
-                                                    {order.createdBy.name.charAt(0).toUpperCase()}
+                                            {order.creator ? (
+                                                <div className="user-info">
+                                                    <div className="user-avatar">
+                                                        {order.creator.name.charAt(0).toUpperCase()}
+                                                    </div>
+                                                    <div className="user-details">
+                                                        <div className="user-name">{order.creator.name}</div>
+                                                        <div className="user-email">{order.creator.email}</div>
+                                                    </div>
                                                 </div>
-                                                <div className="user-details">
-                                                    <div className="user-name">{order.createdBy.name}</div>
-                                                    <div className="user-email">{order.createdBy.email}</div>
-                                                </div>
-                                            </div>
+                                            ) : (
+                                                <span className="text-muted">N/A</span>
+                                            )}
                                         </td>
                                         <td>
                                             <div className={`unified-dropdown ${activeDropdown === order.id ? 'active' : ''}`}>
@@ -347,87 +429,118 @@ export default function AdminOrders() {
                             </tbody>
                         </table>
 
-                        {filteredOrders.length === 0 && (
+                        {loading ? (
+                            <div className="empty-state">
+                                <div className="loading-spinner"></div>
+                                <p>Loading orders...</p>
+                            </div>
+                        ) : filteredOrders.length === 0 ? (
                             <div className="empty-state">
                                 <div className="empty-icon">📦</div>
                                 <p>No orders found</p>
                             </div>
-                        )}
+                        ) : null}
                     </div>
                 ) : (
                     /* Card View */
                     <div className="orders-grid">
-                        {filteredOrders.map((order) => (
-                            <div key={order.id} className="order-card">
-                                <div className="card-header">
-                                    <div className="card-title">
-                                        <span className="order-code">{order.orderCode}</span>
-                                        <span className={`status-badge ${getStatusDisplay(order.status).class}`}>
-                                            {getStatusDisplay(order.status).label}
-                                        </span>
-                                    </div>
-                                    <div className={`unified-dropdown ${activeDropdown === order.id ? 'active' : ''}`}>
-                                        <button
-                                            className="unified-more-btn"
-                                            onClick={() => toggleDropdown(order.id)}
-                                        >
-                                            <IconMoreVertical />
-                                        </button>
-                                        {activeDropdown === order.id && (
-                                            <div className="unified-dropdown-menu">
+                        {loading ? (
+                            <div className="empty-state">
+                                <div className="loading-spinner"></div>
+                                <p>Loading orders...</p>
+                            </div>
+                        ) : (
+                            <>
+                                {filteredOrders.map((order) => (
+                                    <div key={order.id} className="order-card">
+                                        <div className="card-header">
+                                            <div className="card-title">
+                                                <span className="order-code">{order.order_number}</span>
+                                                <span className={`status-badge ${getStatusDisplay(order.status).class}`}>
+                                                    {getStatusDisplay(order.status).label}
+                                                </span>
+                                            </div>
+                                            <div className={`unified-dropdown ${activeDropdown === order.id ? 'active' : ''}`}>
                                                 <button
-                                                    className="unified-dropdown-item"
-                                                    onClick={() => handleViewDetail(order.id)}
+                                                    className="unified-more-btn"
+                                                    onClick={() => toggleDropdown(order.id)}
                                                 >
-                                                    <IconEye />
-                                                    View Detail
+                                                    <IconMoreVertical />
                                                 </button>
-                                                <button
-                                                    className="unified-dropdown-item danger"
-                                                    onClick={() => handleDelete(order.id)}
-                                                >
-                                                    <IconTrash2 />
-                                                    Delete
-                                                </button>
+                                                {activeDropdown === order.id && (
+                                                    <div className="unified-dropdown-menu">
+                                                        <button
+                                                            className="unified-dropdown-item"
+                                                            onClick={() => handleViewDetail(order.id)}
+                                                        >
+                                                            <IconEye />
+                                                            View Detail
+                                                        </button>
+                                                        <button
+                                                            className="unified-dropdown-item danger"
+                                                            onClick={() => handleDelete(order.id)}
+                                                        >
+                                                            <IconTrash2 />
+                                                            Delete
+                                                        </button>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        <div className="card-body">
+                                            {order.client && (
+                                                <div className="card-row">
+                                                    <span className="card-label">Client:</span>
+                                                    <div className="card-value-group">
+                                                        <span className="card-value">{order.client.name}</span>
+                                                        {order.client.phone && (
+                                                            <span className="card-value-sub">{order.client.phone}</span>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            )}
+                                            <div className="card-row">
+                                                <span className="card-label">Products:</span>
+                                                <span className="card-value">{order.item_count || 0} items</span>
+                                            </div>
+                                            <div className="card-row">
+                                                <span className="card-label">Order Value:</span>
+                                                <span className="card-value order-value">{formatVND(order.total_amount)}</span>
+                                            </div>
+                                            <div className="card-row">
+                                                <span className="card-label">Payment Method:</span>
+                                                <span className="card-value">{getPaymentMethodDisplay(order.payment_method)}</span>
+                                            </div>
+                                            <div className="card-row">
+                                                <span className="card-label">Created Date:</span>
+                                                <span className="card-value">{formatDate(order.created_at)}</span>
+                                            </div>
+                                        </div>
+
+                                        {order.creator && (
+                                            <div className="card-footer">
+                                                <div className="user-info">
+                                                    <div className="user-avatar">
+                                                        {order.creator.name.charAt(0).toUpperCase()}
+                                                    </div>
+                                                    <div className="user-details">
+                                                        <div className="user-name">{order.creator.name}</div>
+                                                        <div className="user-email">{order.creator.email}</div>
+                                                    </div>
+                                                </div>
                                             </div>
                                         )}
                                     </div>
-                                </div>
+                                ))}
 
-                                <div className="card-body">
-                                    <div className="card-row">
-                                        <span className="card-label">Products:</span>
-                                        <span className="card-value">{order.productCount} items</span>
+                                {filteredOrders.length === 0 && (
+                                    <div className="empty-state">
+                                        <div className="empty-icon">📦</div>
+                                        <p>No orders found</p>
                                     </div>
-                                    <div className="card-row">
-                                        <span className="card-label">Order Value:</span>
-                                        <span className="card-value order-value">${order.orderValue.toFixed(2)}</span>
-                                    </div>
-                                    <div className="card-row">
-                                        <span className="card-label">Created Date:</span>
-                                        <span className="card-value">{order.createdAt}</span>
-                                    </div>
-                                </div>
-
-                                <div className="card-footer">
-                                    <div className="user-info">
-                                        <div className="user-avatar">
-                                            {order.createdBy.name.charAt(0).toUpperCase()}
-                                        </div>
-                                        <div className="user-details">
-                                            <div className="user-name">{order.createdBy.name}</div>
-                                            <div className="user-email">{order.createdBy.email}</div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
-
-                        {filteredOrders.length === 0 && (
-                            <div className="empty-state">
-                                <div className="empty-icon">📦</div>
-                                <p>No orders found</p>
-                            </div>
+                                )}
+                            </>
                         )}
                     </div>
                 )}

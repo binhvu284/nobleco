@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import UserLayout from '../components/UserLayout';
 import { getCurrentUser } from '../../auth';
+import { IconList, IconGrid } from '../../admin/components/icons';
 
 type Client = {
     id: number;
@@ -13,6 +14,8 @@ type Client = {
     description?: string;
     created_at?: string;
     createdAt?: string;
+    updated_at?: string;
+    completed_orders_count?: number;
 };
 
 // Country list for location dropdown
@@ -38,6 +41,8 @@ export default function UserClient() {
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [clientToDelete, setClientToDelete] = useState<Client | null>(null);
     const [deleteLoading, setDeleteLoading] = useState(false);
+    const [savingClient, setSavingClient] = useState(false);
+    const [viewMode, setViewMode] = useState<'table' | 'card'>('card');
 
     // Form states
     const [formData, setFormData] = useState<Partial<Client>>({
@@ -180,11 +185,13 @@ export default function UserClient() {
             return;
         }
 
+        setSavingClient(true);
         try {
             const clientData = {
                 name: formData.name!,
                 phone: formData.phone || null,
                 email: formData.email || null,
+                gender: formData.gender || null,
                 birthday: formData.birthday || null,
                 location: formData.location || null,
                 description: formData.description || null
@@ -232,6 +239,8 @@ export default function UserClient() {
         } catch (error) {
             console.error('Error saving client:', error);
             alert('Failed to save client');
+        } finally {
+            setSavingClient(false);
         }
 
         setFormData({
@@ -306,7 +315,45 @@ export default function UserClient() {
                             </svg>
                         </button>
                     </div>
-                    <div className="toolbar-right">
+                    <div className="toolbar-right" style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                        <div style={{ display: 'flex', gap: '4px', backgroundColor: 'var(--bg-secondary)', borderRadius: '8px', padding: '4px' }}>
+                            <button
+                                className={`view-toggle-btn ${viewMode === 'table' ? 'active' : ''}`}
+                                onClick={() => setViewMode('table')}
+                                title="Table View"
+                                style={{
+                                    padding: '6px 12px',
+                                    border: 'none',
+                                    background: viewMode === 'table' ? 'var(--primary)' : 'transparent',
+                                    color: viewMode === 'table' ? 'white' : 'var(--text)',
+                                    borderRadius: '6px',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '6px'
+                                }}
+                            >
+                                <IconList width={16} height={16} />
+                            </button>
+                            <button
+                                className={`view-toggle-btn ${viewMode === 'card' ? 'active' : ''}`}
+                                onClick={() => setViewMode('card')}
+                                title="Card View"
+                                style={{
+                                    padding: '6px 12px',
+                                    border: 'none',
+                                    background: viewMode === 'card' ? 'var(--primary)' : 'transparent',
+                                    color: viewMode === 'card' ? 'white' : 'var(--text)',
+                                    borderRadius: '6px',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '6px'
+                                }}
+                            >
+                                <IconGrid width={16} height={16} />
+                            </button>
+                        </div>
                         <button className="btn-create-client" onClick={handleCreateClient}>
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <line x1="12" y1="5" x2="12" y2="19"/>
@@ -339,6 +386,128 @@ export default function UserClient() {
                             </button>
                         )}
                     </div>
+                ) : viewMode === 'table' ? (
+                    <div className="client-table-container" style={{ backgroundColor: 'var(--bg)', borderRadius: '12px', overflow: 'hidden' }}>
+                        <table className="client-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+                            <thead>
+                                <tr style={{ borderBottom: '1px solid var(--border)' }}>
+                                    <th style={{ padding: '16px', textAlign: 'left', fontWeight: '600', color: 'var(--text)', fontSize: '14px' }}>Name</th>
+                                    <th style={{ padding: '16px', textAlign: 'left', fontWeight: '600', color: 'var(--text)', fontSize: '14px' }}>Phone</th>
+                                    <th style={{ padding: '16px', textAlign: 'left', fontWeight: '600', color: 'var(--text)', fontSize: '14px' }}>Email</th>
+                                    <th style={{ padding: '16px', textAlign: 'left', fontWeight: '600', color: 'var(--text)', fontSize: '14px' }}>Order Made</th>
+                                    <th style={{ padding: '16px', textAlign: 'left', fontWeight: '600', color: 'var(--text)', fontSize: '14px' }}>Create Date</th>
+                                    <th style={{ padding: '16px', textAlign: 'right', fontWeight: '600', color: 'var(--text)', fontSize: '14px' }}>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {filteredClients.map((client) => (
+                                    <tr 
+                                        key={client.id}
+                                        style={{ 
+                                            borderBottom: '1px solid var(--border)',
+                                            cursor: 'pointer',
+                                            transition: 'background-color 0.2s'
+                                        }}
+                                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-secondary)'}
+                                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                        onClick={() => handleViewClient(client)}
+                                    >
+                                        <td style={{ padding: '16px' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                                <div 
+                                                    className="client-avatar"
+                                                    style={{
+                                                        width: '40px',
+                                                        height: '40px',
+                                                        borderRadius: '10px',
+                                                        background: `linear-gradient(135deg, ${getAvatarColor(client.name)} 0%, ${getAvatarColor(client.name + '2')} 100%)`,
+                                                        color: 'white',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        fontSize: '16px',
+                                                        fontWeight: '700',
+                                                        flexShrink: 0
+                                                    }}
+                                                >
+                                                    {client.name.charAt(0).toUpperCase()}
+                                                </div>
+                                                <span style={{ fontWeight: '600', color: 'var(--text)' }}>{client.name}</span>
+                                            </div>
+                                        </td>
+                                        <td style={{ padding: '16px', color: 'var(--text)' }}>{client.phone || 'N/A'}</td>
+                                        <td style={{ padding: '16px', color: 'var(--text)' }}>{client.email || 'N/A'}</td>
+                                        <td style={{ padding: '16px' }}>
+                                            <span className="orders-badge" style={{
+                                                display: 'inline-block',
+                                                padding: '4px 12px',
+                                                backgroundColor: 'var(--primary)',
+                                                color: 'white',
+                                                borderRadius: '12px',
+                                                fontSize: '12px',
+                                                fontWeight: '600'
+                                            }}>
+                                                {client.completed_orders_count || 0}
+                                            </span>
+                                        </td>
+                                        <td style={{ padding: '16px', color: 'var(--muted)', fontSize: '14px' }}>
+                                            {client.created_at ? new Date(client.created_at).toLocaleDateString('en-US', {
+                                                year: 'numeric',
+                                                month: 'short',
+                                                day: 'numeric'
+                                            }) : 'N/A'}
+                                        </td>
+                                        <td style={{ padding: '16px', textAlign: 'right' }}>
+                                            <div className="client-actions" style={{ position: 'relative' }}>
+                                                <button
+                                                    className="more-btn"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setMenuOpenId(menuOpenId === client.id ? null : client.id);
+                                                    }}
+                                                >
+                                                    ⋯
+                                                </button>
+                                                {menuOpenId === client.id && (
+                                                    <div className="menu" onClick={(e) => e.stopPropagation()} style={{ right: 0, left: 'auto' }}>
+                                                        <button 
+                                                            className="menu-item"
+                                                            onClick={() => handleViewClient(client)}
+                                                        >
+                                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                                                <circle cx="12" cy="12" r="3"/>
+                                                            </svg>
+                                                            View Details
+                                                        </button>
+                                                        <button 
+                                                            className="menu-item"
+                                                            onClick={() => handleEditClient(client)}
+                                                        >
+                                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                                                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                                                            </svg>
+                                                            Edit
+                                                        </button>
+                                                        <button 
+                                                            className="menu-item danger"
+                                                            onClick={() => handleDeleteClick(client)}
+                                                        >
+                                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                                <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6"/>
+                                                            </svg>
+                                                            Delete
+                                                        </button>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
                 ) : (
                     <div className="client-grid">
                         {filteredClients.map((client) => (
@@ -352,7 +521,23 @@ export default function UserClient() {
                                         {client.name.charAt(0).toUpperCase()}
                                     </div>
                                     <div className="client-card-info">
-                                        <h3>{client.name}</h3>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                            <h3>{client.name}</h3>
+                                            {client.completed_orders_count !== undefined && (
+                                                <span className="orders-badge" style={{
+                                                    display: 'inline-block',
+                                                    padding: '2px 8px',
+                                                    backgroundColor: 'var(--primary)',
+                                                    color: 'white',
+                                                    borderRadius: '10px',
+                                                    fontSize: '11px',
+                                                    fontWeight: '600',
+                                                    whiteSpace: 'nowrap'
+                                                }}>
+                                                    {client.completed_orders_count} orders
+                                                </span>
+                                            )}
+                                        </div>
                                         <p className="client-phone">{client.phone}</p>
                                     </div>
                                     <div className="client-actions">
@@ -411,46 +596,19 @@ export default function UserClient() {
                                             <span>{client.email}</span>
                                         </div>
                                     )}
-                                    {client.gender && (
-                                        <div className="client-detail">
-                                            {getGenderIcon(client.gender)}
-                                            <span>{client.gender}</span>
-                                        </div>
-                                    )}
-                                    {client.birthday && (
-                                        <div className="client-detail">
-                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-                                                <line x1="16" y1="2" x2="16" y2="6"/>
-                                                <line x1="8" y1="2" x2="8" y2="6"/>
-                                                <line x1="3" y1="10" x2="21" y2="10"/>
-                                            </svg>
-                                            <span>{new Date(client.birthday).toLocaleDateString('en-US', {
-                                                year: 'numeric',
-                                                month: 'short',
-                                                day: 'numeric'
-                                            })}</span>
-                                        </div>
-                                    )}
-                                    {client.location && (
-                                        <div className="client-detail">
-                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
-                                                <circle cx="12" cy="10" r="3"/>
-                                            </svg>
-                                            <span>{client.location}</span>
-                                        </div>
-                                    )}
-                                    {client.description && (
-                                        <div className="client-description">
-                                            <p>{client.description}</p>
-                                        </div>
-                                    )}
+                                    <div className="client-detail">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                                            <circle cx="8.5" cy="7" r="4"/>
+                                            <path d="M20 8v6M23 11h-6"/>
+                                        </svg>
+                                        <span>Order Made: <strong>{client.completed_orders_count || 0}</strong></span>
+                                    </div>
                                 </div>
 
                                 <div className="client-card-footer">
                                     <span className="client-date">
-                                        Added: {client.created_at ? new Date(client.created_at).toLocaleDateString('en-US', {
+                                        {client.created_at ? new Date(client.created_at).toLocaleDateString('en-US', {
                                             year: 'numeric',
                                             month: 'short',
                                             day: 'numeric'
@@ -476,7 +634,8 @@ export default function UserClient() {
                                 </button>
                             </div>
 
-                            <div className="client-view-content">
+                            <div className="client-view-content-wrapper">
+                                <div className="client-view-content">
                                 {/* Client Header */}
                                 <div className="client-view-header">
                                     <div 
@@ -485,137 +644,178 @@ export default function UserClient() {
                                     >
                                         {viewClient.name.charAt(0).toUpperCase()}
                                     </div>
-                                    <div className="client-view-name-section">
-                                        <h1>{viewClient.name}</h1>
-                                        {viewClient.phone && <p className="client-view-phone">{viewClient.phone}</p>}
+                                    <div className="client-view-name-section" style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1 }}>
+                                        <h1 style={{ margin: 0 }}>{viewClient.name}</h1>
+                                        {viewClient.phone && <p className="client-view-phone" style={{ margin: 0 }}>{viewClient.phone}</p>}
                                     </div>
                                 </div>
 
                                 {/* Contact Information */}
                                 <div className="client-view-section">
-                                    <h3 className="client-view-section-title">Contact Information</h3>
                                     <div className="client-view-grid">
-                                        {viewClient.email && (
-                                            <div className="client-view-item">
-                                                <div className="client-view-label">
-                                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
-                                                        <polyline points="22,6 12,13 2,6"/>
-                                                    </svg>
-                                                    Email
-                                                </div>
-                                                <div className="client-view-value">{viewClient.email}</div>
+                                        <div className="client-view-item">
+                                            <div className="client-view-label">
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                                                    <polyline points="22,6 12,13 2,6"/>
+                                                </svg>
+                                                Email
                                             </div>
-                                        )}
-                                        {viewClient.phone && (
-                                            <div className="client-view-item">
-                                                <div className="client-view-label">
-                                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                        <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
-                                                    </svg>
-                                                    Phone
-                                                </div>
-                                                <div className="client-view-value">{viewClient.phone}</div>
+                                            <div className="client-view-value" style={{ color: viewClient.email ? 'inherit' : 'var(--muted)' }}>
+                                                {viewClient.email || 'N/A'}
                                             </div>
-                                        )}
-                                        {viewClient.gender && (
-                                            <div className="client-view-item">
-                                                <div className="client-view-label">
-                                                    {getGenderIcon(viewClient.gender)}
-                                                    Gender
-                                                </div>
-                                                <div className="client-view-value">{viewClient.gender}</div>
+                                        </div>
+                                        <div className="client-view-item">
+                                            <div className="client-view-label">
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+                                                </svg>
+                                                Phone
                                             </div>
-                                        )}
-                                        {viewClient.birthday && (
-                                            <div className="client-view-item">
-                                                <div className="client-view-label">
+                                            <div className="client-view-value" style={{ color: viewClient.phone ? 'inherit' : 'var(--muted)' }}>
+                                                {viewClient.phone || 'N/A'}
+                                            </div>
+                                        </div>
+                                        <div className="client-view-item">
+                                            <div className="client-view-label">
+                                                {viewClient.gender ? getGenderIcon(viewClient.gender) : (
                                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-                                                        <line x1="16" y1="2" x2="16" y2="6"/>
-                                                        <line x1="8" y1="2" x2="8" y2="6"/>
-                                                        <line x1="3" y1="10" x2="21" y2="10"/>
+                                                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                                                        <circle cx="12" cy="7" r="4"/>
                                                     </svg>
-                                                    Birthday
-                                                </div>
-                                                <div className="client-view-value">
-                                                    {new Date(viewClient.birthday).toLocaleDateString('en-US', {
+                                                )}
+                                                Gender
+                                            </div>
+                                            <div className="client-view-value" style={{ color: viewClient.gender ? 'inherit' : 'var(--muted)' }}>
+                                                {viewClient.gender || 'N/A'}
+                                            </div>
+                                        </div>
+                                        <div className="client-view-item">
+                                            <div className="client-view-label">
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                                                    <circle cx="12" cy="10" r="3"/>
+                                                </svg>
+                                                Location
+                                            </div>
+                                            <div className="client-view-value" style={{ color: viewClient.location ? 'inherit' : 'var(--muted)' }}>
+                                                {viewClient.location || 'N/A'}
+                                            </div>
+                                        </div>
+                                        <div className="client-view-item">
+                                            <div className="client-view-label">
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                                                    <line x1="16" y1="2" x2="16" y2="6"/>
+                                                    <line x1="8" y1="2" x2="8" y2="6"/>
+                                                    <line x1="3" y1="10" x2="21" y2="10"/>
+                                                </svg>
+                                                Birthday
+                                            </div>
+                                            <div className="client-view-value" style={{ color: viewClient.birthday ? 'inherit' : 'var(--muted)' }}>
+                                                {viewClient.birthday ? (() => {
+                                                    const today = new Date();
+                                                    const birthDate = new Date(viewClient.birthday!);
+                                                    let age = today.getFullYear() - birthDate.getFullYear();
+                                                    const monthDiff = today.getMonth() - birthDate.getMonth();
+                                                    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+                                                        age--;
+                                                    }
+                                                    return `${new Date(viewClient.birthday).toLocaleDateString('en-US', {
                                                         year: 'numeric',
                                                         month: 'long',
                                                         day: 'numeric'
-                                                    })}
-                                                    {(() => {
-                                                        const today = new Date();
-                                                        const birthDate = new Date(viewClient.birthday!);
-                                                        let age = today.getFullYear() - birthDate.getFullYear();
-                                                        const monthDiff = today.getMonth() - birthDate.getMonth();
-                                                        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-                                                            age--;
-                                                        }
-                                                        return age !== null ? ` (${age} years old)` : '';
-                                                    })()}
-                                                </div>
+                                                    })} (${age} years old)`;
+                                                })() : 'N/A'}
                                             </div>
-                                        )}
-                                        {viewClient.location && (
-                                            <div className="client-view-item">
-                                                <div className="client-view-label">
-                                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
-                                                        <circle cx="12" cy="10" r="3"/>
-                                                    </svg>
-                                                    Location
-                                                </div>
-                                                <div className="client-view-value">{viewClient.location}</div>
+                                        </div>
+                                        <div className="client-view-item">
+                                            <div className="client-view-label">
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                                                    <line x1="16" y1="2" x2="16" y2="6"/>
+                                                    <line x1="8" y1="2" x2="8" y2="6"/>
+                                                    <line x1="3" y1="10" x2="21" y2="10"/>
+                                                </svg>
+                                                Added
                                             </div>
-                                        )}
+                                            <div className="client-view-value">
+                                                {viewClient.created_at ? new Date(viewClient.created_at).toLocaleDateString('en-US', {
+                                                    year: 'numeric',
+                                                    month: 'long',
+                                                    day: 'numeric'
+                                                }) : 'N/A'}
+                                            </div>
+                                        </div>
+                                        <div className="client-view-item">
+                                            <div className="client-view-label">
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                    <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                                                    <circle cx="8.5" cy="7" r="4"/>
+                                                    <path d="M20 8v6M23 11h-6"/>
+                                                </svg>
+                                                Order Made
+                                            </div>
+                                            <div className="client-view-value" style={{ 
+                                                color: 'var(--primary)', 
+                                                fontWeight: '600',
+                                                fontSize: '16px'
+                                            }}>
+                                                {viewClient.completed_orders_count ?? 0}
+                                            </div>
+                                        </div>
+                                        <div className="client-view-item">
+                                            <div className="client-view-label">
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                    <circle cx="12" cy="12" r="10"/>
+                                                    <polyline points="12 6 12 12 16 14"/>
+                                                </svg>
+                                                Last Updated
+                                            </div>
+                                            <div className="client-view-value">
+                                                {viewClient.updated_at ? new Date(viewClient.updated_at).toLocaleDateString('en-US', {
+                                                    year: 'numeric',
+                                                    month: 'long',
+                                                    day: 'numeric'
+                                                }) : 'N/A'}
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
 
                                 {/* Notes */}
-                                {viewClient.description && (
-                                    <div className="client-view-section">
-                                        <h3 className="client-view-section-title">Notes</h3>
-                                        <div className="client-view-notes">
-                                            <p>{viewClient.description}</p>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* Created Date */}
                                 <div className="client-view-section">
-                                    <div className="client-view-meta">
-                                        <span className="client-view-meta-label">Added:</span>
-                                        <span className="client-view-meta-value">
-                                            {viewClient.created_at ? new Date(viewClient.created_at).toLocaleDateString('en-US', {
-                                                year: 'numeric',
-                                                month: 'long',
-                                                day: 'numeric'
-                                            }) : 'N/A'}
-                                        </span>
+                                    <h3 className="client-view-section-title">Notes</h3>
+                                    <div className="client-view-notes">
+                                        <p style={{ color: viewClient.description ? 'inherit' : 'var(--muted)' }}>
+                                            {viewClient.description || 'N/A'}
+                                        </p>
                                     </div>
                                 </div>
-                            </div>
+                                </div>
 
-                            <div className="client-view-actions">
-                                <button 
-                                    type="button" 
-                                    className="btn-secondary" 
-                                    onClick={() => setShowViewModal(false)}
-                                >
-                                    Close
-                                </button>
-                                <button 
-                                    type="button" 
-                                    className="btn-primary" 
-                                    onClick={handleEditFromView}
-                                >
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                                    </svg>
-                                    Edit Client
-                                </button>
+                                <div className="client-view-actions">
+                                    <button 
+                                        type="button" 
+                                        className="btn-secondary" 
+                                        onClick={() => setShowViewModal(false)}
+                                        disabled={savingClient}
+                                    >
+                                        Close
+                                    </button>
+                                    <button 
+                                        type="button" 
+                                        className="btn-primary" 
+                                        onClick={handleEditFromView}
+                                        disabled={savingClient}
+                                    >
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                                        </svg>
+                                        Edit Client
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -725,11 +925,18 @@ export default function UserClient() {
                                 </div>
 
                                 <div className="modal-actions">
-                                    <button type="button" className="btn-secondary" onClick={() => setShowModal(false)}>
+                                    <button type="button" className="btn-secondary" onClick={() => setShowModal(false)} disabled={savingClient}>
                                         Cancel
                                     </button>
-                                    <button type="submit" className="btn-primary">
-                                        {viewClient ? 'Save Changes' : 'Create Client'}
+                                    <button type="submit" className="btn-primary" disabled={savingClient}>
+                                        {savingClient ? (
+                                            <>
+                                                <div className="loading-spinner" style={{ width: '16px', height: '16px', borderWidth: '2px' }}></div>
+                                                Saving...
+                                            </>
+                                        ) : (
+                                            viewClient ? 'Save Changes' : 'Create Client'
+                                        )}
                                     </button>
                                 </div>
                             </form>
