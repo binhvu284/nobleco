@@ -136,7 +136,7 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
                 // If country/state don't exist but location does, try to parse it
                 if (!country && freshUser.location) {
                     // Try to parse "State, Country" format
-                    const parts = freshUser.location.split(',').map(s => s.trim());
+                    const parts = freshUser.location.split(',').map((s: string) => s.trim());
                     if (parts.length === 2) {
                         state = parts[0];
                         country = parts[1];

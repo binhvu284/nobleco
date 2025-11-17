@@ -32,12 +32,24 @@ export function getAvatarColor(name: string): string {
 }
 
 /**
+ * Partial avatar type for display purposes
+ */
+export type AvatarDisplayData = {
+    url: string;
+    viewport_x?: number | null;
+    viewport_y?: number | null;
+    viewport_size?: number | null;
+    width?: number | null;
+    height?: number | null;
+};
+
+/**
  * Get CSS styles for displaying an avatar with circular viewport
- * @param avatar - Avatar data with viewport coordinates
+ * @param avatar - Avatar data with viewport coordinates (can be partial)
  * @param displaySize - Size of the circular display (in pixels)
  * @returns CSS styles object for the image
  */
-export function getAvatarViewportStyles(avatar: UserAvatar | null, displaySize: number): React.CSSProperties {
+export function getAvatarViewportStyles(avatar: UserAvatar | AvatarDisplayData | null, displaySize: number): React.CSSProperties {
     if (!avatar || !avatar.url || avatar.viewport_x === null || avatar.viewport_x === undefined || avatar.viewport_y === null || avatar.viewport_y === undefined || avatar.viewport_size === null || avatar.viewport_size === undefined || !avatar.width || !avatar.height) {
         // No viewport data or dimensions, show full image with circular clip
         return {
