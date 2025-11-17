@@ -78,6 +78,7 @@ export default function UserOrders() {
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [orderToDelete, setOrderToDelete] = useState<Order | null>(null);
     const [deleteLoading, setDeleteLoading] = useState(false);
+    const [checkoutLoading, setCheckoutLoading] = useState<number | null>(null);
 
     // Debounce search term
     useEffect(() => {
@@ -313,6 +314,7 @@ export default function UserOrders() {
         if (!order) return;
 
         try {
+            setCheckoutLoading(orderId);
             const authToken = localStorage.getItem('nobleco_auth_token');
             const response = await fetch(`/api/orders/${orderId}`, {
                 headers: {
@@ -336,8 +338,10 @@ export default function UserOrders() {
         } catch (error) {
             console.error('Error loading order:', error);
             alert('Failed to load order details');
+        } finally {
+            setCheckoutLoading(null);
+            setActiveDropdown(null);
         }
-        setActiveDropdown(null);
     };
 
     // Handle delete click (show confirmation modal)
@@ -644,9 +648,19 @@ export default function UserOrders() {
                                                                 <button
                                                                     className="unified-dropdown-item"
                                                                     onClick={() => handleCheckout(order.id)}
+                                                                    disabled={checkoutLoading === order.id}
                                                                 >
-                                                                    <IconShoppingBag />
-                                                                    Checkout
+                                                                    {checkoutLoading === order.id ? (
+                                                                        <>
+                                                                            <div className="loading-spinner" style={{ width: '14px', height: '14px', border: '2px solid rgba(0,0,0,0.2)', borderTopColor: 'currentColor', borderRadius: '50%', animation: 'spin 0.8s linear infinite', display: 'inline-block', marginRight: '6px', verticalAlign: 'middle' }}></div>
+                                                                            <span>Loading...</span>
+                                                                        </>
+                                                                    ) : (
+                                                                        <>
+                                                                            <IconShoppingBag />
+                                                                            Checkout
+                                                                        </>
+                                                                    )}
                                                                 </button>
                                                                 <button
                                                                     className="unified-dropdown-item danger"
@@ -725,9 +739,19 @@ export default function UserOrders() {
                                                                 handleCheckout(order.id);
                                                                 setActiveDropdown(null);
                                                             }}
+                                                            disabled={checkoutLoading === order.id}
                                                         >
-                                                            <IconShoppingBag />
-                                                            Checkout
+                                                            {checkoutLoading === order.id ? (
+                                                                <>
+                                                                    <div className="loading-spinner" style={{ width: '14px', height: '14px', border: '2px solid rgba(0,0,0,0.2)', borderTopColor: 'currentColor', borderRadius: '50%', animation: 'spin 0.8s linear infinite', display: 'inline-block', marginRight: '6px', verticalAlign: 'middle' }}></div>
+                                                                    <span>Loading...</span>
+                                                                </>
+                                                            ) : (
+                                                                <>
+                                                                    <IconShoppingBag />
+                                                                    Checkout
+                                                                </>
+                                                            )}
                                                         </button>
                                                         <button
                                                             className="unified-dropdown-item danger"

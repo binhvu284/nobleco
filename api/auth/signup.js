@@ -69,28 +69,40 @@ export default async function handler(req, res) {
       referrerName = referrer.name;
     }
 
-    // Create the new user with phone_verified = false
-    const newUser = await createUser({
+    // Check for recent OTP (rate limiting)
+    const { findOTP } = await import('../_repo/otps.js');
+    const recentOTP = await findOTP(cleanedPhone, 'signup', false);
+    if (recentOTP) {
+      const now = new Date();
+      const createdAt = new Date(recentOTP.created_at);
+      const secondsSinceCreation = (now - createdAt) / 1000;
+
+      if (secondsSinceCreation < 60) {
+        return res.status(429).json({ 
+          error: 'Please wait before requesting a new code. You can request again in ' + 
+                 Math.ceil(60 - secondsSinceCreation) + ' seconds.' 
+        });
+      }
+    }
+
+    // Store signup data in OTP record (account will be created after OTP verification)
+    const signupData = {
       email,
       name,
       phone: cleanedPhone,
-      password,
-      role: 'user',
-      points: 0,
-      level: 'guest',
-      status: 'active',
-      referred_by: validReferCode,
-      phone_verified: false, // User needs to verify phone
-    });
+      password, // Will be hashed when account is created
+      referCode: validReferCode
+    };
 
-    // Generate and send OTP
+    // Generate and send OTP (without creating user account)
     const otpCode = generateOTP();
     await createOTP({
       phone: cleanedPhone,
       code: otpCode,
       purpose: 'signup',
-      userId: newUser.id,
-      expiresInMinutes: 10
+      userId: null, // No user ID yet - account not created
+      expiresInMinutes: 10,
+      signupData: signupData // Store signup data in OTP record
     });
 
     // Send SMS
@@ -101,15 +113,11 @@ export default async function handler(req, res) {
       // Continue even if SMS fails - user can request resend
     }
 
-    // Return user data (without password) with verification flag
-    const { password: _pw, ...safeUser } = newUser;
-
-    return res.status(201).json({
+    return res.status(200).json({
       success: true,
-      user: safeUser,
       requiresVerification: true,
       phone: cleanedPhone,
-      message: 'Account created. Please verify your phone number with the OTP code sent to your phone.'
+      message: 'Please verify your phone number with the OTP code sent to your phone.'
     });
   } catch (error) {
     console.error('Signup error:', error);

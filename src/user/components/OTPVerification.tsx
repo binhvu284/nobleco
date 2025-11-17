@@ -4,7 +4,7 @@ import AuthFooter from '../../components/AuthFooter';
 
 interface OTPVerificationProps {
   phone: string;
-  userId: number;
+  userId?: number; // Optional - only for legacy flow
   email: string;
   password: string;
   onSuccess: () => void;
@@ -115,14 +115,15 @@ export default function OTPVerification({ phone, userId, email, password, onSucc
         return;
       }
 
-      // OTP verified successfully - now auto-login the user
+      // OTP verified successfully - account is now created (if signup)
+      // Now auto-login the user
       const loginResult = await login(email, password);
       
       if (loginResult.success && loginResult.user) {
         // Success - redirect to dashboard
         onSuccess();
       } else {
-        setError('Verification successful, but login failed. Please try logging in manually.');
+        setError('Account created successfully, but login failed. Please try logging in manually.');
         setIsVerifying(false);
       }
     } catch (err) {

@@ -94,6 +94,29 @@ export async function findUserByEmail(email) {
   return normalize(data);
 }
 
+export async function findUserByPhone(phone) {
+  const supabase = getSupabase();
+  const { data, error } = await supabase
+    .from('users')
+    .select('id, email, name, password, role, points, level, status, refer_code, commission, phone, address')
+    .eq('phone', phone)
+    .maybeSingle();
+  
+  if (error) throw new Error(error.message);
+  return normalize(data);
+}
+
+// Find user by email or phone
+export async function findUserByEmailOrPhone(identifier) {
+  // Try email first
+  let user = await findUserByEmail(identifier);
+  if (user) return user;
+  
+  // Try phone if email didn't work
+  user = await findUserByPhone(identifier);
+  return user;
+}
+
 export async function updateUserPasswordHashed(id, password) {
   const supabase = getSupabase();
   const hashed = await bcrypt.hash(password, 10);

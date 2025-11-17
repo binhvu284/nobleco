@@ -12,6 +12,7 @@ import productImagesHandler from '../api/product-images.js';
 import userAvatarsHandler from '../api/user-avatars.js';
 import userPersonalIdsHandler from '../api/user-personal-ids.js';
 import otpHandler from '../api/otp.js';
+import resetPasswordHandler from '../api/auth/reset-password.js';
 import syncHandler from '../api/integrations/sync.js';
 import testHandler from '../api/integrations/test.js';
 import listHandler from '../api/integrations/list.js';
@@ -85,6 +86,7 @@ app.all('/api/health', (req, res) => {
 app.all('/api/diagnostics', toRoute(diagnosticsHandler));
 app.all('/api/auth/login', toRoute(loginHandler));
 app.all('/api/auth/signup', toRoute(signupHandler));
+app.all('/api/auth/reset-password', toRoute(resetPasswordHandler));
 app.all('/api/seed-admin', (req, res) => {
   req.query = { ...req.query, endpoint: 'seed-admin' };
   return usersHandler(req, res);

@@ -34,7 +34,7 @@ export default function SignUp() {
     
     // OTP verification state
     const [showOTPVerification, setShowOTPVerification] = useState(false);
-    const [signupData, setSignupData] = useState<{ phone: string; userId: number; email: string; password: string } | null>(null);
+    const [signupData, setSignupData] = useState<{ phone: string; email: string; password: string } | null>(null);
 
     // Auto-fill refer code from URL parameter
     useEffect(() => {
@@ -82,10 +82,9 @@ export default function SignUp() {
             }
 
             // Check if OTP verification is required
-            if (data.requiresVerification && data.user) {
+            if (data.requiresVerification && data.phone) {
                 setSignupData({
                     phone: data.phone,
-                    userId: data.user.id,
                     email: email,
                     password: password
                 });
@@ -119,7 +118,6 @@ export default function SignUp() {
         return (
             <OTPVerification
                 phone={signupData.phone}
-                userId={signupData.userId}
                 email={signupData.email}
                 password={signupData.password}
                 onSuccess={handleOTPSuccess}

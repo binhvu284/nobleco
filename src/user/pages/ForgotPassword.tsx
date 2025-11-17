@@ -152,14 +152,16 @@ export default function ForgotPassword() {
         setIsLoading(true);
 
         try {
-            // TODO: Create API endpoint for password reset
-            // For now, this is a placeholder
+            // Get OTP code from state (user already verified it)
+            const otpCode = otp.join('');
+            
             const response = await fetch('/api/auth/reset-password', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     phone,
-                    newPassword
+                    newPassword,
+                    otpCode
                 }),
             });
 

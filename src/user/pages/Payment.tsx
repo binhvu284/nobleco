@@ -1,38 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import UserLayout from '../components/UserLayout';
 import {
-    IconX,
     IconChevronLeft,
     IconCheck,
-    IconPackage,
-    IconCreditCard
+    IconPackage
 } from '../../admin/components/icons';
-import QRCode from 'qrcode';
-
-// QR Code Display Component
-function QRCodeDisplay({ value, size = 150 }: { value: string; size?: number }) {
-    const [qrDataUrl, setQrDataUrl] = useState<string>('');
-
-    useEffect(() => {
-        QRCode.toDataURL(value, {
-            width: size,
-            margin: 1,
-            color: {
-                dark: '#000000',
-                light: '#FFFFFF'
-            }
-        })
-            .then(url => setQrDataUrl(url))
-            .catch(err => console.error('Error generating QR code:', err));
-    }, [value, size]);
-
-    if (!qrDataUrl) {
-        return <div className="qr-loading">Generating...</div>;
-    }
-
-    return <img src={qrDataUrl} alt="Bank Transfer QR Code" className="qr-code-image" />;
-}
 
 // Product interface
 interface Product {
@@ -65,19 +38,16 @@ const formatVND = (amount: number): string => {
     return new Intl.NumberFormat('vi-VN').format(amount) + ' ₫';
 };
 
-// Bank information (can be moved to config later)
-const BANK_INFO = {
-    name: 'Vietcombank',
-    accountOwner: 'NOBLECO JEWELRY COMPANY',
-    accountNumber: '1234567890'
-};
-
 export default function Payment() {
     const navigate = useNavigate();
     const location = useLocation();
-    const [paymentMethod, setPaymentMethod] = useState<'cash' | 'bank_transfer' | null>(null);
-    const [cashReceived, setCashReceived] = useState('');
     const [orderCompleted, setOrderCompleted] = useState(false);
+    const [creatingPayment, setCreatingPayment] = useState(true);
+    const [paymentStatus, setPaymentStatus] = useState<'pending' | 'paid' | 'failed' | 'expired' | 'checking'>('pending');
+    const [qrCodeUrl, setQrCodeUrl] = useState<string>('');
+    const [bankAccount, setBankAccount] = useState<any>(null);
+    const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+    const paymentCreatedRef = useRef(false);
 
     // Order data from location state
     const [orderData, setOrderData] = useState<{
@@ -93,7 +63,6 @@ export default function Payment() {
         taxAmount: number;
         total: number;
     } | null>(null);
-    const [completingOrder, setCompletingOrder] = useState(false);
 
     useEffect(() => {
         if (location.state) {
@@ -103,6 +72,164 @@ export default function Payment() {
             navigate('/checkout');
         }
     }, [location.state, navigate]);
+
+    // Create Sepay payment order on mount
+    useEffect(() => {
+        if (!orderData?.orderId || paymentCreatedRef.current) return;
+
+        const createPayment = async () => {
+            try {
+                setCreatingPayment(true);
+                const authToken = localStorage.getItem('nobleco_auth_token');
+                
+                if (!authToken) {
+                    alert('Please login to continue');
+                    navigate('/checkout');
+                    return;
+                }
+
+                const response = await fetch(`/api/orders/${orderData.orderId}/create-payment`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Failed to create payment order');
+                }
+
+                const paymentData = await response.json();
+                
+                // Set QR code and bank account info
+                if (paymentData.qr_code_url) {
+                    setQrCodeUrl(paymentData.qr_code_url);
+                }
+                if (paymentData.bank_account) {
+                    setBankAccount(paymentData.bank_account);
+                }
+                
+                setCreatingPayment(false);
+                paymentCreatedRef.current = true;
+                
+                // Start polling payment status
+                startPaymentPolling(orderData.orderId!);
+            } catch (error) {
+                console.error('Error creating payment:', error);
+                alert((error as Error).message || 'Failed to create payment order. Please try again.');
+                setCreatingPayment(false);
+            }
+        };
+
+        createPayment();
+
+        // Cleanup polling on unmount
+        return () => {
+            stopPaymentPolling();
+        };
+    }, [orderData?.orderId]);
+
+    // Start polling payment status
+    const startPaymentPolling = (orderId: number) => {
+        // Poll immediately first time
+        checkPaymentStatus(orderId);
+
+        // Then poll every 5 seconds
+        pollingIntervalRef.current = setInterval(() => {
+            checkPaymentStatus(orderId);
+        }, 5000);
+    };
+
+    // Stop polling
+    const stopPaymentPolling = () => {
+        if (pollingIntervalRef.current) {
+            clearInterval(pollingIntervalRef.current);
+            pollingIntervalRef.current = null;
+        }
+    };
+
+    // Check payment status
+    const checkPaymentStatus = async (orderId: number) => {
+        try {
+            setPaymentStatus('checking');
+            const authToken = localStorage.getItem('nobleco_auth_token');
+            
+            const response = await fetch(`/api/orders/${orderId}/payment-status`, {
+                headers: {
+                    'Authorization': `Bearer ${authToken}`
+                }
+            });
+
+            if (!response.ok) {
+                console.error('Failed to check payment status');
+                setPaymentStatus('pending');
+                return;
+            }
+
+            const statusData = await response.json();
+            
+            if (statusData.status === 'paid' || statusData.order_status === 'completed') {
+                // Payment completed
+                stopPaymentPolling();
+                setPaymentStatus('paid');
+                setOrderCompleted(true);
+                // Clear cart from localStorage
+                localStorage.removeItem('cart');
+                
+                // Auto-redirect after 3 seconds
+                setTimeout(() => {
+                    navigate('/orders');
+                }, 3000);
+            } else if (statusData.status === 'failed') {
+                setPaymentStatus('failed');
+                stopPaymentPolling();
+            } else if (statusData.status === 'expired') {
+                setPaymentStatus('expired');
+                stopPaymentPolling();
+            } else {
+                setPaymentStatus('pending');
+            }
+        } catch (error) {
+            console.error('Error checking payment status:', error);
+            setPaymentStatus('pending');
+        }
+    };
+
+    const handleBackToCheckout = () => {
+        stopPaymentPolling();
+        if (orderData?.orderId) {
+            navigate('/checkout', { 
+                state: { 
+                    orderId: orderData.orderId,
+                    cartItems: orderData.cartItems,
+                    clientId: orderData.clientId,
+                    client: orderData.client,
+                    location: orderData.location,
+                    discountCode: orderData.discountCode,
+                    notes: orderData.notes,
+                    subtotal: orderData.subtotal,
+                    discountAmount: orderData.discountAmount,
+                    taxAmount: orderData.taxAmount,
+                    total: orderData.total
+                } 
+            });
+        } else {
+            navigate('/checkout');
+        }
+    };
+
+    const handleGoToProducts = () => {
+        stopPaymentPolling();
+        navigate('/product');
+    };
+
+    const handleManualRefresh = () => {
+        if (orderData?.orderId) {
+            checkPaymentStatus(orderData.orderId);
+        }
+    };
 
     if (!orderData) {
         return (
@@ -116,58 +243,6 @@ export default function Payment() {
 
     const { cartItems, client, subtotal, discountAmount, taxAmount, total } = orderData;
 
-    // Calculate change for cash payment
-    const cashReceivedNum = parseFloat(cashReceived) || 0;
-    const change = cashReceivedNum > total ? cashReceivedNum - total : 0;
-
-    const handleCompleteOrder = async () => {
-        if (!orderData?.orderId) {
-            alert('Order ID is missing');
-            return;
-        }
-
-        try {
-            setCompletingOrder(true);
-            const authToken = localStorage.getItem('nobleco_auth_token');
-            
-            const response = await fetch(`/api/orders/${orderData.orderId}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${authToken}`
-                },
-                body: JSON.stringify({
-                    status: 'completed',
-                    payment_method: paymentMethod,
-                    payment_status: 'paid',
-                    payment_date: new Date().toISOString()
-                })
-            });
-
-            if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.error || 'Failed to complete order');
-            }
-
-            setOrderCompleted(true);
-            // Clear cart from localStorage
-            localStorage.removeItem('cart');
-        } catch (error) {
-            console.error('Error completing order:', error);
-            alert((error as Error).message || 'Failed to complete order. Please try again.');
-        } finally {
-            setCompletingOrder(false);
-        }
-    };
-
-    const handleBackToCheckout = () => {
-        navigate('/checkout', { state: { cartItems } });
-    };
-
-    const handleGoToProducts = () => {
-        navigate('/product');
-    };
-
     return (
         <UserLayout title="Payment">
             <div className="payment-container">
@@ -180,154 +255,119 @@ export default function Payment() {
 
                 <div className="payment-content">
                     <div className="payment-main">
-                        {/* Payment Method Selection */}
+                        {/* Payment Section */}
                         <section className="payment-section">
-                            <h2>Select Payment Method</h2>
-                            <div className="payment-methods">
-                                <div
-                                    className={`payment-method-card ${paymentMethod === 'cash' ? 'selected' : ''}`}
-                                    onClick={() => setPaymentMethod('cash')}
-                                >
-                                    <div className="payment-method-icon">
-                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                            <line x1="12" y1="1" x2="12" y2="23"></line>
-                                            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
-                                        </svg>
-                                    </div>
-                                    <div className="payment-method-info">
-                                        <h3>Cash</h3>
-                                        <p>Pay with cash</p>
-                                    </div>
-                                    {paymentMethod === 'cash' && (
-                                        <div className="payment-method-check">
-                                            <IconCheck />
-                                        </div>
-                                    )}
+                            <h2>Bank Transfer Payment</h2>
+                            
+                            {creatingPayment ? (
+                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', padding: '40px' }}>
+                                    <div className="loading-spinner" style={{ width: '48px', height: '48px', border: '4px solid var(--border)', borderTopColor: 'var(--primary)', borderRadius: '50%', animation: 'spinner-rotate 1s linear infinite' }}></div>
+                                    <p>Creating payment order...</p>
                                 </div>
-
-                                <div
-                                    className={`payment-method-card ${paymentMethod === 'bank_transfer' ? 'selected' : ''}`}
-                                    onClick={() => setPaymentMethod('bank_transfer')}
-                                >
-                                    <div className="payment-method-icon">
-                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                            <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
-                                            <line x1="1" y1="10" x2="23" y2="10"></line>
-                                        </svg>
-                                    </div>
-                                    <div className="payment-method-info">
-                                        <h3>Bank Transfer</h3>
-                                        <p>Transfer money via bank</p>
-                                    </div>
-                                    {paymentMethod === 'bank_transfer' && (
-                                        <div className="payment-method-check">
-                                            <IconCheck />
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        </section>
-
-                        {/* Cash Payment Form */}
-                        {paymentMethod === 'cash' && (
-                            <section className="payment-section">
-                                <h2>Cash Payment</h2>
-                                <div className="cash-payment-form">
-                                    <div className="payment-form-group">
-                                        <label>Total Amount</label>
-                                        <div className="payment-amount-display">{formatVND(total)}</div>
-                                    </div>
-                                    <div className="payment-form-group">
-                                        <label>Amount Received</label>
-                                        <input
-                                            type="number"
-                                            value={cashReceived}
-                                            onChange={(e) => setCashReceived(e.target.value)}
-                                            placeholder="Enter amount received"
-                                            className="payment-input"
-                                            min={total}
-                                        />
-                                    </div>
-                                    {cashReceived && cashReceivedNum >= total && (
-                                        <div className="payment-form-group">
-                                            <label>Change</label>
-                                            <div className="payment-change-display positive">
-                                                {formatVND(change)}
-                                            </div>
-                                        </div>
-                                    )}
-                                    {cashReceived && cashReceivedNum < total && (
-                                        <div className="payment-form-group">
-                                            <div className="payment-error">
-                                                Insufficient amount. Need {formatVND(total - cashReceivedNum)} more.
-                                            </div>
-                                        </div>
-                                    )}
-                                    <button
-                                        className="complete-order-btn"
-                                        onClick={handleCompleteOrder}
-                                        disabled={!cashReceived || cashReceivedNum < total || completingOrder}
-                                    >
-                                        {completingOrder ? 'Processing...' : 'Confirm Order Complete'}
-                                    </button>
-                                </div>
-                            </section>
-                        )}
-
-                        {/* Bank Transfer Form */}
-                        {paymentMethod === 'bank_transfer' && (
-                            <section className="payment-section">
-                                <h2>Bank Transfer Information</h2>
+                            ) : (
                                 <div className="bank-transfer-info">
                                     <div className="bank-transfer-grid">
-                                        <div className="bank-info-card">
-                                            <div className="bank-info-row">
-                                                <span className="bank-info-label">Bank Name:</span>
-                                                <span className="bank-info-value">{BANK_INFO.name}</span>
+                                        {bankAccount && (
+                                            <div className="bank-info-card">
+                                                <div className="bank-info-row">
+                                                    <span className="bank-info-label">Bank Name:</span>
+                                                    <span className="bank-info-value">{bankAccount.bank_name || bankAccount.name || 'N/A'}</span>
+                                                </div>
+                                                {bankAccount.account_owner && (
+                                                    <div className="bank-info-row">
+                                                        <span className="bank-info-label">Account Owner:</span>
+                                                        <span className="bank-info-value">{bankAccount.account_owner}</span>
+                                                    </div>
+                                                )}
+                                                {bankAccount.account_number && (
+                                                    <div className="bank-info-row">
+                                                        <span className="bank-info-label">Account Number:</span>
+                                                        <span className="bank-info-value copyable" onClick={() => {
+                                                            navigator.clipboard.writeText(bankAccount.account_number);
+                                                            alert('Account number copied to clipboard!');
+                                                        }}>
+                                                            {bankAccount.account_number}
+                                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                                            </svg>
+                                                        </span>
+                                                    </div>
+                                                )}
+                                                <div className="bank-info-row">
+                                                    <span className="bank-info-label">Amount:</span>
+                                                    <span className="bank-info-value amount">{formatVND(total)}</span>
+                                                </div>
                                             </div>
-                                            <div className="bank-info-row">
-                                                <span className="bank-info-label">Account Owner:</span>
-                                                <span className="bank-info-value">{BANK_INFO.accountOwner}</span>
-                                            </div>
-                                            <div className="bank-info-row">
-                                                <span className="bank-info-label">Account Number:</span>
-                                                <span className="bank-info-value copyable" onClick={() => {
-                                                    navigator.clipboard.writeText(BANK_INFO.accountNumber);
-                                                    alert('Account number copied to clipboard!');
-                                                }}>
-                                                    {BANK_INFO.accountNumber}
-                                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                                                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                                                    </svg>
-                                                </span>
-                                            </div>
-                                            <div className="bank-info-row">
-                                                <span className="bank-info-label">Amount:</span>
-                                                <span className="bank-info-value amount">{formatVND(total)}</span>
-                                            </div>
-                                        </div>
+                                        )}
+                                        
                                         <div className="bank-qr-section">
                                             <h3>QR Code</h3>
-                                            <div className="bank-qr-code">
-                                                <QRCodeDisplay
-                                                    value={`${BANK_INFO.name}|${BANK_INFO.accountNumber}|${total}`}
-                                                    size={140}
-                                                />
-                                            </div>
-                                            <p className="bank-qr-note">Scan with banking app</p>
+                                            {qrCodeUrl ? (
+                                                <div className="bank-qr-code">
+                                                    <img src={qrCodeUrl} alt="Payment QR Code" style={{ maxWidth: '200px', height: 'auto' }} />
+                                                </div>
+                                            ) : (
+                                                <div className="bank-qr-code" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '200px' }}>
+                                                    <p>QR Code not available</p>
+                                                </div>
+                                            )}
+                                            <p className="bank-qr-note">Scan with banking app to pay</p>
                                         </div>
                                     </div>
-                                    <button
-                                        className="complete-order-btn"
-                                        onClick={handleCompleteOrder}
-                                        disabled={completingOrder}
-                                    >
-                                        {completingOrder ? 'Processing...' : 'Confirm Order Complete'}
-                                    </button>
+
+                                    {/* Payment Status */}
+                                    <div className="payment-status-section" style={{ marginTop: '24px', padding: '16px', backgroundColor: 'var(--bg-secondary)', borderRadius: '8px' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                                            <h3 style={{ margin: 0 }}>Payment Status</h3>
+                                            {paymentStatus === 'checking' && (
+                                                <div className="loading-spinner" style={{ width: '20px', height: '20px', border: '2px solid var(--border)', borderTopColor: 'var(--primary)', borderRadius: '50%', animation: 'spinner-rotate 1s linear infinite', display: 'inline-block' }}></div>
+                                            )}
+                                        </div>
+                                        
+                                        {paymentStatus === 'pending' && (
+                                            <div>
+                                                <p style={{ color: 'var(--text-secondary)', margin: '8px 0' }}>
+                                                    Waiting for payment... Please scan the QR code and complete the payment in your banking app.
+                                                </p>
+                                                <button 
+                                                    className="btn-secondary" 
+                                                    onClick={handleManualRefresh}
+                                                    style={{ marginTop: '8px' }}
+                                                >
+                                                    Refresh Status
+                                                </button>
+                                            </div>
+                                        )}
+                                        
+                                        {paymentStatus === 'paid' && (
+                                            <div style={{ color: 'var(--success)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                <IconCheck />
+                                                <p style={{ margin: 0 }}>Payment received! Order will be completed automatically.</p>
+                                            </div>
+                                        )}
+                                        
+                                        {paymentStatus === 'failed' && (
+                                            <div style={{ color: 'var(--danger)' }}>
+                                                <p>Payment failed. Please try again or contact support.</p>
+                                                <button className="btn-primary" onClick={handleBackToCheckout} style={{ marginTop: '8px' }}>
+                                                    Back to Checkout
+                                                </button>
+                                            </div>
+                                        )}
+                                        
+                                        {paymentStatus === 'expired' && (
+                                            <div style={{ color: 'var(--warning)' }}>
+                                                <p>Payment order expired. Please create a new payment order.</p>
+                                                <button className="btn-primary" onClick={handleBackToCheckout} style={{ marginTop: '8px' }}>
+                                                    Back to Checkout
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
-                            </section>
-                        )}
+                            )}
+                        </section>
 
                         {/* Order Summary */}
                         <section className="payment-section">
@@ -390,8 +430,8 @@ export default function Payment() {
                             <div className="order-completed-icon">
                                 <IconCheck />
                             </div>
-                            <h2>Order Completed!</h2>
-                            <p>Your order has been successfully processed.</p>
+                            <h2>Payment Received!</h2>
+                            <p>Your order has been confirmed. Redirecting to orders page...</p>
                             <div className="order-completed-actions">
                                 <button className="btn-secondary" onClick={handleGoToProducts}>
                                     Continue Shopping
@@ -407,4 +447,3 @@ export default function Payment() {
         </UserLayout>
     );
 }
-
