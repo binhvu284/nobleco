@@ -1,5 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import AdminLayout from '../components/AdminLayout';
+import { IconSearch, IconFilter, IconMoreVertical, IconEye, IconTrash2, IconList, IconGrid } from '../components/icons';
+import ConfirmModal from '../components/ConfirmModal';
+import { getAvatarColor, getAvatarInitial } from '../../utils/avatarUtils';
 
 type RequestStatus = 'pending' | 'approved' | 'rejected';
 
@@ -88,6 +91,13 @@ export default function AdminRequest() {
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedRequest, setSelectedRequest] = useState<WithdrawRequest | null>(null);
     const [showDetailModal, setShowDetailModal] = useState(false);
+    const [showFilterDropdown, setShowFilterDropdown] = useState(false);
+    const filterDropdownRef = useRef<HTMLDivElement>(null);
+    const [activeDropdown, setActiveDropdown] = useState<number | null>(null);
+    const [showApproveModal, setShowApproveModal] = useState(false);
+    const [showRejectModal, setShowRejectModal] = useState(false);
+    const [requestToAction, setRequestToAction] = useState<number | null>(null);
+    const [viewMode, setViewMode] = useState<'table' | 'card'>('table');
 
     const getLevelColor = (level: string) => {
         const colors: Record<string, string> = {
@@ -152,14 +162,6 @@ export default function AdminRequest() {
         return matchesStatus && matchesSearch;
     });
 
-    const stats = {
-        total: requests.length,
-        pending: requests.filter(r => r.status === 'pending').length,
-        approved: requests.filter(r => r.status === 'approved').length,
-        rejected: requests.filter(r => r.status === 'rejected').length,
-        totalAmount: requests.filter(r => r.status === 'pending').reduce((sum, r) => sum + r.amount, 0),
-    };
-
     const handleApprove = (requestId: number) => {
         // TODO: API call to approve request
         setRequests(prev => prev.map(req =>
@@ -169,185 +171,325 @@ export default function AdminRequest() {
         ));
         setShowDetailModal(false);
         setSelectedRequest(null);
+        setShowApproveModal(false);
+        setRequestToAction(null);
+        setActiveDropdown(null);
     };
 
-    const handleReject = (requestId: number, note: string) => {
+    const handleReject = (requestId: number) => {
         // TODO: API call to reject request
         setRequests(prev => prev.map(req =>
             req.id === requestId
-                ? { ...req, status: 'rejected', processedDate: new Date().toISOString(), note }
+                ? { ...req, status: 'rejected', processedDate: new Date().toISOString() }
                 : req
         ));
         setShowDetailModal(false);
         setSelectedRequest(null);
+        setShowRejectModal(false);
+        setRequestToAction(null);
+        setActiveDropdown(null);
+    };
+
+    const openApproveModal = (requestId: number) => {
+        setRequestToAction(requestId);
+        setShowApproveModal(true);
+        setActiveDropdown(null);
+    };
+
+    const openRejectModal = (requestId: number) => {
+        setRequestToAction(requestId);
+        setShowRejectModal(true);
+        setActiveDropdown(null);
+    };
+
+    const handleDelete = (requestId: number) => {
+        if (confirm('Are you sure you want to delete this withdrawal request?')) {
+            // TODO: API call to delete request
+            setRequests(prev => prev.filter(req => req.id !== requestId));
+            setActiveDropdown(null);
+        }
+    };
+
+    const toggleDropdown = (requestId: number) => {
+        setActiveDropdown(activeDropdown === requestId ? null : requestId);
     };
 
     const openDetailModal = (request: WithdrawRequest) => {
         setSelectedRequest(request);
         setShowDetailModal(true);
+        setActiveDropdown(null);
     };
+
+    // Close filter dropdown when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            const target = event.target as HTMLElement;
+            if (filterDropdownRef.current && !filterDropdownRef.current.contains(target)) {
+                setShowFilterDropdown(false);
+            }
+            if (!target.closest('.unified-dropdown')) {
+                setActiveDropdown(null);
+            }
+        };
+
+        if (showFilterDropdown || activeDropdown !== null) {
+            document.addEventListener('mousedown', handleClickOutside);
+            return () => {
+                document.removeEventListener('mousedown', handleClickOutside);
+            };
+        }
+    }, [showFilterDropdown, activeDropdown]);
 
     return (
         <AdminLayout title="Withdraw Request">
             <div className="withdraw-request-page">
-                {/* Stats Cards */}
-                <div className="request-stats">
-                    <div className="stat-card">
-                        <div className="stat-icon" style={{ background: '#dbeafe', color: '#2563eb' }}>
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <rect x="1" y="4" width="22" height="16" rx="2" ry="2" />
-                                <line x1="1" y1="10" x2="23" y2="10" />
-                            </svg>
+                {/* Toolbar */}
+                <div className="orders-toolbar">
+                    <div className="toolbar-left">
+                        {/* Search */}
+                        <div className="search-container">
+                            <IconSearch />
+                            <input
+                                type="text"
+                                className="search-input"
+                                placeholder="Search by name or email..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                            />
                         </div>
-                        <div className="stat-content">
-                            <div className="stat-value">{stats.total}</div>
-                            <div className="stat-label">Total Requests</div>
+
+                        {/* Filter */}
+                        <div className="filter-dropdown-container" ref={filterDropdownRef}>
+                            <button 
+                                className="btn-filter"
+                                onClick={() => setShowFilterDropdown(!showFilterDropdown)}
+                                title="Filter by status"
+                            >
+                                <IconFilter />
+                            </button>
+                            {showFilterDropdown && (
+                                <div className="filter-dropdown-menu">
+                                    <button 
+                                        className={`filter-option ${statusFilter === 'all' ? 'active' : ''}`}
+                                        onClick={() => {
+                                            setStatusFilter('all');
+                                            setShowFilterDropdown(false);
+                                        }}
+                                    >
+                                        All Status
+                                    </button>
+                                    <button 
+                                        className={`filter-option ${statusFilter === 'pending' ? 'active' : ''}`}
+                                        onClick={() => {
+                                            setStatusFilter('pending');
+                                            setShowFilterDropdown(false);
+                                        }}
+                                    >
+                                        Pending
+                                    </button>
+                                    <button 
+                                        className={`filter-option ${statusFilter === 'approved' ? 'active' : ''}`}
+                                        onClick={() => {
+                                            setStatusFilter('approved');
+                                            setShowFilterDropdown(false);
+                                        }}
+                                    >
+                                        Approved
+                                    </button>
+                                    <button 
+                                        className={`filter-option ${statusFilter === 'rejected' ? 'active' : ''}`}
+                                        onClick={() => {
+                                            setStatusFilter('rejected');
+                                            setShowFilterDropdown(false);
+                                        }}
+                                    >
+                                        Rejected
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     </div>
-                    <div className="stat-card">
-                        <div className="stat-icon" style={{ background: '#fef3c7', color: '#d97706' }}>
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <circle cx="12" cy="12" r="10" />
-                                <path d="M12 6v6l4 2" />
-                            </svg>
-                        </div>
-                        <div className="stat-content">
-                            <div className="stat-value">{stats.pending}</div>
-                            <div className="stat-label">Pending</div>
-                        </div>
-                    </div>
-                    <div className="stat-card">
-                        <div className="stat-icon" style={{ background: '#d1fae5', color: '#059669' }}>
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-                                <polyline points="22 4 12 14.01 9 11.01" />
-                            </svg>
-                        </div>
-                        <div className="stat-content">
-                            <div className="stat-value">{stats.approved}</div>
-                            <div className="stat-label">Approved</div>
-                        </div>
-                    </div>
-                    <div className="stat-card">
-                        <div className="stat-icon" style={{ background: '#fee2e2', color: '#dc2626' }}>
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <circle cx="12" cy="12" r="10" />
-                                <line x1="15" y1="9" x2="9" y2="15" />
-                                <line x1="9" y1="9" x2="15" y2="15" />
-                            </svg>
-                        </div>
-                        <div className="stat-content">
-                            <div className="stat-value">{stats.rejected}</div>
-                            <div className="stat-label">Rejected</div>
-                        </div>
-                    </div>
-                    <div className="stat-card stat-card-highlight">
-                        <div className="stat-icon" style={{ background: '#ede9fe', color: '#7c3aed' }}>
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <line x1="12" y1="1" x2="12" y2="23" />
-                                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-                            </svg>
-                        </div>
-                        <div className="stat-content">
-                            <div className="stat-value">${stats.totalAmount.toLocaleString()}</div>
-                            <div className="stat-label">Pending Amount</div>
+                    <div className="toolbar-right">
+                        {/* View Toggle */}
+                        <div className="view-toggle desktop-only">
+                            <button
+                                className={`view-btn ${viewMode === 'table' ? 'active' : ''}`}
+                                onClick={() => setViewMode('table')}
+                                title="Table view"
+                            >
+                                <IconList />
+                            </button>
+                            <button
+                                className={`view-btn ${viewMode === 'card' ? 'active' : ''}`}
+                                onClick={() => setViewMode('card')}
+                                title="Card view"
+                            >
+                                <IconGrid />
+                            </button>
                         </div>
                     </div>
                 </div>
 
-                {/* Filters */}
-                <div className="request-filters">
-                    <div className="search-box">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <circle cx="11" cy="11" r="8" />
-                            <path d="m21 21-4.35-4.35" />
-                        </svg>
-                        <input
-                            type="text"
-                            placeholder="Search by name or email..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="search-input"
-                        />
-                    </div>
-                    <div className="filter-group">
-                        <label>Status:</label>
-                        <select
-                            value={statusFilter}
-                            onChange={(e) => setStatusFilter(e.target.value)}
-                            className="filter-select"
-                        >
-                            <option value="all">All Status</option>
-                            <option value="pending">Pending</option>
-                            <option value="approved">Approved</option>
-                            <option value="rejected">Rejected</option>
-                        </select>
-                    </div>
-                </div>
-
-                {/* Requests Table */}
-                <div className="request-table-container">
-                    <table className="request-table">
-                        <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>User</th>
-                                <th>Level</th>
-                                <th>Points</th>
-                                <th>Amount</th>
-                                <th>Bank Info</th>
-                                <th>Request Date</th>
-                                <th>Status</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {filteredRequests.length === 0 ? (
+                {/* Table View */}
+                {viewMode === 'table' ? (
+                    <div className="request-table-container">
+                        <table className="request-table">
+                            <thead>
                                 <tr>
-                                    <td colSpan={9} className="empty-state">
-                                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                            <circle cx="12" cy="12" r="10" />
-                                            <path d="M16 16s-1.5-2-4-2-4 2-4 2" />
-                                            <line x1="9" y1="9" x2="9.01" y2="9" />
-                                            <line x1="15" y1="9" x2="15.01" y2="9" />
-                                        </svg>
-                                        <p>No requests found</p>
-                                    </td>
+                                    <th>ID</th>
+                                    <th>User</th>
+                                    <th>Level</th>
+                                    <th>Points</th>
+                                    <th>Amount</th>
+                                    <th>Bank Info</th>
+                                    <th>Request Date</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
                                 </tr>
-                            ) : (
-                                filteredRequests.map((request) => (
-                                    <tr key={request.id} onClick={() => openDetailModal(request)} style={{ cursor: 'pointer' }}>
-                                        <td>#{request.id}</td>
-                                        <td>
-                                            <div className="user-cell">
+                            </thead>
+                            <tbody>
+                                {filteredRequests.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={9} className="empty-state">
+                                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                <circle cx="12" cy="12" r="10" />
+                                                <path d="M16 16s-1.5-2-4-2-4 2-4 2" />
+                                                <line x1="9" y1="9" x2="9.01" y2="9" />
+                                                <line x1="15" y1="9" x2="15.01" y2="9" />
+                                            </svg>
+                                            <p>No requests found</p>
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    filteredRequests.map((request) => (
+                                        <tr key={request.id} onClick={() => openDetailModal(request)} style={{ cursor: 'pointer' }}>
+                                            <td>#{request.id}</td>
+                                            <td>
                                                 <div className="user-info">
-                                                    <div className="user-name">{request.userName}</div>
-                                                    <div className="user-email">{request.userEmail}</div>
+                                                    <div 
+                                                        className="user-avatar"
+                                                        style={{ backgroundColor: getAvatarColor(request.userName) }}
+                                                    >
+                                                        {getAvatarInitial(request.userName)}
+                                                    </div>
+                                                    <div className="user-details">
+                                                        <div className="user-name">{request.userName}</div>
+                                                        <div className="user-email">{request.userEmail}</div>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        </td>
-                                        <td>
-                                            <span
-                                                className="level-badge"
-                                                style={{ backgroundColor: getLevelColor(request.userLevel) }}
-                                            >
-                                                {request.userLevel}
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <span className="points-value">{request.points.toLocaleString()} pts</span>
-                                        </td>
-                                        <td>
-                                            <span className="amount-value">${request.amount.toLocaleString()}</span>
-                                        </td>
-                                        <td>
-                                            <div className="bank-info">
-                                                <div className="bank-name">{request.bankName}</div>
-                                                <div className="account-number">{request.accountNumber}</div>
-                                            </div>
-                                        </td>
-                                        <td>{formatDate(request.requestDate)}</td>
-                                        <td>
+                                            </td>
+                                            <td>
+                                                <span
+                                                    className="level-badge"
+                                                    style={{ backgroundColor: getLevelColor(request.userLevel) }}
+                                                >
+                                                    {request.userLevel}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <span className="points-value">{request.points.toLocaleString()} pts</span>
+                                            </td>
+                                            <td>
+                                                <span className="amount-value">${request.amount.toLocaleString()}</span>
+                                            </td>
+                                            <td>
+                                                <div className="bank-info">
+                                                    <div className="bank-name">{request.bankName}</div>
+                                                    <div className="account-number">{request.accountNumber}</div>
+                                                </div>
+                                            </td>
+                                            <td>{formatDate(request.requestDate)}</td>
+                                            <td>
+                                                <span
+                                                    className="status-badge"
+                                                    style={{ backgroundColor: getStatusColor(request.status) }}
+                                                >
+                                                    {getStatusIcon(request.status)}
+                                                    {request.status}
+                                                </span>
+                                            </td>
+                                            <td onClick={(e) => e.stopPropagation()}>
+                                                <div className={`unified-dropdown ${activeDropdown === request.id ? 'active' : ''}`}>
+                                                    <button
+                                                        className="unified-more-btn"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            toggleDropdown(request.id);
+                                                        }}
+                                                        title="More Actions"
+                                                    >
+                                                        <IconMoreVertical />
+                                                    </button>
+                                                    {activeDropdown === request.id && (
+                                                        <div className="unified-dropdown-menu" onClick={(e) => e.stopPropagation()}>
+                                                            <button
+                                                                className="unified-dropdown-item"
+                                                                onClick={() => openDetailModal(request)}
+                                                            >
+                                                                <IconEye />
+                                                                Detail
+                                                            </button>
+                                                            {request.status === 'pending' && (
+                                                                <>
+                                                                    <button
+                                                                        className="unified-dropdown-item"
+                                                                        onClick={() => openApproveModal(request.id)}
+                                                                    >
+                                                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                                                                            <polyline points="22 4 12 14.01 9 11.01" />
+                                                                        </svg>
+                                                                        Approve
+                                                                    </button>
+                                                                    <button
+                                                                        className="unified-dropdown-item"
+                                                                        onClick={() => openRejectModal(request.id)}
+                                                                    >
+                                                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                                            <circle cx="12" cy="12" r="10" />
+                                                                            <line x1="15" y1="9" x2="9" y2="15" />
+                                                                            <line x1="9" y1="9" x2="15" y2="15" />
+                                                                        </svg>
+                                                                        Reject
+                                                                    </button>
+                                                                </>
+                                                            )}
+                                                            <button
+                                                                className="unified-dropdown-item danger"
+                                                                onClick={() => handleDelete(request.id)}
+                                                            >
+                                                                <IconTrash2 />
+                                                                Delete
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                ) : (
+                    /* Card View */
+                    <div className="orders-grid">
+                        {filteredRequests.length === 0 ? (
+                            <div className="empty-state">
+                                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <circle cx="12" cy="12" r="10" />
+                                    <path d="M16 16s-1.5-2-4-2-4 2-4 2" />
+                                    <line x1="9" y1="9" x2="9.01" y2="9" />
+                                    <line x1="15" y1="9" x2="15.01" y2="9" />
+                                </svg>
+                                <p>No requests found</p>
+                            </div>
+                        ) : (
+                            filteredRequests.map((request) => (
+                                <div key={request.id} className="order-card">
+                                    <div className="card-header">
+                                        <div className="card-title">
+                                            <span className="order-code">#{request.id}</span>
                                             <span
                                                 className="status-badge"
                                                 style={{ backgroundColor: getStatusColor(request.status) }}
@@ -355,43 +497,112 @@ export default function AdminRequest() {
                                                 {getStatusIcon(request.status)}
                                                 {request.status}
                                             </span>
-                                        </td>
-                                        <td onClick={(e) => e.stopPropagation()}>
-                                            <div className="action-buttons">
-                                                {request.status === 'pending' && (
-                                                    <>
-                                                        <button
-                                                            className="action-btn action-btn-approve"
-                                                            onClick={() => openDetailModal(request)}
-                                                            title="View Details"
-                                                        >
-                                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                                                                <circle cx="12" cy="12" r="3" />
-                                                            </svg>
-                                                        </button>
-                                                    </>
-                                                )}
-                                                {request.status !== 'pending' && (
+                                        </div>
+                                        <div className={`unified-dropdown ${activeDropdown === request.id ? 'active' : ''}`}>
+                                            <button
+                                                className="unified-more-btn"
+                                                onClick={() => toggleDropdown(request.id)}
+                                            >
+                                                <IconMoreVertical />
+                                            </button>
+                                            {activeDropdown === request.id && (
+                                                <div className="unified-dropdown-menu">
                                                     <button
-                                                        className="action-btn action-btn-view"
+                                                        className="unified-dropdown-item"
                                                         onClick={() => openDetailModal(request)}
-                                                        title="View Details"
                                                     >
-                                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                                                            <circle cx="12" cy="12" r="3" />
-                                                        </svg>
+                                                        <IconEye />
+                                                        Detail
                                                     </button>
-                                                )}
+                                                    {request.status === 'pending' && (
+                                                        <>
+                                                            <button
+                                                                className="unified-dropdown-item"
+                                                                onClick={() => openApproveModal(request.id)}
+                                                            >
+                                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                                                                    <polyline points="22 4 12 14.01 9 11.01" />
+                                                                </svg>
+                                                                Approve
+                                                            </button>
+                                                            <button
+                                                                className="unified-dropdown-item"
+                                                                onClick={() => openRejectModal(request.id)}
+                                                            >
+                                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                                    <circle cx="12" cy="12" r="10" />
+                                                                    <line x1="15" y1="9" x2="9" y2="15" />
+                                                                    <line x1="9" y1="9" x2="15" y2="15" />
+                                                                </svg>
+                                                                Reject
+                                                            </button>
+                                                        </>
+                                                    )}
+                                                    <button
+                                                        className="unified-dropdown-item danger"
+                                                        onClick={() => handleDelete(request.id)}
+                                                    >
+                                                        <IconTrash2 />
+                                                        Delete
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    <div className="card-body">
+                                        <div className="card-row">
+                                            <span className="card-label">User:</span>
+                                            <div className="card-value-group">
+                                                <div className="user-info" style={{ margin: 0 }}>
+                                                    <div 
+                                                        className="user-avatar"
+                                                        style={{ backgroundColor: getAvatarColor(request.userName), width: '32px', height: '32px', fontSize: '14px' }}
+                                                    >
+                                                        {getAvatarInitial(request.userName)}
+                                                    </div>
+                                                    <div className="user-details">
+                                                        <div className="user-name">{request.userName}</div>
+                                                        <div className="user-email">{request.userEmail}</div>
+                                                    </div>
+                                                </div>
                                             </div>
-                                        </td>
-                                    </tr>
-                                ))
-                            )}
-                        </tbody>
-                    </table>
-                </div>
+                                        </div>
+                                        <div className="card-row">
+                                            <span className="card-label">Level:</span>
+                                            <span
+                                                className="level-badge"
+                                                style={{ backgroundColor: getLevelColor(request.userLevel) }}
+                                            >
+                                                {request.userLevel}
+                                            </span>
+                                        </div>
+                                        <div className="card-row">
+                                            <span className="card-label">Points:</span>
+                                            <span className="card-value points-value">{request.points.toLocaleString()} pts</span>
+                                        </div>
+                                        <div className="card-row">
+                                            <span className="card-label">Amount:</span>
+                                            <span className="card-value amount-value">${request.amount.toLocaleString()}</span>
+                                        </div>
+                                        <div className="card-row">
+                                            <span className="card-label">Bank:</span>
+                                            <div className="card-value-group">
+                                                <span className="card-value">{request.bankName}</span>
+                                                <span className="card-value-sub">{request.accountNumber}</span>
+                                            </div>
+                                        </div>
+                                        <div className="card-row">
+                                            <span className="card-label">Request Date:</span>
+                                            <span className="card-value">{formatDate(request.requestDate)}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))
+                        )}
+                    </div>
+                )}
 
                 {/* Detail Modal */}
                 {showDetailModal && selectedRequest && (
@@ -499,8 +710,8 @@ export default function AdminRequest() {
                                     <button
                                         className="btn-danger"
                                         onClick={() => {
-                                            const note = prompt('Enter rejection reason (optional):');
-                                            handleReject(selectedRequest.id, note || '');
+                                            setShowDetailModal(false);
+                                            openRejectModal(selectedRequest.id);
                                         }}
                                     >
                                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -513,9 +724,8 @@ export default function AdminRequest() {
                                     <button
                                         className="btn-success"
                                         onClick={() => {
-                                            if (confirm('Confirm that payment has been completed?')) {
-                                                handleApprove(selectedRequest.id);
-                                            }
+                                            setShowDetailModal(false);
+                                            openApproveModal(selectedRequest.id);
                                         }}
                                     >
                                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -529,6 +739,44 @@ export default function AdminRequest() {
                         </div>
                     </>
                 )}
+
+                {/* Approve Confirmation Modal */}
+                <ConfirmModal
+                    open={showApproveModal}
+                    onClose={() => {
+                        setShowApproveModal(false);
+                        setRequestToAction(null);
+                    }}
+                    onConfirm={() => {
+                        if (requestToAction !== null) {
+                            handleApprove(requestToAction);
+                        }
+                    }}
+                    title="Approve Withdrawal Request"
+                    message="Confirm that payment has been completed and approve this withdrawal request?"
+                    confirmText="Approve"
+                    cancelText="Cancel"
+                    type="success"
+                />
+
+                {/* Reject Confirmation Modal */}
+                <ConfirmModal
+                    open={showRejectModal}
+                    onClose={() => {
+                        setShowRejectModal(false);
+                        setRequestToAction(null);
+                    }}
+                    onConfirm={() => {
+                        if (requestToAction !== null) {
+                            handleReject(requestToAction);
+                        }
+                    }}
+                    title="Reject Withdrawal Request"
+                    message="Are you sure you want to reject this withdrawal request?"
+                    confirmText="Reject"
+                    cancelText="Cancel"
+                    type="danger"
+                />
             </div>
         </AdminLayout>
     );

@@ -26,13 +26,13 @@ export async function listUsers() {
   const supabase = getSupabase();
   let { data, error } = await supabase
     .from('users')
-    .select('id, email, name, role, points, level, status, created_at, refer_code, commission, phone, address, referred_by')
+    .select('id, email, name, role, points, level, status, created_at, refer_code, commission, phone, address, location, country, state, referred_by')
     .eq('role', 'user'); // Only fetch users with 'user' role
   if (error && /column\s+"?role"?\s+does not exist/i.test(error.message)) {
     // If role column doesn't exist, fetch all users and filter manually
     const resp = await supabase
       .from('users')
-      .select('id, email, name, points, level, status, created_at, refer_code, commission, phone, address, referred_by');
+      .select('id, email, name, points, level, status, created_at, refer_code, commission, phone, address, location, country, state, referred_by');
     if (resp.error) throw new Error(resp.error.message);
     return (resp.data || []).map((u) => normalize({ ...u, role: 'user' }));
   }
@@ -44,7 +44,7 @@ export async function listAdminUsers() {
   const supabase = getSupabase();
   let { data, error } = await supabase
     .from('users')
-    .select('id, email, name, role, points, level, status, created_at, refer_code, commission, phone, address, referred_by')
+    .select('id, email, name, role, points, level, status, created_at, refer_code, commission, phone, address, location, country, state, referred_by')
     .eq('role', 'admin'); // Only fetch users with 'admin' role
   if (error && /column\s+"?role"?\s+does not exist/i.test(error.message)) {
     // If role column doesn't exist, return empty array (no admin users)
@@ -58,7 +58,7 @@ export async function listCoworkers() {
   const supabase = getSupabase();
   let { data, error } = await supabase
     .from('users')
-    .select('id, email, name, role, points, level, status, created_at, refer_code, commission, phone, address, referred_by')
+    .select('id, email, name, role, points, level, status, created_at, refer_code, commission, phone, address, location, country, state, referred_by')
     .eq('role', 'coworker'); // Only fetch users with 'coworker' role
   if (error && /column\s+"?role"?\s+does not exist/i.test(error.message)) {
     // If role column doesn't exist, return empty array (no coworker users)

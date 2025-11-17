@@ -271,6 +271,14 @@ export default function UserDetailModal({ open, onClose, user, onEditReferrer }:
                                     <span className="detail-value">{user.address || 'Not set'}</span>
                                 </div>
                                 <div className="detail-row">
+                                    <span className="detail-label">Country</span>
+                                    <span className="detail-value">{(user as any).country || 'Not set'}</span>
+                                </div>
+                                <div className="detail-row">
+                                    <span className="detail-label">State / Province / City</span>
+                                    <span className="detail-value">{(user as any).state || 'Not set'}</span>
+                                </div>
+                                <div className="detail-row">
                                     <span className="detail-label">Personal ID</span>
                                     <div className="detail-value" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                                         {loadingPersonalID ? (

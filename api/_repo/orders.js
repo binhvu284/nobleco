@@ -3,6 +3,26 @@ import { getSupabase } from '../_db.js';
 // Normalize order shape
 function normalizeOrder(o) {
   if (!o) return null;
+  
+  // Handle creator avatar - it might be an array or object
+  let creatorAvatar = null;
+  if (o.creator_avatar) {
+    if (Array.isArray(o.creator_avatar) && o.creator_avatar.length > 0) {
+      creatorAvatar = o.creator_avatar[0];
+    } else if (typeof o.creator_avatar === 'object' && o.creator_avatar.url) {
+      creatorAvatar = o.creator_avatar;
+    }
+  }
+  
+  // Merge avatar into creator if creator exists
+  let creator = o.creator || null;
+  if (creator && creatorAvatar) {
+    creator = {
+      ...creator,
+      avatar: creatorAvatar
+    };
+  }
+  
   return {
     id: o.id,
     order_number: o.order_number,
@@ -17,7 +37,7 @@ function normalizeOrder(o) {
     client_id: o.client_id,
     client: o.client || null, // Preserve client data
     created_by: o.created_by,
-    creator: o.creator || null, // Preserve creator data for admin
+    creator: creator, // Preserve creator data with avatar for admin
     notes: o.notes,
     shipping_address: o.shipping_address,
     created_at: o.created_at,
@@ -201,7 +221,8 @@ export async function getAllOrders() {
     .select(`
       *,
       client:clients(id, name, phone, email, gender, location),
-      creator:users!orders_created_by_fkey(id, name, email)
+      creator:users!orders_created_by_fkey(id, name, email),
+      creator_avatar:users!orders_created_by_fkey(user_avatars(url, viewport_x, viewport_y, viewport_size, width, height))
     `)
     .order('created_at', { ascending: false });
 
@@ -246,7 +267,8 @@ export async function getOrderById(orderId) {
     .select(`
       *,
       client:clients(id, name, phone, email, gender, location),
-      creator:users!orders_created_by_fkey(id, name, email)
+      creator:users!orders_created_by_fkey(id, name, email),
+      creator_avatar:users!orders_created_by_fkey(user_avatars(url, viewport_x, viewport_y, viewport_size, width, height))
     `)
     .eq('id', orderId)
     .single();

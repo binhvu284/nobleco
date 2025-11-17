@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import AdminLayout from '../components/AdminLayout';
 import { IconSearch, IconFilter, IconList, IconGrid, IconEye, IconTrash2, IconMoreVertical } from '../components/icons';
 import { getCurrentUser } from '../../auth';
+import AdminOrderDetailModal from '../components/AdminOrderDetailModal';
+import { getAvatarColor, getAvatarInitial, getAvatarViewportStyles } from '../../utils/avatarUtils';
 
 // Order status type based on database schema
 type OrderStatus = 'pending' | 'processing' | 'confirmed' | 'shipped' | 'delivered' | 'completed' | 'cancelled' | 'refunded';
@@ -29,6 +31,14 @@ interface Order {
         id: number;
         name: string;
         email: string;
+        avatar?: {
+            url: string;
+            viewport_x?: number;
+            viewport_y?: number;
+            viewport_size?: number;
+            width?: number;
+            height?: number;
+        } | null;
     };
     created_at: string;
     updated_at: string;
@@ -59,6 +69,8 @@ export default function AdminOrders() {
     const [showFilterDropdown, setShowFilterDropdown] = useState(false);
     const [activeDropdown, setActiveDropdown] = useState<number | null>(null);
     const [isMobile, setIsMobile] = useState(false);
+    const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
+    const [showOrderDetailModal, setShowOrderDetailModal] = useState(false);
 
     // Load orders
     useEffect(() => {
@@ -154,8 +166,9 @@ export default function AdminOrders() {
 
     // Handle view detail
     const handleViewDetail = (orderId: number) => {
-        console.log('View order detail:', orderId);
-        // TODO: Navigate to order detail page or open modal
+        setSelectedOrderId(orderId);
+        setShowOrderDetailModal(true);
+        setActiveDropdown(null);
     };
 
     // Handle delete
@@ -384,8 +397,28 @@ export default function AdminOrders() {
                                         <td>
                                             {order.creator ? (
                                                 <div className="user-info">
-                                                    <div className="user-avatar">
-                                                        {order.creator.name.charAt(0).toUpperCase()}
+                                                    {order.creator.avatar?.url ? (
+                                                        <img
+                                                            className="user-avatar"
+                                                            src={order.creator.avatar.url}
+                                                            alt={order.creator.name}
+                                                            style={getAvatarViewportStyles(order.creator.avatar, 40)}
+                                                            onError={(e) => {
+                                                                const target = e.target as HTMLImageElement;
+                                                                target.style.display = 'none';
+                                                                const fallback = target.nextElementSibling as HTMLElement;
+                                                                if (fallback) fallback.style.display = 'flex';
+                                                            }}
+                                                        />
+                                                    ) : null}
+                                                    <div
+                                                        className="user-avatar"
+                                                        style={{
+                                                            display: order.creator.avatar?.url ? 'none' : 'flex',
+                                                            backgroundColor: getAvatarColor(order.creator.name)
+                                                        }}
+                                                    >
+                                                        {getAvatarInitial(order.creator.name)}
                                                     </div>
                                                     <div className="user-details">
                                                         <div className="user-name">{order.creator.name}</div>
@@ -521,8 +554,28 @@ export default function AdminOrders() {
                                         {order.creator && (
                                             <div className="card-footer">
                                                 <div className="user-info">
-                                                    <div className="user-avatar">
-                                                        {order.creator.name.charAt(0).toUpperCase()}
+                                                    {order.creator.avatar?.url ? (
+                                                        <img
+                                                            className="user-avatar"
+                                                            src={order.creator.avatar.url}
+                                                            alt={order.creator.name}
+                                                            style={getAvatarViewportStyles(order.creator.avatar, 40)}
+                                                            onError={(e) => {
+                                                                const target = e.target as HTMLImageElement;
+                                                                target.style.display = 'none';
+                                                                const fallback = target.nextElementSibling as HTMLElement;
+                                                                if (fallback) fallback.style.display = 'flex';
+                                                            }}
+                                                        />
+                                                    ) : null}
+                                                    <div
+                                                        className="user-avatar"
+                                                        style={{
+                                                            display: order.creator.avatar?.url ? 'none' : 'flex',
+                                                            backgroundColor: getAvatarColor(order.creator.name)
+                                                        }}
+                                                    >
+                                                        {getAvatarInitial(order.creator.name)}
                                                     </div>
                                                     <div className="user-details">
                                                         <div className="user-name">{order.creator.name}</div>
@@ -544,6 +597,16 @@ export default function AdminOrders() {
                         )}
                     </div>
                 )}
+
+                {/* Order Detail Modal */}
+                <AdminOrderDetailModal
+                    open={showOrderDetailModal}
+                    orderId={selectedOrderId}
+                    onClose={() => {
+                        setShowOrderDetailModal(false);
+                        setSelectedOrderId(null);
+                    }}
+                />
             </div>
         </AdminLayout>
     );
