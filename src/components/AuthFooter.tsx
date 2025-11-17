@@ -17,7 +17,7 @@ export default function AuthFooter() {
                         </div>
                         <div className="auth-footer-info">
                             <p>
-                                <strong>Name:</strong> <span className="auth-footer-value">Công Ty TNHH Trang sức cao cấp Noble Việt Nam</span>
+                                <strong>Name:</strong> <span className="auth-footer-value">Công Ty Cổ Phần Nobleco</span>
                             </p>
                             <p>
                                 <strong>Tax Code:</strong> <span className="auth-footer-value">0317787072</span>
