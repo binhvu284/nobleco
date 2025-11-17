@@ -97,6 +97,7 @@ export default function OrderDetailModal({ open, orderId, onClose }: OrderDetail
     const navigate = useNavigate();
     const [order, setOrder] = useState<Order | null>(null);
     const [loading, setLoading] = useState(false);
+    const [checkoutLoading, setCheckoutLoading] = useState(false);
     const [isFullscreen, setIsFullscreen] = useState(false);
     const [isMobile, setIsMobile] = useState(false);
 
@@ -155,14 +156,23 @@ export default function OrderDetailModal({ open, orderId, onClose }: OrderDetail
         setIsFullscreen(!isFullscreen);
     };
 
-    const handleCheckout = () => {
+    const handleCheckout = async () => {
         if (order && order.status === 'processing') {
-            navigate('/checkout', {
-                state: {
-                    orderId: order.id
-                }
-            });
-            onClose();
+            try {
+                setCheckoutLoading(true);
+                // Small delay to show loading state
+                await new Promise(resolve => setTimeout(resolve, 100));
+                navigate('/checkout', {
+                    state: {
+                        orderId: order.id
+                    }
+                });
+                onClose();
+            } catch (error) {
+                console.error('Error navigating to checkout:', error);
+            } finally {
+                setCheckoutLoading(false);
+            }
         }
     };
 
@@ -213,9 +223,19 @@ export default function OrderDetailModal({ open, orderId, onClose }: OrderDetail
                                 className="order-detail-checkout-btn"
                                 onClick={handleCheckout}
                                 title="Go to Checkout"
+                                disabled={checkoutLoading}
                             >
-                                <IconShoppingBag />
-                                Checkout
+                                {checkoutLoading ? (
+                                    <>
+                                        <div className="loading-spinner" style={{ width: '16px', height: '16px', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 0.8s linear infinite', display: 'inline-block', marginRight: '8px', verticalAlign: 'middle' }}></div>
+                                        <span>Loading...</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <IconShoppingBag />
+                                        Checkout
+                                    </>
+                                )}
                             </button>
                         )}
                         {!isMobile && (

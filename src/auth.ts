@@ -37,15 +37,15 @@ export function getUserRole(): 'user' | 'admin' | null {
     return user?.role ?? null;
 }
 
-export async function login(email: string, password: string): Promise<{ success: boolean; user?: User; error?: string }> {
-    if (!(email.trim() && password.trim())) {
-        return { success: false, error: 'Email and password are required' };
+export async function login(emailOrPhone: string, password: string): Promise<{ success: boolean; user?: User; error?: string }> {
+    if (!(emailOrPhone.trim() && password.trim())) {
+        return { success: false, error: 'Email/Phone and password are required' };
     }
     try {
         const res = await fetch('/api/auth/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, password })
+            body: JSON.stringify({ email: emailOrPhone, password })
         });
         
         const data = await res.json();

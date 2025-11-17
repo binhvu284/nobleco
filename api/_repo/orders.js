@@ -40,6 +40,10 @@ function normalizeOrder(o) {
     creator: creator, // Preserve creator data with avatar for admin
     notes: o.notes,
     shipping_address: o.shipping_address,
+    sepay_order_id: o.sepay_order_id || null,
+    sepay_transaction_id: o.sepay_transaction_id || null,
+    webhook_received_at: o.webhook_received_at || null,
+    payment_confirmed_by: o.payment_confirmed_by || 'manual',
     created_at: o.created_at,
     updated_at: o.updated_at,
     completed_at: o.completed_at,

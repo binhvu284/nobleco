@@ -15,23 +15,31 @@ export function generateOTP() {
  * @param {string} params.purpose - 'signup' or 'password_reset'
  * @param {number} [params.userId] - User ID (for password reset)
  * @param {number} [params.expiresInMinutes] - Expiration time in minutes (default: 10)
+ * @param {Object} [params.signupData] - Signup data to store (for signup purpose)
  */
-export async function createOTP({ phone, code, purpose, userId = null, expiresInMinutes = 10 }) {
+export async function createOTP({ phone, code, purpose, userId = null, expiresInMinutes = 10, signupData = null }) {
   const supabase = getSupabase();
   const expiresAt = new Date();
   expiresAt.setMinutes(expiresAt.getMinutes() + expiresInMinutes);
 
+  const insertData = {
+    phone,
+    code,
+    purpose,
+    user_id: userId,
+    expires_at: expiresAt.toISOString(),
+    verified: false,
+    attempts: 0
+  };
+
+  // Add signup_data if provided (for signup flow)
+  if (signupData) {
+    insertData.signup_data = signupData;
+  }
+
   const { data, error } = await supabase
     .from('otps')
-    .insert({
-      phone,
-      code,
-      purpose,
-      user_id: userId,
-      expires_at: expiresAt.toISOString(),
-      verified: false,
-      attempts: 0
-    })
+    .insert(insertData)
     .select()
     .single();
 

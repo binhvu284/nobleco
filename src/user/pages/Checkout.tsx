@@ -108,8 +108,10 @@ export default function Checkout() {
     });
     const [creatingClient, setCreatingClient] = useState(false);
     const [updatingOrder, setUpdatingOrder] = useState(false);
+    const [proceedingToPayment, setProceedingToPayment] = useState(false);
     const updateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const isInitialLoadRef = useRef(true);
+    const initializationRef = useRef<string | null>(null);
 
     // Auto-update order function with debouncing
     const updateOrderInDatabase = async (updates: Partial<{
@@ -177,69 +179,105 @@ export default function Checkout() {
 
     // Load cart items and create/load order
     useEffect(() => {
-        // Prevent duplicate order creation (React Strict Mode runs effects twice in dev)
-        if (orderCreationInitiated.current) {
+        // Use a more stable check - create a unique key for this initialization
+        const locationOrderId = location.state?.orderId;
+        const locationCartItems = location.state?.cartItems;
+        const cartItemsKey = locationCartItems ? `${locationCartItems.length}-${JSON.stringify(locationCartItems.map((i: any) => i.product?.id || i.product_id))}` : 'none';
+        const initKey = `${locationOrderId || 'new'}-${cartItemsKey}`;
+        
+        // Prevent duplicate initialization for the same state
+        if (initializationRef.current === initKey) {
+            // Still ensure loading is false
+            setLoading(false);
             return;
         }
 
+        // Mark this initialization
+        initializationRef.current = initKey;
+
+        // Set a timeout to ensure loading is always set to false (safety net)
+        const loadingTimeout = setTimeout(() => {
+            console.warn('Checkout initialization timeout - forcing loading to false');
+            setLoading(false);
+        }, 10000); // 10 second timeout
+
         const initializeCheckout = async () => {
-            // Load cart items
-            let items: CartItem[] = [];
-            if (location.state?.cartItems) {
-                items = location.state.cartItems;
-                setCartItems(items);
-            } else {
-                // Fallback to localStorage if available
-                const savedCart = localStorage.getItem('cart');
-                if (savedCart) {
-                    try {
-                        items = JSON.parse(savedCart);
-                        setCartItems(items);
-                    } catch (e) {
-                        console.error('Failed to parse cart from localStorage', e);
+            try {
+                // Load cart items
+                let items: CartItem[] = [];
+                if (locationCartItems && Array.isArray(locationCartItems) && locationCartItems.length > 0) {
+                    items = locationCartItems;
+                    setCartItems(items);
+                } else {
+                    // Fallback to localStorage if available
+                    const savedCart = localStorage.getItem('cart');
+                    if (savedCart) {
+                        try {
+                            const parsedCart = JSON.parse(savedCart);
+                            if (Array.isArray(parsedCart) && parsedCart.length > 0) {
+                                items = parsedCart;
+                                setCartItems(items);
+                            }
+                        } catch (e) {
+                            console.error('Failed to parse cart from localStorage', e);
+                        }
                     }
                 }
-            }
 
-            // Load clients
-            await loadClients();
+                // Load clients
+                await loadClients();
 
-            // Check if we're editing an existing order
-            if (location.state?.orderId) {
-                const existingOrderId = location.state.orderId;
-                setOrderId(existingOrderId);
-                await loadExistingOrder(existingOrderId);
-                orderCreationInitiated.current = true;
-                // Mark initial load as complete after loading existing order
-                setTimeout(() => {
+                // Check if we're editing an existing order
+                if (locationOrderId) {
+                    setOrderId(locationOrderId);
+                    await loadExistingOrder(locationOrderId);
+                    orderCreationInitiated.current = true;
+                    // Mark initial load as complete after loading existing order
+                    setTimeout(() => {
+                        isInitialLoadRef.current = false;
+                    }, 1000);
+                } else if (items.length > 0 && !orderId && !orderCreationInitiated.current) {
+                    // Create new order immediately when checkout page loads (only if orderId doesn't exist)
+                    await createOrderOnLoad(items);
+                    // Mark initial load as complete after creating order
+                    setTimeout(() => {
+                        isInitialLoadRef.current = false;
+                    }, 1000);
+                } else {
+                    // No order to load/create, mark initial load as complete
                     isInitialLoadRef.current = false;
-                }, 1000);
-            } else if (items.length > 0 && !orderId && !orderCreationInitiated.current) {
-                // Create new order immediately when checkout page loads (only if orderId doesn't exist)
-                await createOrderOnLoad(items);
-                // Mark initial load as complete after creating order
-                setTimeout(() => {
-                    isInitialLoadRef.current = false;
-                }, 1000);
-            } else {
-                // No order to load/create, mark initial load as complete
-                isInitialLoadRef.current = false;
+                }
+            } catch (error) {
+                console.error('Error initializing checkout:', error);
+            } finally {
+                // Clear timeout and always set loading to false, even if there's an error
+                clearTimeout(loadingTimeout);
+                setLoading(false);
             }
-
-            setLoading(false);
         };
 
         initializeCheckout();
 
-        // Cleanup function - reset ref when component unmounts or location changes significantly
+        // Cleanup function
         return () => {
-            // Reset only if we're navigating away (not just a re-render)
-            // This allows creating a new order when user comes back to checkout
-            if (!location.state?.orderId && !orderId) {
-                orderCreationInitiated.current = false;
-            }
+            clearTimeout(loadingTimeout);
         };
-    }, [location.state]);
+    }, [location.state?.orderId]);
+
+    // Ensure loading is set to false on mount (safety check)
+    useEffect(() => {
+        // If we've been loading for more than 5 seconds, force it to false
+        const mountTimeout = setTimeout(() => {
+            if (loading) {
+                console.warn('Checkout page stuck in loading state - forcing to false');
+                setLoading(false);
+            }
+        }, 5000);
+
+        return () => {
+            clearTimeout(mountTimeout);
+        };
+    }, []);
 
     // Close dropdowns when clicking outside
     useEffect(() => {
@@ -398,7 +436,10 @@ export default function Checkout() {
     const loadExistingOrder = async (existingOrderId: number) => {
         try {
             const authToken = localStorage.getItem('nobleco_auth_token');
-            if (!authToken) return;
+            if (!authToken) {
+                console.error('Auth token not found');
+                return;
+            }
 
             const response = await fetch(`/api/orders/${existingOrderId}`, {
                 headers: {
@@ -436,7 +477,7 @@ export default function Checkout() {
                 }
 
                 // Order items are already included in the order response
-                if (orderData.items && Array.isArray(orderData.items)) {
+                if (orderData.items && Array.isArray(orderData.items) && orderData.items.length > 0) {
                     // Convert order items to cart items format
                     const cartItemsFromOrder = orderData.items.map((item: any) => ({
                         product: {
@@ -449,12 +490,25 @@ export default function Checkout() {
                         quantity: item.quantity
                     }));
                     setCartItems(cartItemsFromOrder);
+                } else {
+                    // If no items found, try to load from location state as fallback
+                    if (location.state?.cartItems && location.state.cartItems.length > 0) {
+                        setCartItems(location.state.cartItems);
+                    }
                 }
             } else {
                 console.error('Failed to load existing order');
+                // Fallback: try to use cartItems from location state if available
+                if (location.state?.cartItems && location.state.cartItems.length > 0) {
+                    setCartItems(location.state.cartItems);
+                }
             }
         } catch (error) {
             console.error('Error loading existing order:', error);
+            // Fallback: try to use cartItems from location state if available
+            if (location.state?.cartItems && location.state.cartItems.length > 0) {
+                setCartItems(location.state.cartItems);
+            }
         }
     };
 
@@ -537,6 +591,7 @@ export default function Checkout() {
         }
 
         try {
+            setProceedingToPayment(true);
             const currentUser = getCurrentUser();
             if (!currentUser?.id) {
                 alert('Please login to continue');
@@ -610,6 +665,8 @@ export default function Checkout() {
         } catch (error) {
             console.error('Error updating order:', error);
             alert((error as Error).message || 'Failed to update order. Please try again.');
+        } finally {
+            setProceedingToPayment(false);
         }
     };
 
@@ -624,7 +681,9 @@ export default function Checkout() {
         );
     }
 
-    if (cartItems.length === 0) {
+    // Show empty state only if we don't have an orderId (meaning it's a new checkout, not returning from payment)
+    // If we have an orderId, we should show the checkout form even if cartItems is temporarily empty (it will load)
+    if (cartItems.length === 0 && !orderId && !loading) {
         return (
             <UserLayout title="Checkout">
                 <div className="checkout-container">
@@ -1045,9 +1104,16 @@ export default function Checkout() {
                             <button
                                 className="proceed-payment-btn"
                                 onClick={handleProceedToPayment}
-                                disabled={!selectedClientId}
+                                disabled={!selectedClientId || proceedingToPayment}
                             >
-                                Proceed to Payment
+                                {proceedingToPayment ? (
+                                    <>
+                                        <div className="loading-spinner" style={{ width: '16px', height: '16px', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 0.8s linear infinite', display: 'inline-block', marginRight: '8px', verticalAlign: 'middle' }}></div>
+                                        <span>Processing...</span>
+                                    </>
+                                ) : (
+                                    'Proceed to Payment'
+                                )}
                             </button>
                         </div>
                     </div>

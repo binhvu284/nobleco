@@ -33,6 +33,7 @@ CREATE TABLE public.clients (
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   updated_at timestamp with time zone NOT NULL DEFAULT now(),
   gender text CHECK (gender = ANY (ARRAY['Male'::text, 'Female'::text, 'Other'::text])),
+  orders_made integer NOT NULL DEFAULT 0,
   CONSTRAINT clients_pkey PRIMARY KEY (id),
   CONSTRAINT clients_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id)
 );
@@ -45,6 +46,23 @@ CREATE TABLE public.commission_rates (
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   updated_at timestamp with time zone NOT NULL DEFAULT now(),
   CONSTRAINT commission_rates_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.commission_transactions (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  user_id bigint NOT NULL,
+  order_id bigint NOT NULL,
+  commission_type text NOT NULL CHECK (commission_type = ANY (ARRAY['self'::text, 'level1'::text, 'level2'::text])),
+  order_amount numeric NOT NULL CHECK (order_amount >= 0::numeric),
+  commission_rate numeric NOT NULL CHECK (commission_rate >= 0::numeric AND commission_rate <= 100::numeric),
+  commission_amount numeric NOT NULL CHECK (commission_amount >= 0::numeric),
+  points_before integer NOT NULL DEFAULT 0,
+  points_after integer NOT NULL DEFAULT 0,
+  status text NOT NULL DEFAULT 'pending'::text CHECK (status = ANY (ARRAY['pending'::text, 'completed'::text, 'failed'::text, 'cancelled'::text])),
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  completed_at timestamp with time zone,
+  CONSTRAINT commission_transactions_pkey PRIMARY KEY (id),
+  CONSTRAINT commission_transactions_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
+  CONSTRAINT commission_transactions_order_id_fkey FOREIGN KEY (order_id) REFERENCES public.orders(id)
 );
 CREATE TABLE public.order_items (
   id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
@@ -82,6 +100,10 @@ CREATE TABLE public.orders (
   updated_at timestamp with time zone NOT NULL DEFAULT now(),
   completed_at timestamp with time zone,
   cancelled_at timestamp with time zone,
+  sepay_order_id text UNIQUE,
+  sepay_transaction_id text,
+  webhook_received_at timestamp with time zone,
+  payment_confirmed_by text DEFAULT 'manual'::text CHECK (payment_confirmed_by = ANY (ARRAY['manual'::text, 'webhook'::text, 'polling'::text])),
   CONSTRAINT orders_pkey PRIMARY KEY (id),
   CONSTRAINT orders_client_id_fkey FOREIGN KEY (client_id) REFERENCES public.clients(id),
   CONSTRAINT orders_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id)
@@ -256,5 +278,22 @@ CREATE TABLE public.users (
   referred_by text,
   phone_verified boolean DEFAULT false,
   location character varying,
+  country text,
+  state text,
   CONSTRAINT users_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.webhook_logs (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  webhook_type text NOT NULL,
+  event_type text NOT NULL,
+  order_id bigint,
+  payload jsonb NOT NULL,
+  signature text,
+  processed boolean DEFAULT false,
+  processing_error text,
+  response_data jsonb,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  processed_at timestamp with time zone,
+  CONSTRAINT webhook_logs_pkey PRIMARY KEY (id),
+  CONSTRAINT webhook_logs_order_id_fkey FOREIGN KEY (order_id) REFERENCES public.orders(id)
 );

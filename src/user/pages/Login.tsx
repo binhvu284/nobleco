@@ -90,12 +90,12 @@ export default function Login() {
                 <p className="subtitle">Sign in to continue</p>
                 <form onSubmit={onSubmit} className="form">
                     <label>
-                        Email
+                        Email or Phone Number
                         <input
-                            type="email"
+                            type="text"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
-                            placeholder="you@example.com"
+                            placeholder="email@example.com or phone number"
                             required
                         />
                     </label>

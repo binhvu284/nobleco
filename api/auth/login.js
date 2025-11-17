@@ -1,5 +1,5 @@
 import bcrypt from 'bcryptjs';
-import { findUserByEmail, updateUserPasswordHashed } from '../_repo/users.js';
+import { findUserByEmailOrPhone, updateUserPasswordHashed } from '../_repo/users.js';
 
 export default async function handler(req, res) {
   try {
@@ -10,13 +10,14 @@ export default async function handler(req, res) {
 
     // Check if body is already parsed (Express) or needs to be read
     const body = req.body || await readBody(req);
-    const email = body?.username?.trim() || body?.email?.trim();
+    const identifier = body?.username?.trim() || body?.email?.trim() || body?.phone?.trim();
     const password = body?.password ?? '';
-    if (!email || !password) {
-      return res.status(400).json({ error: 'Email and password are required' });
+    if (!identifier || !password) {
+      return res.status(400).json({ error: 'Email/Phone and password are required' });
     }
 
-    const user = await findUserByEmail(email);
+    // Find user by email or phone
+    const user = await findUserByEmailOrPhone(identifier);
     if (!user || !user.password) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
