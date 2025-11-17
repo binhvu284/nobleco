@@ -23,7 +23,7 @@ export default async function handler(req, res) {
         const supabase = getSupabase();
         const { data: userData, error: userError } = await supabase
           .from('users')
-          .select('id, email, name, role, points, level, status, refer_code, commission, phone, address, location, created_at, referred_by')
+          .select('id, email, name, role, points, level, status, refer_code, commission, phone, address, location, country, state, created_at, referred_by')
           .eq('id', userId)
           .single();
 
@@ -60,6 +60,8 @@ export default async function handler(req, res) {
             phone: userData.phone,
             address: userData.address,
             location: userData.location,
+            country: userData.country,
+            state: userData.state,
             created_at: userData.created_at,
             referred_by: userData.referred_by,
             avatar: avatarUrl,
@@ -222,7 +224,7 @@ export default async function handler(req, res) {
 
     if (req.method === 'PATCH') {
       const body = req.body || await readBody(req);
-      const { id, status, name, phone, address, location, level, referred_by, refer_code } = body || {};
+      const { id, status, name, phone, address, location, country, state, level, referred_by, refer_code } = body || {};
       
       // Handle referred_by updates (set or remove senior consultant)
       // Check if refer_code is provided and not empty, or if referred_by is explicitly set
@@ -285,8 +287,8 @@ export default async function handler(req, res) {
             .from('users')
             .update({ referred_by: referredByCode })
             .eq('id', id)
-            .select('id, email, name, role, points, level, status, refer_code, commission, phone, address, location, created_at, referred_by')
-            .single();
+            .select('id, email, name, role, points, level, status, refer_code, commission, phone, address, location, country, state, created_at, referred_by')
+          .single();
 
           if (userError) {
             console.error('Error updating referred_by:', userError);
@@ -321,8 +323,8 @@ export default async function handler(req, res) {
             .from('users')
             .update({ level })
             .eq('id', id)
-            .select('id, email, name, role, points, level, status, refer_code, commission, phone, address, location, created_at, referred_by')
-            .single();
+            .select('id, email, name, role, points, level, status, refer_code, commission, phone, address, location, country, state, created_at, referred_by')
+          .single();
 
           if (userError) {
             console.error('Error updating user level:', userError);
@@ -339,7 +341,7 @@ export default async function handler(req, res) {
       }
       
       // Handle profile updates
-      if (name !== undefined || phone !== undefined || address !== undefined || location !== undefined) {
+      if (name !== undefined || phone !== undefined || address !== undefined || location !== undefined || country !== undefined || state !== undefined) {
         if (!id) {
           return res.status(400).json({ error: 'User ID is required' });
         }
@@ -350,6 +352,8 @@ export default async function handler(req, res) {
         if (phone !== undefined) updates.phone = phone || null;
         if (address !== undefined) updates.address = address || null;
         if (location !== undefined) updates.location = location || null;
+        if (country !== undefined) updates.country = country || null;
+        if (state !== undefined) updates.state = state || null;
 
         if (Object.keys(updates).length === 0) {
           return res.status(400).json({ error: 'No fields to update' });
@@ -361,8 +365,8 @@ export default async function handler(req, res) {
             .from('users')
             .update(updates)
             .eq('id', id)
-            .select('id, email, name, role, points, level, status, refer_code, commission, phone, address, location, created_at, referred_by')
-            .single();
+            .select('id, email, name, role, points, level, status, refer_code, commission, phone, address, location, country, state, created_at, referred_by')
+          .single();
 
           if (userError) {
             console.error('Error updating user:', userError);

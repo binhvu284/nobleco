@@ -3,6 +3,30 @@ import { getCurrentUser, type User } from '../../auth';
 import QRCode from 'qrcode';
 import { uploadUserAvatar, deleteUserAvatar, type UserAvatar } from '../../utils/avatarUpload';
 import { getAvatarInitial, getAvatarColor, getAvatarViewportStyles } from '../../utils/avatarUtils';
+import { IconChevronDown } from '../../admin/components/icons';
+
+// Country list for location dropdown
+const COUNTRIES = [
+    'Afghanistan', 'Albania', 'Algeria', 'Argentina', 'Australia', 'Austria', 'Bangladesh',
+    'Belgium', 'Brazil', 'Canada', 'Chile', 'China', 'Colombia', 'Czech Republic', 'Denmark',
+    'Egypt', 'Finland', 'France', 'Germany', 'Greece', 'Hungary', 'India', 'Indonesia',
+    'Iran', 'Iraq', 'Ireland', 'Israel', 'Italy', 'Japan', 'Kenya', 'Malaysia', 'Mexico',
+    'Netherlands', 'New Zealand', 'Nigeria', 'Norway', 'Pakistan', 'Philippines', 'Poland',
+    'Portugal', 'Romania', 'Russia', 'Saudi Arabia', 'Singapore', 'South Africa', 'South Korea',
+    'Spain', 'Sweden', 'Switzerland', 'Thailand', 'Turkey', 'Ukraine', 'United Arab Emirates',
+    'United Kingdom', 'United States', 'Vietnam', 'Other'
+];
+
+// States/Provinces/Cities mapping
+const LOCATIONS: { [key: string]: string[] } = {
+    'Vietnam': ['Ho Chi Minh City', 'Hanoi', 'Da Nang', 'Hai Phong', 'Can Tho', 'An Giang', 'Ba Ria-Vung Tau', 'Bac Lieu', 'Bac Giang', 'Bac Kan', 'Bac Ninh', 'Ben Tre', 'Binh Dinh', 'Binh Duong', 'Binh Phuoc', 'Binh Thuan', 'Ca Mau', 'Cao Bang', 'Dak Lak', 'Dak Nong', 'Dien Bien', 'Dong Nai', 'Dong Thap', 'Gia Lai', 'Ha Giang', 'Ha Nam', 'Ha Tinh', 'Hai Duong', 'Hau Giang', 'Hoa Binh', 'Hung Yen', 'Khanh Hoa', 'Kien Giang', 'Kon Tum', 'Lai Chau', 'Lam Dong', 'Lang Son', 'Lao Cai', 'Long An', 'Nam Dinh', 'Nghe An', 'Ninh Binh', 'Ninh Thuan', 'Phu Tho', 'Phu Yen', 'Quang Binh', 'Quang Nam', 'Quang Ngai', 'Quang Ninh', 'Quang Tri', 'Soc Trang', 'Son La', 'Tay Ninh', 'Thai Binh', 'Thai Nguyen', 'Thanh Hoa', 'Thua Thien-Hue', 'Tien Giang', 'Tra Vinh', 'Tuyen Quang', 'Vinh Long', 'Vinh Phuc', 'Yen Bai'],
+    'United States': ['Alabama', 'Alaska', 'Arizona', 'Arkansas', 'California', 'Colorado', 'Connecticut', 'Delaware', 'Florida', 'Georgia', 'Hawaii', 'Idaho', 'Illinois', 'Indiana', 'Iowa', 'Kansas', 'Kentucky', 'Louisiana', 'Maine', 'Maryland', 'Massachusetts', 'Michigan', 'Minnesota', 'Mississippi', 'Missouri', 'Montana', 'Nebraska', 'Nevada', 'New Hampshire', 'New Jersey', 'New Mexico', 'New York', 'North Carolina', 'North Dakota', 'Ohio', 'Oklahoma', 'Oregon', 'Pennsylvania', 'Rhode Island', 'South Carolina', 'South Dakota', 'Tennessee', 'Texas', 'Utah', 'Vermont', 'Virginia', 'Washington', 'West Virginia', 'Wisconsin', 'Wyoming'],
+    'United Kingdom': ['England', 'Scotland', 'Wales', 'Northern Ireland'],
+    'Canada': ['Alberta', 'British Columbia', 'Manitoba', 'New Brunswick', 'Newfoundland and Labrador', 'Northwest Territories', 'Nova Scotia', 'Nunavut', 'Ontario', 'Prince Edward Island', 'Quebec', 'Saskatchewan', 'Yukon'],
+    'Australia': ['New South Wales', 'Victoria', 'Queensland', 'Western Australia', 'South Australia', 'Tasmania', 'Australian Capital Territory', 'Northern Territory'],
+    'China': ['Beijing', 'Shanghai', 'Guangdong', 'Jiangsu', 'Zhejiang', 'Shandong', 'Henan', 'Sichuan', 'Hubei', 'Hunan', 'Fujian', 'Anhui', 'Liaoning', 'Jilin', 'Heilongjiang', 'Shaanxi', 'Shanxi', 'Hebei', 'Chongqing', 'Tianjin', 'Jiangxi', 'Guangxi', 'Yunnan', 'Inner Mongolia', 'Xinjiang', 'Guizhou', 'Gansu', 'Hainan', 'Ningxia', 'Qinghai', 'Tibet', 'Hong Kong', 'Macau'],
+    'Other': []
+};
 
 export default function UserProfileModal({ open, onClose }: { open: boolean; onClose: () => void }) {
     const [user, setUser] = useState<User | null>(null);
@@ -13,7 +37,8 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
     const [formData, setFormData] = useState({
         name: '',
         address: '',
-        location: ''
+        country: '',
+        state: ''
     });
     const [qrCodeUrl, setQrCodeUrl] = useState('');
     const [showQrModal, setShowQrModal] = useState(false);
@@ -47,25 +72,30 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
     const backImageInputRef = useRef<HTMLInputElement>(null);
     const [showAvatarExpanded, setShowAvatarExpanded] = useState(false);
     const [isHoveringAvatar, setIsHoveringAvatar] = useState(false);
-    const [showLocationDropdown, setShowLocationDropdown] = useState(false);
-    const locationDropdownRef = useRef<HTMLDivElement>(null);
+    const [showCountryDropdown, setShowCountryDropdown] = useState(false);
+    const [showStateDropdown, setShowStateDropdown] = useState(false);
+    const countryDropdownRef = useRef<HTMLDivElement>(null);
+    const stateDropdownRef = useRef<HTMLDivElement>(null);
     const [notification, setNotification] = useState<{ type: 'success' | 'error', message: string, id: string } | null>(null);
 
-    // Close location dropdown when clicking outside
+    // Close dropdowns when clicking outside
     useEffect(() => {
         const handleClickOutside = (e: MouseEvent) => {
-            if (locationDropdownRef.current && !locationDropdownRef.current.contains(e.target as Node)) {
-                setShowLocationDropdown(false);
+            if (countryDropdownRef.current && !countryDropdownRef.current.contains(e.target as Node)) {
+                setShowCountryDropdown(false);
+            }
+            if (stateDropdownRef.current && !stateDropdownRef.current.contains(e.target as Node)) {
+                setShowStateDropdown(false);
             }
         };
 
-        if (showLocationDropdown) {
+        if (showCountryDropdown || showStateDropdown) {
             document.addEventListener('mousedown', handleClickOutside);
             return () => {
                 document.removeEventListener('mousedown', handleClickOutside);
             };
         }
-    }, [showLocationDropdown]);
+    }, [showCountryDropdown, showStateDropdown]);
 
     useEffect(() => {
         if (open) {
@@ -100,10 +130,25 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
                 
                 // Update local state
                 setUser(freshUser);
+                // Parse location if it exists (for backward compatibility)
+                let country = freshUser.country || '';
+                let state = freshUser.state || '';
+                // If country/state don't exist but location does, try to parse it
+                if (!country && freshUser.location) {
+                    // Try to parse "State, Country" format
+                    const parts = freshUser.location.split(',').map(s => s.trim());
+                    if (parts.length === 2) {
+                        state = parts[0];
+                        country = parts[1];
+                    } else {
+                        country = freshUser.location;
+                    }
+                }
                 setFormData({
                     name: freshUser.name || '',
                     address: freshUser.address || '',
-                    location: freshUser.location || ''
+                    country: country,
+                    state: state
                 });
                 
                 // Load avatar
@@ -128,10 +173,23 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
                 // Fallback to localStorage if API fails
                 console.log('Using cached user data from localStorage');
                 setUser(currentUser);
+                // Parse location if it exists (for backward compatibility)
+                let country = (currentUser as any).country || '';
+                let state = (currentUser as any).state || '';
+                if (!country && currentUser.location) {
+                    const parts = currentUser.location.split(',').map((s: string) => s.trim());
+                    if (parts.length === 2) {
+                        state = parts[0];
+                        country = parts[1];
+                    } else {
+                        country = currentUser.location;
+                    }
+                }
                 setFormData({
                     name: currentUser.name || '',
                     address: currentUser.address || '',
-                    location: currentUser.location || ''
+                    country: country,
+                    state: state
                 });
                 if (currentUser.refer_code) {
                     generateQRCode(currentUser.refer_code);
@@ -143,10 +201,23 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
             const currentUser = getCurrentUser();
             if (currentUser) {
                 setUser(currentUser);
+                // Parse location if it exists (for backward compatibility)
+                let country = (currentUser as any).country || '';
+                let state = (currentUser as any).state || '';
+                if (!country && currentUser.location) {
+                    const parts = currentUser.location.split(',').map((s: string) => s.trim());
+                    if (parts.length === 2) {
+                        state = parts[0];
+                        country = parts[1];
+                    } else {
+                        country = currentUser.location;
+                    }
+                }
                 setFormData({
                     name: currentUser.name || '',
                     address: currentUser.address || '',
-                    location: currentUser.location || ''
+                    country: country,
+                    state: state
                 });
                 if (currentUser.refer_code) {
                     generateQRCode(currentUser.refer_code);
@@ -238,7 +309,8 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
                     id: user.id,
                     name: formData.name,
                     address: formData.address,
-                    location: formData.location,
+                    country: formData.country,
+                    state: formData.state,
                 }),
             });
 
@@ -260,7 +332,8 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
             setFormData({
                 name: data.user.name || '',
                 address: data.user.address || '',
-                location: data.user.location || ''
+                country: data.user.country || '',
+                state: data.user.state || ''
             });
             
             setIsEditing(false);
@@ -280,10 +353,23 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
 
     const handleCancel = () => {
         if (user) {
+            // Parse location if it exists (for backward compatibility)
+            let country = (user as any).country || '';
+            let state = (user as any).state || '';
+            if (!country && user.location) {
+                const parts = user.location.split(',').map((s: string) => s.trim());
+                if (parts.length === 2) {
+                    state = parts[0];
+                    country = parts[1];
+                } else {
+                    country = user.location;
+                }
+            }
             setFormData({
                 name: user.name || '',
                 address: user.address || '',
-                location: user.location || ''
+                country: country,
+                state: state
             });
         }
         setError('');
@@ -1096,53 +1182,107 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
                                         <div className="profile-field-value">{formData.address || 'Not set'}</div>
                                     )}
                                 </div>
-                                <div className="profile-field profile-field-full">
-                                    <label>Location</label>
-                                    {isEditing ? (
-                                        <div className="location-dropdown-wrapper" ref={locationDropdownRef}>
-                                            <button
-                                                type="button"
-                                                className="location-dropdown-toggle"
-                                                onClick={() => setShowLocationDropdown(!showLocationDropdown)}
-                                            >
-                                                <span>{formData.location || 'Select Country'}</span>
-                                                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2">
-                                                    <path d="M6 9L1 4h10z" />
-                                                </svg>
-                                            </button>
-                                            {showLocationDropdown && (
-                                                <div className="location-dropdown-menu">
-                                                    <div className="location-dropdown-options">
-                                                        <button
-                                                            type="button"
-                                                            className={`location-dropdown-option ${!formData.location ? 'selected' : ''}`}
-                                                            onClick={() => {
-                                                                setFormData({ ...formData, location: '' });
-                                                                setShowLocationDropdown(false);
-                                                            }}
-                                                        >
-                                                            Select Country
-                                                        </button>
-                                                        {['Afghanistan', 'Albania', 'Algeria', 'Argentina', 'Australia', 'Austria', 'Bangladesh', 'Belgium', 'Brazil', 'Canada', 'Chile', 'China', 'Colombia', 'Czech Republic', 'Denmark', 'Egypt', 'Finland', 'France', 'Germany', 'Greece', 'Hungary', 'India', 'Indonesia', 'Iran', 'Iraq', 'Ireland', 'Israel', 'Italy', 'Japan', 'Kenya', 'Malaysia', 'Mexico', 'Netherlands', 'New Zealand', 'Nigeria', 'Norway', 'Pakistan', 'Philippines', 'Poland', 'Portugal', 'Romania', 'Russia', 'Saudi Arabia', 'Singapore', 'South Africa', 'South Korea', 'Spain', 'Sweden', 'Switzerland', 'Thailand', 'Turkey', 'Ukraine', 'United Arab Emirates', 'United Kingdom', 'United States', 'Vietnam', 'Other'].map((country) => (
-                                                            <button
-                                                                key={country}
-                                                                type="button"
-                                                                className={`location-dropdown-option ${formData.location === country ? 'selected' : ''}`}
+                                <div className="profile-field profile-field-full" style={{ display: 'flex', flexDirection: 'row', gap: '16px' }}>
+                                    <div className="profile-field" style={{ flex: 1 }}>
+                                        <label>Country</label>
+                                        {isEditing ? (
+                                            <div className="location-dropdown-wrapper" ref={countryDropdownRef}>
+                                                <div
+                                                    className="location-dropdown-toggle"
+                                                    onClick={() => {
+                                                        setShowCountryDropdown(!showCountryDropdown);
+                                                        setShowStateDropdown(false);
+                                                    }}
+                                                >
+                                                    <span className={formData.country ? '' : 'location-placeholder'}>
+                                                        {formData.country || 'Select country'}
+                                                    </span>
+                                                    <IconChevronDown className={showCountryDropdown ? 'rotated' : ''} style={{ width: '12px', height: '12px' }} />
+                                                </div>
+                                                {showCountryDropdown && (
+                                                    <div className="location-dropdown-menu">
+                                                        <div className="location-dropdown-options">
+                                                            <div
+                                                                className={`location-dropdown-option ${!formData.country ? 'selected' : ''}`}
                                                                 onClick={() => {
-                                                                    setFormData({ ...formData, location: country });
-                                                                    setShowLocationDropdown(false);
+                                                                    setFormData({ ...formData, country: '', state: '' });
+                                                                    setShowCountryDropdown(false);
                                                                 }}
                                                             >
-                                                                {country}
-                                                            </button>
-                                                        ))}
+                                                                Select country
+                                                            </div>
+                                                            {COUNTRIES.map(country => (
+                                                                <div
+                                                                    key={country}
+                                                                    className={`location-dropdown-option ${formData.country === country ? 'selected' : ''}`}
+                                                                    onClick={() => {
+                                                                        setFormData({ ...formData, country: country, state: '' });
+                                                                        setShowCountryDropdown(false);
+                                                                    }}
+                                                                >
+                                                                    {country}
+                                                                </div>
+                                                            ))}
+                                                        </div>
                                                     </div>
+                                                )}
+                                            </div>
+                                        ) : (
+                                            <div className="profile-field-value">{formData.country || 'Not set'}</div>
+                                        )}
+                                    </div>
+                                    <div className="profile-field" style={{ flex: 1 }}>
+                                        <label>State / Province / City</label>
+                                        {isEditing ? (
+                                            <div className="location-dropdown-wrapper" ref={stateDropdownRef}>
+                                                <div
+                                                    className={`location-dropdown-toggle ${formData.country && LOCATIONS[formData.country] && LOCATIONS[formData.country].length > 0 ? '' : 'disabled'}`}
+                                                    onClick={() => {
+                                                        if (formData.country && LOCATIONS[formData.country] && LOCATIONS[formData.country].length > 0) {
+                                                            setShowStateDropdown(!showStateDropdown);
+                                                            setShowCountryDropdown(false);
+                                                        }
+                                                    }}
+                                                >
+                                                    <span className={formData.state ? '' : 'location-placeholder'}>
+                                                        {formData.state || (formData.country && LOCATIONS[formData.country] && LOCATIONS[formData.country].length > 0 ? 'Select state/province/city' : formData.country ? 'No locations available' : 'Select country first')}
+                                                    </span>
+                                                    {formData.country && LOCATIONS[formData.country] && LOCATIONS[formData.country].length > 0 && (
+                                                        <IconChevronDown className={showStateDropdown ? 'rotated' : ''} style={{ width: '12px', height: '12px' }} />
+                                                    )}
                                                 </div>
-                                            )}
-                                        </div>
-                                    ) : (
-                                        <div className="profile-field-value">{formData.location || 'Not set'}</div>
-                                    )}
+                                                {showStateDropdown && formData.country && LOCATIONS[formData.country] && LOCATIONS[formData.country].length > 0 && (
+                                                    <div className="location-dropdown-menu">
+                                                        <div className="location-dropdown-options">
+                                                            <div
+                                                                className={`location-dropdown-option ${!formData.state ? 'selected' : ''}`}
+                                                                onClick={() => {
+                                                                    setFormData({ ...formData, state: '' });
+                                                                    setShowStateDropdown(false);
+                                                                }}
+                                                            >
+                                                                Select state/province/city
+                                                            </div>
+                                                            {LOCATIONS[formData.country].map(location => (
+                                                                <div
+                                                                    key={location}
+                                                                    className={`location-dropdown-option ${formData.state === location ? 'selected' : ''}`}
+                                                                    onClick={() => {
+                                                                        setFormData({ ...formData, state: location });
+                                                                        setShowStateDropdown(false);
+                                                                    }}
+                                                                >
+                                                                    {location}
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ) : (
+                                            <div className="profile-field-value">{formData.state || 'Not set'}</div>
+                                        )}
+                                    </div>
                                 </div>
                                 
                                 {/* Personal ID Field */}

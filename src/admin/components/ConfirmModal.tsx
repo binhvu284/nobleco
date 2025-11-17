@@ -1,4 +1,4 @@
-import { IconX, IconAlertTriangle } from './icons';
+import { IconX, IconAlertTriangle, IconCheck } from './icons';
 
 interface ConfirmModalProps {
     open: boolean;
@@ -8,7 +8,7 @@ interface ConfirmModalProps {
     message: string;
     confirmText?: string;
     cancelText?: string;
-    type?: 'danger' | 'warning' | 'info';
+    type?: 'danger' | 'warning' | 'info' | 'success';
     loading?: boolean;
 }
 
@@ -43,7 +43,7 @@ export default function ConfirmModal({
             <div className="confirm-modal">
                 <div className="confirm-modal-header">
                     <div className={`confirm-modal-icon ${type}`}>
-                        <IconAlertTriangle />
+                        {type === 'success' ? <IconCheck /> : <IconAlertTriangle />}
                     </div>
                     <button 
                         className="confirm-modal-close"

@@ -2676,7 +2676,7 @@ input:focus {
 .detail-list {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 0px;
 }
 
 .detail-row {
@@ -3601,12 +3601,17 @@ input:focus {
     background: var(--panel);
     border: 1px solid var(--border);
     border-radius: 12px;
-    overflow: hidden;
+    overflow: visible;
+    margin-top: 8px;
+    position: relative;
+    z-index: 1;
 }
 
 .request-table {
     width: 100%;
     border-collapse: collapse;
+    position: relative;
+    overflow: visible;
 }
 
 .request-table thead {
@@ -3623,6 +3628,8 @@ input:focus {
     text-transform: uppercase;
     letter-spacing: 0.5px;
     white-space: nowrap;
+    position: relative;
+    z-index: 1;
 }
 
 .request-table tbody tr {
@@ -3642,6 +3649,16 @@ input:focus {
     padding: 16px;
     font-size: 14px;
     color: var(--text);
+    position: relative;
+    overflow: visible;
+}
+
+.request-table td:last-child {
+    position: relative;
+}
+
+.request-table td .unified-dropdown {
+    position: relative;
 }
 
 .request-table td.empty-state {
@@ -3790,7 +3807,7 @@ input:focus {
     bottom: 0;
     background: rgba(0, 0, 0, 0.5);
     backdrop-filter: blur(4px);
-    z-index: var(--z-modal-backdrop);
+    z-index: 999998;
 }
 
 .request-detail-modal {
@@ -3804,7 +3821,7 @@ input:focus {
     max-width: 700px;
     max-height: 90vh;
     overflow: hidden;
-    z-index: var(--z-modal);
+    z-index: 999999 !important;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
     display: flex;
     flex-direction: column;
@@ -16836,6 +16853,11 @@ input:focus {
     color: #2563EB;
 }
 
+.confirm-modal-icon.success {
+    background: #D1FAE5;
+    color: #059669;
+}
+
 .confirm-modal-icon svg {
     width: 32px;
     height: 32px;
@@ -16940,6 +16962,14 @@ input:focus {
 
 .btn-confirm-action.info:hover:not(:disabled) {
     background: #1D4ED8;
+}
+
+.btn-confirm-action.success {
+    background: #059669;
+}
+
+.btn-confirm-action.success:hover:not(:disabled) {
+    background: #047857;
 }
 
 .btn-confirm-cancel:disabled,
@@ -24893,6 +24923,7 @@ input:focus {
     display: flex;
     align-items: center;
     gap: 16px;
+    flex-wrap: wrap;
 }
 
 .order-detail-header-left h2 {
@@ -24900,6 +24931,40 @@ input:focus {
     font-weight: 700;
     color: var(--text);
     margin: 0;
+}
+
+.order-detail-made-by {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    background: var(--bg-secondary);
+    border-radius: 8px;
+}
+
+.made-by-label {
+    font-size: 13px;
+    color: var(--muted);
+    font-weight: 500;
+}
+
+.order-detail-made-by .user-info {
+    gap: 8px;
+}
+
+.order-detail-made-by .user-avatar {
+    width: 32px;
+    height: 32px;
+    font-size: 14px;
+}
+
+.order-detail-made-by .user-name {
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.order-detail-made-by .user-email {
+    font-size: 11px;
 }
 
 .order-detail-header-actions {
@@ -25349,10 +25414,27 @@ input:focus {
     flex-shrink: 0;
 }
 
+.auth-footer-company-wrapper {
+    display: flex;
+    gap: 24px;
+    align-items: flex-start;
+}
+
+.auth-footer-logo {
+    flex-shrink: 0;
+}
+
+.auth-footer-logo img {
+    max-width: 150px;
+    height: auto;
+    display: block;
+}
+
 .auth-footer-info {
     display: flex;
     flex-direction: column;
     gap: 10px;
+    flex: 1;
 }
 
 .auth-footer-info p {
@@ -25430,6 +25512,41 @@ input:focus {
     display: flex;
     flex-direction: column;
     gap: 16px;
+}
+
+.auth-footer-certificates .auth-footer-copyright {
+    margin-top: 8px;
+    margin-bottom: 0;
+    text-align: left;
+}
+
+.auth-footer-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    align-items: center;
+    justify-content: flex-start;
+}
+
+.auth-footer-badges a {
+    display: inline-block;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    text-decoration: none;
+}
+
+.auth-footer-badges a:hover {
+    opacity: 0.9;
+    transform: translateY(-2px);
+}
+
+.auth-footer-badges img {
+    display: block;
+    height: auto;
+    max-width: 100%;
+}
+
+.dmca-badge img {
+    border: 0;
 }
 
 .auth-footer-cert-placeholder {
@@ -25531,6 +25648,11 @@ input:focus {
         gap: 32px;
     }
 
+    .auth-footer-company-wrapper {
+        flex-direction: column;
+        gap: 16px;
+    }
+
     .auth-footer-section {
         gap: 14px;
     }
@@ -25558,6 +25680,10 @@ input:focus {
         width: 20px;
         height: 20px;
     }
+
+    .auth-footer-badges {
+        gap: 12px;
+    }
 }
 
 @media (max-width: 480px) {
@@ -25574,6 +25700,15 @@ input:focus {
         gap: 28px;
     }
 
+    .auth-footer-company-wrapper {
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .auth-footer-logo {
+        align-self: center;
+    }
+
     .auth-footer-cert-placeholder {
         flex-direction: column;
         text-align: center;
@@ -25582,5 +25717,16 @@ input:focus {
 
     .auth-footer-cert-icon {
         margin: 0 auto;
+    }
+
+    .auth-footer-badges {
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .auth-footer-badges a {
+        display: flex;
+        justify-content: center;
     }
 }
