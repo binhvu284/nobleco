@@ -5334,9 +5334,44 @@ input:focus {
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
     max-width: 480px;
     width: 90%;
-    animation: slideUp 0.3s ease-out;
-    z-index: 999999 !important;
-    position: relative;
+}
+
+/* Form modals with fixed footer */
+.add-admin-modal,
+.modal-content[style*="flex"] {
+    display: flex !important;
+    flex-direction: column !important;
+    max-height: 90vh !important;
+}
+
+.add-admin-modal .modal-header,
+.modal-content[style*="flex"] .modal-header {
+    flex-shrink: 0 !important;
+}
+
+.add-admin-modal form,
+.modal-content[style*="flex"] form {
+    display: flex !important;
+    flex-direction: column !important;
+    flex: 1 !important;
+    min-height: 0 !important;
+}
+
+
+.add-admin-modal .modal-body,
+.modal-content[style*="flex"] .modal-body {
+    flex: 1 !important;
+    overflow-y: auto !important;
+    min-height: 0 !important;
+    text-align: left !important;
+}
+
+.add-admin-modal .modal-footer,
+.modal-content[style*="flex"] .modal-footer {
+    flex-shrink: 0 !important;
+    border-top: 1px solid var(--border) !important;
+    background: white !important;
+    position: relative !important;
 }
 
 @keyframes slideUp {
@@ -11051,6 +11086,11 @@ input:focus {
     height: 16px;
 }
 
+.admin-dropdown {
+    position: relative;
+    flex-shrink: 0;
+}
+
 .status-badge {
     padding: 4px 12px;
     border-radius: 20px;
@@ -11232,6 +11272,49 @@ input:focus {
     width: 18px;
     height: 18px;
     accent-color: var(--primary);
+}
+
+/* Enhanced checkbox styling for permission modal */
+.permission-checkbox {
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    width: 18px !important;
+    height: 18px !important;
+    border: 2px solid var(--border);
+    border-radius: 4px;
+    background-color: white;
+    position: relative;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+    margin: 0;
+}
+
+.permission-checkbox:hover {
+    border-color: var(--primary);
+}
+
+.permission-checkbox:checked {
+    background-color: var(--primary);
+    border-color: var(--primary);
+}
+
+.permission-checkbox:checked::after {
+    content: '';
+    position: absolute;
+    left: 5px;
+    top: 2px;
+    width: 5px;
+    height: 9px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+    transition: all 0.2s ease;
+}
+
+.permission-checkbox:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
 }
 
 .permission-option span {
@@ -14663,6 +14746,23 @@ input:focus {
     color: #991b1b;
 }
 
+.status-badge.status-active {
+    background: #d1fae5;
+    color: #065f46;
+    gap: 4px;
+}
+
+.status-badge.status-inactive {
+    background: #fee2e2;
+    color: #991b1b;
+    gap: 4px;
+}
+
+.status-badge svg {
+    width: 12px;
+    height: 12px;
+}
+
 /* Order Date */
 .order-date {
     color: #6b7280;
@@ -14791,6 +14891,182 @@ input:focus {
 .empty-state p {
     font-size: 1.1rem;
     margin: 0;
+}
+
+/* Discount Code Styles */
+.card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 16px;
+    margin-top: 20px;
+}
+
+.discount-card {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    overflow: visible;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+.discount-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+}
+
+.discount-card .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px;
+    border-bottom: 1px solid #f3f4f6;
+    position: relative;
+}
+
+.discount-card .card-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.discount-card .card-title strong {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1f2937;
+}
+
+.discount-card .card-body {
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.discount-card .card-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+}
+
+.discount-card .card-row .label {
+    font-size: 13px;
+    color: #6b7280;
+    font-weight: 500;
+}
+
+.discount-card .card-row .value {
+    font-size: 14px;
+    color: #1f2937;
+    font-weight: 500;
+    text-align: right;
+}
+
+.code-cell {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.code-cell svg {
+    color: var(--primary);
+    flex-shrink: 0;
+}
+
+.code-cell strong {
+    font-family: 'Courier New', monospace;
+    font-weight: 600;
+    color: #1f2937;
+}
+
+.discount-rate {
+    font-weight: 600;
+    color: var(--primary);
+    font-size: 14px;
+}
+
+.usage-count {
+    font-size: 14px;
+    color: #6b7280;
+}
+
+/* Admin Discount Page */
+.admin-discount-page {
+    padding: 0;
+}
+
+.admin-discount-page .table-wrap {
+    background: white;
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
+    overflow: visible;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.admin-discount-page .empty-state {
+    padding: 60px 20px;
+    text-align: center;
+    color: var(--muted);
+}
+
+.admin-discount-page .empty-state .empty-icon {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+.admin-discount-page .empty-state h3 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0 0 0.5rem 0;
+}
+
+.admin-discount-page .empty-state p {
+    font-size: 0.875rem;
+    color: var(--muted);
+    margin: 0;
+}
+
+.admin-discount-page .btn-view-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 12px;
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    color: var(--text-primary);
+}
+
+.admin-discount-page .btn-view-toggle:hover {
+    background: var(--bg-secondary);
+    border-color: var(--primary);
+}
+
+.date-range {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: #6b7280;
+}
+
+.date-separator {
+    color: #9ca3af;
+}
+
+.description-cell {
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 13px;
+    color: #6b7280;
 }
 
 /* Mobile Responsive */
@@ -25730,3 +26006,758 @@ input:focus {
         justify-content: center;
     }
 }
+
+/* Excel Import Modal Styles */
+.excel-import-modal {
+    max-width: 900px;
+    width: 90%;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.excel-import-header {
+    flex-shrink: 0;
+    border-bottom: 1px solid var(--border);
+    background: var(--panel);
+    padding: 0;
+}
+
+.excel-import-header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 24px;
+}
+
+.excel-import-header h3 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text);
+}
+
+.excel-import-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.btn-download-template-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-download-template-header:hover:not(:disabled) {
+    background: var(--primary-dark);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+}
+
+.btn-download-template-header:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.btn-download-template-header svg {
+    width: 16px;
+    height: 16px;
+}
+
+.btn-download-template-header .spinner {
+    width: 16px;
+    height: 16px;
+    animation: spin 1s linear infinite;
+}
+
+.btn-close-modal {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-close-modal:hover:not(:disabled) {
+    background: var(--danger-light);
+    border-color: var(--danger);
+    color: var(--danger);
+    transform: scale(1.05);
+}
+
+.btn-close-modal:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.btn-close-modal svg {
+    width: 18px;
+    height: 18px;
+}
+
+.excel-import-body {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 24px;
+    min-height: 0;
+}
+
+.excel-import-footer {
+    flex-shrink: 0;
+    border-top: 1px solid var(--border);
+    background: var(--panel);
+    padding: 0;
+}
+
+.excel-import-footer-content {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    padding: 16px 24px;
+}
+
+.excel-import-footer-content .btn-secondary,
+.excel-import-footer-content .btn-primary {
+    min-width: 120px;
+    padding: 12px 24px;
+    font-weight: 600;
+    border-radius: 8px;
+    transition: all 0.2s;
+}
+
+.excel-import-footer-content .btn-primary {
+    background: var(--primary);
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.2);
+}
+
+.excel-import-footer-content .btn-primary:hover:not(:disabled) {
+    background: var(--primary-dark);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+}
+
+.excel-import-footer-content .btn-primary:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.import-instructions {
+    background: linear-gradient(135deg, var(--info-light) 0%, var(--bg-secondary) 100%);
+    border: 1px solid var(--info);
+    border-radius: 12px;
+    padding: 20px;
+    margin-top: 24px;
+    margin-bottom: 0;
+}
+
+.import-instructions h4 {
+    margin: 0 0 16px 0;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.import-instructions h4::before {
+    content: '📋';
+    font-size: 20px;
+}
+
+.import-instructions ul {
+    margin: 0;
+    padding-left: 24px;
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.8;
+    list-style: none;
+}
+
+.import-instructions li {
+    margin-bottom: 10px;
+    position: relative;
+    padding-left: 8px;
+}
+
+.import-instructions li::marker {
+    content: '• ';
+    color: var(--info);
+    font-weight: bold;
+}
+
+.import-instructions li::before {
+    content: '→';
+    position: absolute;
+    left: -20px;
+    color: var(--info);
+    font-weight: bold;
+}
+
+.import-instructions li:last-child {
+    margin-bottom: 0;
+}
+
+.import-instructions strong {
+    color: var(--text);
+    font-weight: 600;
+}
+
+.template-download-section {
+    margin-bottom: 24px;
+    display: flex;
+    justify-content: flex-start;
+}
+
+/* Remove old template download button styles as it's now in header */
+
+.template-download-section .btn-secondary {
+    background: var(--panel);
+    border: 2px solid var(--primary);
+    color: var(--primary);
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.template-download-section .btn-secondary:hover {
+    background: var(--primary);
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+}
+
+.file-upload-section {
+    margin-bottom: 24px;
+}
+
+.file-upload-label {
+    display: block;
+    cursor: pointer;
+}
+
+.file-upload-area {
+    border: 2px dashed var(--border);
+    border-radius: 12px;
+    padding: 32px 24px;
+    text-align: center;
+    background: var(--panel);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    cursor: pointer;
+}
+
+.file-upload-area:hover {
+    border-color: var(--primary);
+    background: linear-gradient(135deg, var(--info-light) 0%, var(--panel) 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(37, 99, 235, 0.1);
+}
+
+.file-upload-area:active {
+    transform: translateY(0);
+}
+
+.file-upload-area svg {
+    width: 48px;
+    height: 48px;
+    color: var(--primary);
+    margin-bottom: 12px;
+    transition: all 0.3s;
+}
+
+.file-upload-area:hover svg {
+    transform: scale(1.1);
+    color: var(--primary-dark);
+}
+
+.file-upload-area strong {
+    display: block;
+    color: var(--text);
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 6px;
+}
+
+.file-upload-hint {
+    color: var(--muted);
+    font-size: 14px;
+    margin-top: 8px;
+    font-weight: 500;
+}
+
+/* Combined File Analysis Section */
+.file-analysis-combined {
+    margin-top: 16px;
+}
+
+.analysis-status-inline {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px;
+    background: linear-gradient(135deg, var(--info-light) 0%, rgba(59, 130, 246, 0.05) 100%);
+    border: 2px solid var(--info);
+    border-radius: 10px;
+    color: var(--info);
+    font-weight: 500;
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.1);
+}
+
+.analysis-status-inline .spinner {
+    width: 20px;
+    height: 20px;
+    animation: spin 1s linear infinite;
+}
+
+.file-info-with-analysis {
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    animation: slideIn 0.3s ease-out;
+}
+
+.file-info-with-analysis.valid {
+    border: 2px solid var(--success);
+}
+
+.file-info-with-analysis.invalid {
+    border: 2px solid var(--danger);
+}
+
+.file-info-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+}
+
+.file-icon {
+    width: 24px;
+    height: 24px;
+    color: var(--primary);
+    flex-shrink: 0;
+}
+
+.file-name {
+    flex: 1;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    text-align: left;
+    word-break: break-all;
+}
+
+.file-validation-success,
+.file-validation-error {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px 16px;
+}
+
+.file-validation-success {
+    background: linear-gradient(135deg, var(--success-light) 0%, rgba(16, 185, 129, 0.05) 100%);
+    color: var(--success);
+}
+
+.file-validation-error {
+    background: linear-gradient(135deg, var(--danger-light) 0%, rgba(239, 68, 68, 0.05) 100%);
+    color: var(--danger);
+}
+
+.file-validation-success svg,
+.file-validation-error svg {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.validation-text {
+    flex: 1;
+}
+
+.validation-text strong {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 14px;
+}
+
+.validation-text .estimated-count {
+    display: block;
+    margin-top: 4px;
+    font-size: 13px;
+    color: var(--muted);
+}
+
+.validation-text .estimated-count strong {
+    display: inline;
+    font-size: 15px;
+    color: var(--text);
+    font-weight: 700;
+}
+
+.validation-text ul {
+    margin: 6px 0 0 0;
+    padding-left: 20px;
+    font-size: 13px;
+}
+
+.validation-text li {
+    margin-bottom: 4px;
+}
+
+.selected-file {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 20px;
+    padding: 16px;
+    background: linear-gradient(135deg, var(--success-light) 0%, rgba(16, 185, 129, 0.05) 100%);
+    border: 2px solid var(--success);
+    border-radius: 10px;
+    color: var(--success);
+    font-size: 14px;
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.1);
+    animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.selected-file svg:first-child {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+}
+
+.selected-file span {
+    flex: 1;
+    text-align: left;
+    color: var(--text);
+}
+
+.btn-remove-file {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted);
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.btn-remove-file:hover {
+    background: var(--danger-light);
+    color: var(--danger);
+}
+
+.btn-remove-file svg {
+    width: 16px;
+    height: 16px;
+}
+
+.analysis-status {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 18px 20px;
+    background: linear-gradient(135deg, var(--info-light) 0%, rgba(59, 130, 246, 0.05) 100%);
+    border: 2px solid var(--info);
+    border-radius: 10px;
+    color: var(--info);
+    margin-bottom: 20px;
+    font-weight: 500;
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.1);
+}
+
+.analysis-status .spinner {
+    width: 20px;
+    height: 20px;
+    animation: spin 1s linear infinite;
+}
+
+.analysis-result {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 20px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+.analysis-result.valid {
+    background: linear-gradient(135deg, var(--success-light) 0%, rgba(16, 185, 129, 0.05) 100%);
+    border: 2px solid var(--success);
+    color: var(--success);
+}
+
+.analysis-result.invalid {
+    background: linear-gradient(135deg, var(--danger-light) 0%, rgba(239, 68, 68, 0.05) 100%);
+    border: 2px solid var(--danger);
+    color: var(--danger);
+}
+
+.analysis-result svg {
+    width: 24px;
+    height: 24px;
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.analysis-result > div {
+    flex: 1;
+}
+
+.analysis-result strong {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 16px;
+}
+
+.analysis-result ul {
+    margin: 8px 0 0 0;
+    padding-left: 20px;
+}
+
+.analysis-result li {
+    margin-bottom: 4px;
+}
+
+.estimated-count {
+    margin-top: 8px;
+    font-size: 14px;
+}
+
+.estimated-count strong {
+    font-size: 18px;
+    color: var(--text);
+}
+
+.import-progress {
+    margin-top: 24px;
+    padding: 24px;
+    background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--panel) 100%);
+    border-radius: 12px;
+    border: 2px solid var(--primary);
+    box-shadow: 0 4px 16px rgba(37, 99, 235, 0.1);
+}
+
+.progress-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+    color: var(--text);
+    font-weight: 600;
+}
+
+.progress-header .spinner {
+    width: 20px;
+    height: 20px;
+    animation: spin 1s linear infinite;
+}
+
+.progress-bar-container {
+    width: 100%;
+    height: 8px;
+    background: var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 12px;
+}
+
+.progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary), var(--primary-dark));
+    border-radius: 4px;
+    transition: width 0.3s ease;
+}
+
+.progress-text {
+    text-align: center;
+    color: var(--muted);
+    font-size: 14px;
+}
+
+.btn-import {
+    background: var(--primary);
+    color: white;
+    border: none;
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s;
+}
+
+.btn-import:hover {
+    background: var(--primary-dark);
+}
+
+.btn-import svg {
+    width: 18px;
+    height: 18px;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Custom scrollbar for modal body */
+.excel-import-body::-webkit-scrollbar {
+    width: 8px;
+}
+
+.excel-import-body::-webkit-scrollbar-track {
+    background: var(--bg-secondary);
+    border-radius: 4px;
+}
+
+.excel-import-body::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 4px;
+}
+
+.excel-import-body::-webkit-scrollbar-thumb:hover {
+    background: var(--muted);
+}
+
+@media (max-width: 768px) {
+    .excel-import-modal {
+        width: 95%;
+        max-width: none;
+        max-height: 95vh;
+    }
+
+    .excel-import-header-content {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+        padding: 16px;
+    }
+
+    .excel-import-header h3 {
+        font-size: 18px;
+    }
+
+    .excel-import-header-actions {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .btn-download-template-header {
+        flex: 1;
+        justify-content: center;
+        padding: 10px 12px;
+        font-size: 13px;
+    }
+
+    .btn-download-template-header span {
+        display: none;
+    }
+
+    .btn-download-template-header svg {
+        width: 18px;
+        height: 18px;
+    }
+
+    .excel-import-footer-content {
+        padding: 16px;
+        flex-direction: column-reverse;
+    }
+
+    .excel-import-body {
+        padding: 16px;
+    }
+
+    .file-upload-area {
+        padding: 28px 16px;
+    }
+
+    .file-upload-area svg {
+        width: 40px;
+        height: 40px;
+    }
+
+    .import-instructions {
+        padding: 16px;
+        margin-top: 20px;
+    }
+
+    .import-instructions ul {
+        font-size: 13px;
+        padding-left: 20px;
+    }
+
+    .excel-import-footer-content .btn-secondary,
+    .excel-import-footer-content .btn-primary {
+        width: 100%;
+    }
+
+    .file-info-row {
+        padding: 12px;
+    }
+
+    .file-validation-success,
+    .file-validation-error {
+        padding: 12px;
+    }
+}
+

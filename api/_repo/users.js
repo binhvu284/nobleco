@@ -128,12 +128,14 @@ export async function updateUserPasswordHashed(id, password) {
 
 export async function createUser({ email, name, phone, password, role, points, level, status, referred_by, phone_verified }) {
   const supabase = getSupabase();
+  // Determine role: preserve 'admin' and 'coworker', default to 'user' for others
+  const userRole = (role === 'admin' || role === 'coworker') ? role : 'user';
   const payload = {
     email,
     name,
     phone,
     password: password ? await bcrypt.hash(password, 10) : null,
-    role: role === 'admin' ? 'admin' : 'user',
+    role: userRole,
     points: points ?? 0,
     level: level ?? 'guest',
     status: status ?? 'active',
@@ -181,13 +183,19 @@ export async function updateUserStatus(id, status) {
   return normalize(data);
 }
 
-export async function deleteUser(id) {
+export async function deleteUser(id, role = null) {
   const supabase = getSupabase();
-  const { error } = await supabase
+  let query = supabase
     .from('users')
     .delete()
-    .eq('id', id)
-    .eq('role', 'user'); // Only allow deleting users with 'user' role
+    .eq('id', id);
+  
+  // If role is specified, filter by role; otherwise allow deleting any role
+  if (role) {
+    query = query.eq('role', role);
+  }
+  
+  const { error } = await query;
   if (error) throw new Error(error.message);
   return true;
 }

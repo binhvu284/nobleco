@@ -1,6 +1,10 @@
 import { useState, useEffect } from 'react';
 import AdminLayout from '../components/AdminLayout';
-import { IconCrown, IconShield, IconTrash2, IconSettings, IconMoreHorizontal, IconPlay, IconPause, IconLoader } from '../components/icons';
+import { IconCrown, IconShield, IconTrash2, IconSettings, IconMoreHorizontal, IconPlay, IconPause, IconLoader, IconPlus, IconX, IconEye, IconCheck } from '../components/icons';
+import UserDetailModal from '../components/UserDetailModal';
+import AdminDetailModal from '../components/AdminDetailModal';
+import CoworkerDetailModal from '../components/CoworkerDetailModal';
+import { getAvatarInitial, getAvatarColor, getAvatarViewportStyles } from '../../utils/avatarUtils';
 
 interface AdminUser {
     id: number;
@@ -13,6 +17,15 @@ interface AdminUser {
     created_at: string;
     avatar?: string;
     permissions?: string[];
+}
+
+interface UserAvatarData {
+    url: string;
+    viewport_x?: number | null;
+    viewport_y?: number | null;
+    viewport_size?: number | null;
+    width?: number | null;
+    height?: number | null;
 }
 
 export default function AdminAdminUsers() {
@@ -28,8 +41,57 @@ export default function AdminAdminUsers() {
     const [showPermissionModal, setShowPermissionModal] = useState(false);
     const [userToDelete, setUserToDelete] = useState<AdminUser | null>(null);
     const [userToEdit, setUserToEdit] = useState<AdminUser | null>(null);
+    const [availablePages, setAvailablePages] = useState<Array<{ page_path: string; page_name: string; section: string | null }>>([]);
+    const [selectedPermissions, setSelectedPermissions] = useState<Set<string>>(new Set());
+    const [permissionLoading, setPermissionLoading] = useState(false);
+    const [permissionSaving, setPermissionSaving] = useState(false);
     const [activeDropdown, setActiveDropdown] = useState<number | null>(null);
+    const [activeAdminDropdown, setActiveAdminDropdown] = useState<number | null>(null);
+    const [showAdminDetailModal, setShowAdminDetailModal] = useState(false);
+    const [adminToView, setAdminToView] = useState<AdminUser | null>(null);
+    const [adminToDelete, setAdminToDelete] = useState<AdminUser | null>(null);
+    const [showAdminDeleteModal, setShowAdminDeleteModal] = useState(false);
+    const [deleteAdminLoading, setDeleteAdminLoading] = useState(false);
     const [statusUpdating, setStatusUpdating] = useState<number | null>(null);
+    const [adminAvatars, setAdminAvatars] = useState<Record<number, UserAvatarData | null>>({});
+    const [coworkerAvatars, setCoworkerAvatars] = useState<Record<number, UserAvatarData | null>>({});
+    const [showAddAdminModal, setShowAddAdminModal] = useState(false);
+    const [createLoading, setCreateLoading] = useState(false);
+    const [createError, setCreateError] = useState<string | null>(null);
+    const [formData, setFormData] = useState({
+        name: '',
+        email: '',
+        phone: '',
+        password: '',
+        confirmPassword: ''
+    });
+    const [showAddCoworkerModal, setShowAddCoworkerModal] = useState(false);
+    const [createCoworkerLoading, setCreateCoworkerLoading] = useState(false);
+    const [createCoworkerError, setCreateCoworkerError] = useState<string | null>(null);
+    const [coworkerFormData, setCoworkerFormData] = useState({
+        name: '',
+        email: '',
+        phone: '',
+        password: '',
+        confirmPassword: ''
+    });
+    const [showCoworkerDetailModal, setShowCoworkerDetailModal] = useState(false);
+    const [coworkerToView, setCoworkerToView] = useState<AdminUser | null>(null);
+
+    const fetchUserAvatar = async (userId: number): Promise<UserAvatarData | null> => {
+        try {
+            const response = await fetch(`/api/user-avatars?userId=${userId}`);
+            if (response.ok) {
+                const avatarData = await response.json();
+                if (avatarData?.url) {
+                    return avatarData;
+                }
+            }
+        } catch (error) {
+            console.error(`Error fetching avatar for user ${userId}:`, error);
+        }
+        return null;
+    };
 
     const fetchAdminUsers = async () => {
         try {
@@ -38,9 +100,31 @@ export default function AdminAdminUsers() {
             const res = await fetch('/api/users?type=admin');
             if (!res.ok) throw new Error(`Request failed: ${res.status}`);
             const data = await res.json();
-            setAdminUsers(Array.isArray(data) ? data : []);
+            // Ensure we have an array and filter to only admin role (safety check)
+            const adminList = Array.isArray(data) ? data : [];
+            // Sort by name alphabetically
+            const sortedAdmins = adminList
+                .filter(user => user.role === 'admin')
+                .sort((a, b) => {
+                    const nameA = (a.name || '').toLowerCase();
+                    const nameB = (b.name || '').toLowerCase();
+                    return nameA.localeCompare(nameB);
+                });
+            setAdminUsers(sortedAdmins);
+
+            // Fetch avatars for all admins
+            const avatarPromises = sortedAdmins.map(admin => 
+                fetchUserAvatar(admin.id).then(avatar => ({ userId: admin.id, avatar }))
+            );
+            const avatarResults = await Promise.all(avatarPromises);
+            const avatarMap: Record<number, UserAvatarData | null> = {};
+            avatarResults.forEach(({ userId, avatar }) => {
+                avatarMap[userId] = avatar;
+            });
+            setAdminAvatars(avatarMap);
         } catch (e: any) {
             setError(e?.message || 'Failed to load admin users');
+            setAdminUsers([]);
         } finally {
             setLoading(false);
         }
@@ -53,9 +137,31 @@ export default function AdminAdminUsers() {
             const res = await fetch('/api/users?type=coworkers');
             if (!res.ok) throw new Error(`Request failed: ${res.status}`);
             const data = await res.json();
-            setCoworkers(Array.isArray(data) ? data : []);
+            // Ensure we have an array and filter to only coworker role (safety check)
+            const coworkerList = Array.isArray(data) ? data : [];
+            // Sort by name alphabetically
+            const sortedCoworkers = coworkerList
+                .filter(user => user.role === 'coworker')
+                .sort((a, b) => {
+                    const nameA = (a.name || '').toLowerCase();
+                    const nameB = (b.name || '').toLowerCase();
+                    return nameA.localeCompare(nameB);
+                });
+            setCoworkers(sortedCoworkers);
+
+            // Fetch avatars for all coworkers
+            const avatarPromises = sortedCoworkers.map(coworker => 
+                fetchUserAvatar(coworker.id).then(avatar => ({ userId: coworker.id, avatar }))
+            );
+            const avatarResults = await Promise.all(avatarPromises);
+            const avatarMap: Record<number, UserAvatarData | null> = {};
+            avatarResults.forEach(({ userId, avatar }) => {
+                avatarMap[userId] = avatar;
+            });
+            setCoworkerAvatars(avatarMap);
         } catch (e: any) {
             setCoworkersError(e?.message || 'Failed to load coworkers');
+            setCoworkers([]);
         } finally {
             setCoworkersLoading(false);
         }
@@ -66,18 +172,45 @@ export default function AdminAdminUsers() {
         fetchCoworkers();
     }, []);
 
-    const administrators = adminUsers.filter(user => user.role === 'admin');
+    // Use adminUsers directly since it's already filtered and sorted
+    const administrators = adminUsers;
+
+    const [deleteCoworkerLoading, setDeleteCoworkerLoading] = useState(false);
 
     const handleDeleteClick = (user: AdminUser) => {
         setUserToDelete(user);
         setShowDeleteModal(true);
     };
 
-    const handleDeleteConfirm = () => {
-        if (userToDelete) {
-            setAdminUsers(adminUsers.filter(user => user.id !== userToDelete.id));
+    const handleDeleteConfirm = async () => {
+        if (!userToDelete) return;
+        
+        setDeleteCoworkerLoading(true);
+        try {
+            const authToken = localStorage.getItem('nobleco_auth_token');
+            const response = await fetch('/api/users', {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${authToken}`
+                },
+                body: JSON.stringify({ id: userToDelete.id })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({ error: 'Failed to delete coworker' }));
+                throw new Error(errorData.error || 'Failed to delete coworker');
+            }
+
+            // Refresh coworkers list from database
+            await fetchCoworkers();
             setShowDeleteModal(false);
             setUserToDelete(null);
+        } catch (error) {
+            console.error('Error deleting coworker:', error);
+            alert((error as Error).message || 'Failed to delete coworker');
+        } finally {
+            setDeleteCoworkerLoading(false);
         }
     };
 
@@ -86,14 +219,280 @@ export default function AdminAdminUsers() {
         setUserToDelete(null);
     };
 
-    const handlePermissionClick = (user: AdminUser) => {
+    const handleAddAdminSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setCreateError(null);
+
+        // Validation
+        if (!formData.name.trim()) {
+            setCreateError('Name is required');
+            return;
+        }
+        if (!formData.email.trim()) {
+            setCreateError('Email is required');
+            return;
+        }
+        if (!formData.phone.trim()) {
+            setCreateError('Phone number is required');
+            return;
+        }
+        if (!formData.password) {
+            setCreateError('Password is required');
+            return;
+        }
+        if (formData.password.length < 6) {
+            setCreateError('Password must be at least 6 characters');
+            return;
+        }
+        if (formData.password !== formData.confirmPassword) {
+            setCreateError('Passwords do not match');
+            return;
+        }
+
+        setCreateLoading(true);
+        try {
+            const response = await fetch('/api/users', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    email: formData.email.trim(),
+                    name: formData.name.trim(),
+                    phone: formData.phone.trim(),
+                    password: formData.password,
+                    role: 'admin'
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({ error: 'Failed to create admin user' }));
+                throw new Error(errorData.error || 'Failed to create admin user');
+            }
+
+            // Reset form and close modal
+            setFormData({
+                name: '',
+                email: '',
+                phone: '',
+                password: '',
+                confirmPassword: ''
+            });
+            setShowAddAdminModal(false);
+            setCreateError(null);
+
+            // Refresh admin users list
+            await fetchAdminUsers();
+        } catch (error) {
+            console.error('Error creating admin user:', error);
+            setCreateError(error instanceof Error ? error.message : 'Failed to create admin user');
+        } finally {
+            setCreateLoading(false);
+        }
+    };
+
+    const handleAddAdminCancel = () => {
+        setShowAddAdminModal(false);
+        setFormData({
+            name: '',
+            email: '',
+            phone: '',
+            password: '',
+            confirmPassword: ''
+        });
+        setCreateError(null);
+    };
+
+    const handleAddCoworkerSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setCreateCoworkerError(null);
+
+        // Validation
+        if (!coworkerFormData.name.trim()) {
+            setCreateCoworkerError('Name is required');
+            return;
+        }
+        if (!coworkerFormData.email.trim()) {
+            setCreateCoworkerError('Email is required');
+            return;
+        }
+        if (!coworkerFormData.phone.trim()) {
+            setCreateCoworkerError('Phone number is required');
+            return;
+        }
+        if (!coworkerFormData.password) {
+            setCreateCoworkerError('Password is required');
+            return;
+        }
+        if (coworkerFormData.password.length < 6) {
+            setCreateCoworkerError('Password must be at least 6 characters');
+            return;
+        }
+        if (coworkerFormData.password !== coworkerFormData.confirmPassword) {
+            setCreateCoworkerError('Passwords do not match');
+            return;
+        }
+
+        setCreateCoworkerLoading(true);
+        try {
+            const response = await fetch('/api/users', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    email: coworkerFormData.email.trim(),
+                    name: coworkerFormData.name.trim(),
+                    phone: coworkerFormData.phone.trim(),
+                    password: coworkerFormData.password,
+                    role: 'coworker'
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({ error: 'Failed to create coworker' }));
+                throw new Error(errorData.error || 'Failed to create coworker');
+            }
+
+            // Reset form and close modal
+            setCoworkerFormData({
+                name: '',
+                email: '',
+                phone: '',
+                password: '',
+                confirmPassword: ''
+            });
+            setShowAddCoworkerModal(false);
+            setCreateCoworkerError(null);
+
+            // Refresh coworkers list
+            await fetchCoworkers();
+        } catch (error) {
+            console.error('Error creating coworker:', error);
+            setCreateCoworkerError(error instanceof Error ? error.message : 'Failed to create coworker');
+        } finally {
+            setCreateCoworkerLoading(false);
+        }
+    };
+
+    const handleAddCoworkerCancel = () => {
+        setShowAddCoworkerModal(false);
+        setCoworkerFormData({
+            name: '',
+            email: '',
+            phone: '',
+            password: '',
+            confirmPassword: ''
+        });
+        setCreateCoworkerError(null);
+    };
+
+    const handleCoworkerDetailClick = (coworker: AdminUser) => {
+        setCoworkerToView(coworker);
+        setShowCoworkerDetailModal(true);
+        handleDropdownClose();
+    };
+
+    const fetchAvailablePages = async () => {
+        try {
+            const response = await fetch('/api/coworker-permissions?available=true');
+            if (response.ok) {
+                const data = await response.json();
+                setAvailablePages(data);
+            }
+        } catch (error) {
+            console.error('Error fetching available pages:', error);
+        }
+    };
+
+    const fetchCoworkerPermissions = async (coworkerId: number) => {
+        setPermissionLoading(true);
+        try {
+            const authToken = localStorage.getItem('nobleco_auth_token');
+            const response = await fetch(`/api/coworker-permissions?coworkerId=${coworkerId}`, {
+                headers: {
+                    'Authorization': `Bearer ${authToken}`
+                }
+            });
+            if (response.ok) {
+                const data = await response.json();
+                const permissionPaths = new Set(data.map((p: any) => p.page_path));
+                setSelectedPermissions(permissionPaths);
+            } else {
+                console.error('Failed to fetch permissions:', response.status);
+            }
+        } catch (error) {
+            console.error('Error fetching coworker permissions:', error);
+        } finally {
+            setPermissionLoading(false);
+        }
+    };
+
+    const handlePermissionClick = async (user: AdminUser) => {
         setUserToEdit(user);
         setShowPermissionModal(true);
+        await fetchAvailablePages();
+        await fetchCoworkerPermissions(user.id);
     };
 
     const handlePermissionClose = () => {
         setShowPermissionModal(false);
         setUserToEdit(null);
+        setSelectedPermissions(new Set());
+    };
+
+    const handlePermissionToggle = (pagePath: string) => {
+        setSelectedPermissions(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(pagePath)) {
+                newSet.delete(pagePath);
+            } else {
+                newSet.add(pagePath);
+            }
+            return newSet;
+        });
+    };
+
+    const handlePermissionSave = async () => {
+        if (!userToEdit) return;
+
+        setPermissionSaving(true);
+        try {
+            const authToken = localStorage.getItem('nobleco_auth_token');
+            const permissions = Array.from(selectedPermissions).map(pagePath => {
+                const page = availablePages.find(p => p.page_path === pagePath);
+                return {
+                    page_path: pagePath,
+                    page_name: page?.page_name || pagePath
+                };
+            });
+
+            const response = await fetch('/api/coworker-permissions', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${authToken}`
+                },
+                body: JSON.stringify({
+                    coworkerId: userToEdit.id,
+                    permissions
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({ error: 'Failed to save permissions' }));
+                throw new Error(errorData.error || 'Failed to save permissions');
+            }
+
+            // Refresh coworkers list
+            await fetchCoworkers();
+            handlePermissionClose();
+        } catch (error) {
+            console.error('Error saving permissions:', error);
+            alert((error as Error).message || 'Failed to save permissions');
+        } finally {
+            setPermissionSaving(false);
+        }
     };
 
     const handleStatusToggle = async (userId: number, currentStatus: string) => {
@@ -147,6 +546,63 @@ export default function AdminAdminUsers() {
         setActiveDropdown(null);
     };
 
+    const handleAdminDropdownToggle = (adminId: number) => {
+        setActiveAdminDropdown(activeAdminDropdown === adminId ? null : adminId);
+    };
+
+    const handleAdminDropdownClose = () => {
+        setActiveAdminDropdown(null);
+    };
+
+    const handleAdminDetailClick = (admin: AdminUser) => {
+        setAdminToView(admin);
+        setShowAdminDetailModal(true);
+        handleAdminDropdownClose();
+    };
+
+    const handleAdminDeleteClick = (admin: AdminUser) => {
+        setAdminToDelete(admin);
+        setShowAdminDeleteModal(true);
+        handleAdminDropdownClose();
+    };
+
+    const handleAdminDeleteConfirm = async () => {
+        if (!adminToDelete) return;
+        
+        setDeleteAdminLoading(true);
+        try {
+            const authToken = localStorage.getItem('nobleco_auth_token');
+            const response = await fetch('/api/users', {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${authToken}`
+                },
+                body: JSON.stringify({ id: adminToDelete.id })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({ error: 'Failed to delete admin' }));
+                throw new Error(errorData.error || 'Failed to delete admin');
+            }
+
+            // Refresh admin users list from database
+            await fetchAdminUsers();
+            setShowAdminDeleteModal(false);
+            setAdminToDelete(null);
+        } catch (error) {
+            console.error('Error deleting admin:', error);
+            alert((error as Error).message || 'Failed to delete admin');
+        } finally {
+            setDeleteAdminLoading(false);
+        }
+    };
+
+    const handleAdminDeleteCancel = () => {
+        setShowAdminDeleteModal(false);
+        setAdminToDelete(null);
+    };
+
     const formatDate = (dateString: string) => {
         return new Date(dateString).toLocaleDateString('en-US', {
             year: 'numeric',
@@ -169,10 +625,15 @@ export default function AdminAdminUsers() {
     // Close dropdown when clicking outside
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
+            const target = event.target as HTMLElement;
             if (activeDropdown !== null) {
-                const target = event.target as HTMLElement;
                 if (!target.closest('.unified-dropdown') && !target.closest('.action-dropdown')) {
                     setActiveDropdown(null);
+                }
+            }
+            if (activeAdminDropdown !== null) {
+                if (!target.closest('.admin-dropdown')) {
+                    setActiveAdminDropdown(null);
                 }
             }
         };
@@ -181,7 +642,7 @@ export default function AdminAdminUsers() {
         return () => {
             document.removeEventListener('mousedown', handleClickOutside);
         };
-    }, [activeDropdown]);
+    }, [activeDropdown, activeAdminDropdown]);
 
     return (
         <AdminLayout title="Admin Users">
@@ -195,6 +656,14 @@ export default function AdminAdminUsers() {
                             <h2>Administrator</h2>
                             <span className="role-badge admin">Highest Authority</span>
                         </div>
+                        <button 
+                            className="btn-primary"
+                            onClick={() => setShowAddAdminModal(true)}
+                            style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+                        >
+                            <IconPlus />
+                            <span>Add</span>
+                        </button>
                     </div>
                     <div className="section-description">
                         <p>Administrators have complete control over the entire system. They can access all features, manage all users, and perform any administrative action without restrictions.</p>
@@ -233,10 +702,52 @@ export default function AdminAdminUsers() {
                                 <p>There are currently no administrators in the system.</p>
                             </div>
                         ) : (
-                            administrators.map((admin) => (
-                                <div key={admin.id} className="administrator-item">
-                                    <div className="admin-avatar">
-                                        {admin.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                            administrators.map((admin) => {
+                                const avatar = adminAvatars[admin.id];
+                                const hasAvatar = avatar && avatar.url;
+                                return (
+                                <div 
+                                    key={admin.id} 
+                                    className="administrator-item"
+                                    style={{ cursor: 'pointer' }}
+                                    onClick={(e) => {
+                                        // Don't trigger if clicking on dropdown button
+                                        if ((e.target as HTMLElement).closest('.admin-dropdown')) {
+                                            return;
+                                        }
+                                        handleAdminDetailClick(admin);
+                                    }}
+                                >
+                                    <div 
+                                        className="admin-avatar"
+                                        style={{
+                                            background: hasAvatar ? 'transparent' : `linear-gradient(135deg, ${getAvatarColor(admin.name)}, ${getAvatarColor(admin.name)}dd)`,
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            overflow: 'hidden'
+                                        }}
+                                    >
+                                        {hasAvatar ? (
+                                            <img 
+                                                src={avatar.url} 
+                                                alt={admin.name}
+                                                style={getAvatarViewportStyles(avatar, 50)}
+                                                onError={(e) => {
+                                                    // Fallback to initials if image fails to load
+                                                    const target = e.target as HTMLImageElement;
+                                                    target.style.display = 'none';
+                                                    const parent = target.parentElement;
+                                                    if (parent) {
+                                                        const initials = admin.name.split(' ').map(n => n[0]).join('').toUpperCase() || getAvatarInitial(admin.name);
+                                                        parent.innerHTML = initials;
+                                                        parent.style.background = `linear-gradient(135deg, ${getAvatarColor(admin.name)}, ${getAvatarColor(admin.name)}dd)`;
+                                                    }
+                                                }}
+                                            />
+                                        ) : (
+                                            admin.name.split(' ').map(n => n[0]).join('').toUpperCase() || getAvatarInitial(admin.name)
+                                        )}
                                     </div>
                                     <div className="admin-details">
                                         <h3 className="admin-name">{admin.name}</h3>
@@ -246,8 +757,41 @@ export default function AdminAdminUsers() {
                                         <IconCrown />
                                         <span>Administrator</span>
                                     </div>
+                                    <div 
+                                        className={`admin-dropdown unified-dropdown ${activeAdminDropdown === admin.id ? 'active' : ''}`}
+                                        onClick={(e) => e.stopPropagation()}
+                                    >
+                                        <button 
+                                            className="unified-more-btn"
+                                            onClick={() => handleAdminDropdownToggle(admin.id)}
+                                            title="More Actions"
+                                        >
+                                            <IconMoreHorizontal />
+                                        </button>
+                                        {activeAdminDropdown === admin.id && (
+                                            <div className="unified-dropdown-menu">
+                                                <button 
+                                                    className="unified-dropdown-item"
+                                                    onClick={() => handleAdminDetailClick(admin)}
+                                                >
+                                                    <IconEye />
+                                                    Detail
+                                                </button>
+                                                {administrators.length > 1 && (
+                                                    <button 
+                                                        className="unified-dropdown-item danger"
+                                                        onClick={() => handleAdminDeleteClick(admin)}
+                                                    >
+                                                        <IconTrash2 />
+                                                        Delete
+                                                    </button>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
-                            ))
+                                );
+                            })
                         )}
                     </div>
                 </div>
@@ -259,10 +803,18 @@ export default function AdminAdminUsers() {
                             <IconShield />
                             <h2>Co-workers</h2>
                             <span className="role-badge coworker">Limited Access</span>
+                            <span className="section-stats" style={{ marginLeft: '12px', fontSize: '0.9rem', color: 'var(--muted)' }}>
+                                {coworkers.length} co-worker{coworkers.length !== 1 ? 's' : ''}
+                            </span>
                         </div>
-                        <div className="section-stats">
-                            {coworkers.length} co-worker{coworkers.length !== 1 ? 's' : ''}
-                        </div>
+                        <button 
+                            className="btn-primary"
+                            onClick={() => setShowAddCoworkerModal(true)}
+                            style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+                        >
+                            <IconPlus />
+                            <span>Add</span>
+                        </button>
                     </div>
                     <div className="section-description">
                         <p>Co-workers have restricted access to specific features. You can manage their permissions, control what they can access, and remove their admin privileges when needed.</p>
@@ -316,12 +868,52 @@ export default function AdminAdminUsers() {
                                             </td>
                                         </tr>
                                     ) : (
-                                        coworkers.map((user) => (
-                                            <tr key={user.id}>
+                                        coworkers.map((user) => {
+                                            const avatar = coworkerAvatars[user.id];
+                                            const hasAvatar = avatar && avatar.url;
+                                            return (
+                                            <tr 
+                                                key={user.id}
+                                                style={{ cursor: 'pointer' }}
+                                                onClick={(e) => {
+                                                    // Don't trigger if clicking on dropdown button
+                                                    if ((e.target as HTMLElement).closest('.unified-dropdown')) {
+                                                        return;
+                                                    }
+                                                    handleCoworkerDetailClick(user);
+                                                }}
+                                            >
                                                 <td>
                                                     <div className="user-info">
-                                                        <div className="user-avatar">
-                                                            {user.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                                                        <div 
+                                                            className="user-avatar"
+                                                            style={{
+                                                                background: hasAvatar ? 'transparent' : `linear-gradient(135deg, ${getAvatarColor(user.name)}, ${getAvatarColor(user.name)}dd)`,
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                justifyContent: 'center',
+                                                                overflow: 'hidden'
+                                                            }}
+                                                        >
+                                                            {hasAvatar ? (
+                                                                <img 
+                                                                    src={avatar.url} 
+                                                                    alt={user.name}
+                                                                    style={getAvatarViewportStyles(avatar, 40)}
+                                                                    onError={(e) => {
+                                                                        const target = e.target as HTMLImageElement;
+                                                                        target.style.display = 'none';
+                                                                        const parent = target.parentElement;
+                                                                        if (parent) {
+                                                                            const initials = user.name.split(' ').map(n => n[0]).join('').toUpperCase() || getAvatarInitial(user.name);
+                                                                            parent.innerHTML = initials;
+                                                                            parent.style.background = `linear-gradient(135deg, ${getAvatarColor(user.name)}, ${getAvatarColor(user.name)}dd)`;
+                                                                        }
+                                                                    }}
+                                                                />
+                                                            ) : (
+                                                                user.name.split(' ').map(n => n[0]).join('').toUpperCase() || getAvatarInitial(user.name)
+                                                            )}
                                                         </div>
                                                         <span>{user.name}</span>
                                                     </div>
@@ -333,7 +925,10 @@ export default function AdminAdminUsers() {
                                                     </span>
                                                 </td>
                                                 <td>
-                                                    <div className={`unified-dropdown ${activeDropdown === user.id ? 'active' : ''}`}>
+                                                    <div 
+                                                        className={`unified-dropdown ${activeDropdown === user.id ? 'active' : ''}`}
+                                                        onClick={(e) => e.stopPropagation()}
+                                                    >
                                                         <button 
                                                             className="unified-more-btn"
                                                             onClick={() => handleDropdownToggle(user.id)}
@@ -343,6 +938,15 @@ export default function AdminAdminUsers() {
                                                         </button>
                                                         {activeDropdown === user.id && (
                                                             <div className="unified-dropdown-menu">
+                                                                <button 
+                                                                    className="unified-dropdown-item"
+                                                                    onClick={() => {
+                                                                        handleCoworkerDetailClick(user);
+                                                                    }}
+                                                                >
+                                                                    <IconEye />
+                                                                    Detail
+                                                                </button>
                                                                 <button 
                                                                     className="unified-dropdown-item"
                                                                     onClick={() => {
@@ -383,7 +987,8 @@ export default function AdminAdminUsers() {
                                                     </div>
                                                 </td>
                                             </tr>
-                                        ))
+                                            );
+                                        })
                                     )}
                                 </tbody>
                             </table>
@@ -424,10 +1029,24 @@ export default function AdminAdminUsers() {
                                     <p>There are currently no co-workers in the system.</p>
                                 </div>
                             ) : (
-                                coworkers.map((user) => (
-                                    <div key={user.id} className="coworker-mobile-card">
+                                coworkers.map((user) => {
+                                    const avatar = coworkerAvatars[user.id];
+                                    const hasAvatar = avatar && avatar.url;
+                                    return (
+                                    <div 
+                                        key={user.id} 
+                                        className="coworker-mobile-card"
+                                        style={{ cursor: 'pointer' }}
+                                        onClick={(e) => {
+                                            // Don't trigger if clicking on dropdown button
+                                            if ((e.target as HTMLElement).closest('.unified-dropdown')) {
+                                                return;
+                                            }
+                                            handleCoworkerDetailClick(user);
+                                        }}
+                                    >
                                         {/* Three-dot button positioned at top right */}
-                                        <div className="coworker-card-actions">
+                                        <div className="coworker-card-actions" onClick={(e) => e.stopPropagation()}>
                                             <div className={`unified-dropdown ${activeDropdown === user.id ? 'active' : ''}`}>
                                                 <button 
                                                     className="unified-more-btn"
@@ -438,6 +1057,15 @@ export default function AdminAdminUsers() {
                                                 </button>
                                                 {activeDropdown === user.id && (
                                                     <div className="unified-dropdown-menu">
+                                                        <button 
+                                                            className="unified-dropdown-item"
+                                                            onClick={() => {
+                                                                handleCoworkerDetailClick(user);
+                                                            }}
+                                                        >
+                                                            <IconEye />
+                                                            Detail
+                                                        </button>
                                                         <button 
                                                             className="unified-dropdown-item"
                                                             onClick={() => {
@@ -479,8 +1107,35 @@ export default function AdminAdminUsers() {
                                         </div>
 
                                         <div className="coworker-card-header">
-                                            <div className="coworker-card-avatar">
-                                                {user.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                                            <div 
+                                                className="coworker-card-avatar"
+                                                style={{
+                                                    background: hasAvatar ? 'transparent' : `linear-gradient(135deg, ${getAvatarColor(user.name)}, ${getAvatarColor(user.name)}dd)`,
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    overflow: 'hidden'
+                                                }}
+                                            >
+                                                {hasAvatar ? (
+                                                    <img 
+                                                        src={avatar.url} 
+                                                        alt={user.name}
+                                                        style={getAvatarViewportStyles(avatar, 60)}
+                                                        onError={(e) => {
+                                                            const target = e.target as HTMLImageElement;
+                                                            target.style.display = 'none';
+                                                            const parent = target.parentElement;
+                                                            if (parent) {
+                                                                const initials = user.name.split(' ').map(n => n[0]).join('').toUpperCase() || getAvatarInitial(user.name);
+                                                                parent.innerHTML = initials;
+                                                                parent.style.background = `linear-gradient(135deg, ${getAvatarColor(user.name)}, ${getAvatarColor(user.name)}dd)`;
+                                                            }
+                                                        }}
+                                                    />
+                                                ) : (
+                                                    user.name.split(' ').map(n => n[0]).join('').toUpperCase() || getAvatarInitial(user.name)
+                                                )}
                                             </div>
                                             <div className="coworker-card-info">
                                                 <h3 className="coworker-card-name">{user.name}</h3>
@@ -496,7 +1151,8 @@ export default function AdminAdminUsers() {
                                             </div>
                                         </div>
                                     </div>
-                                ))
+                                    );
+                                })
                             )}
                         </div>
                     </div>
@@ -512,8 +1168,9 @@ export default function AdminAdminUsers() {
                                 <button 
                                     className="modal-close"
                                     onClick={handleDeleteCancel}
+                                    disabled={deleteCoworkerLoading}
                                 >
-                                    ×
+                                    <IconX />
                                 </button>
                             </div>
                             <div className="modal-body">
@@ -524,16 +1181,153 @@ export default function AdminAdminUsers() {
                                 <button 
                                     className="btn-secondary"
                                     onClick={handleDeleteCancel}
+                                    disabled={deleteCoworkerLoading}
                                 >
                                     Cancel
                                 </button>
                                 <button 
                                     className="btn-danger"
                                     onClick={handleDeleteConfirm}
+                                    disabled={deleteCoworkerLoading}
                                 >
-                                    Delete
+                                    {deleteCoworkerLoading ? (
+                                        <>
+                                            <IconLoader className="animate-spin" style={{ marginRight: '8px' }} />
+                                            Deleting...
+                                        </>
+                                    ) : (
+                                        'Delete'
+                                    )}
                                 </button>
                             </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Add Admin Modal */}
+                {showAddAdminModal && (
+                    <div className="modal-overlay" onClick={handleAddAdminCancel}>
+                        <div className="modal-content add-admin-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '500px', display: 'flex', flexDirection: 'column', maxHeight: '90vh' }}>
+                            <div className="modal-header" style={{ flexShrink: 0 }}>
+                                <h2>Add Administrator</h2>
+                                <button 
+                                    className="modal-close"
+                                    onClick={handleAddAdminCancel}
+                                    disabled={createLoading}
+                                >
+                                    <IconX />
+                                </button>
+                            </div>
+                            <form onSubmit={handleAddAdminSubmit} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+                                <div className="modal-body" style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
+                                    {createError && (
+                                        <div className="error-message" style={{ 
+                                            padding: '12px', 
+                                            background: '#fee2e2', 
+                                            color: '#dc2626', 
+                                            borderRadius: '8px', 
+                                            marginBottom: '20px',
+                                            fontSize: '14px'
+                                        }}>
+                                            {createError}
+                                        </div>
+                                    )}
+                                    <div className="form-group" style={{ marginBottom: '20px' }}>
+                                        <label className="form-label">Name *</label>
+                                        <input
+                                            type="text"
+                                            className="form-input"
+                                            value={formData.name}
+                                            onChange={(e) => {
+                                                // Auto-capitalize first letter of each word
+                                                const value = e.target.value;
+                                                const capitalized = value.split(' ').map(word => 
+                                                    word.length > 0 
+                                                        ? word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+                                                        : ''
+                                                ).join(' ');
+                                                setFormData({ ...formData, name: capitalized });
+                                            }}
+                                            placeholder="Enter full name"
+                                            required
+                                            disabled={createLoading}
+                                        />
+                                    </div>
+                                    <div className="form-group" style={{ marginBottom: '20px' }}>
+                                        <label className="form-label">Email *</label>
+                                        <input
+                                            type="email"
+                                            className="form-input"
+                                            value={formData.email}
+                                            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                            placeholder="Enter email address"
+                                            required
+                                            disabled={createLoading}
+                                        />
+                                    </div>
+                                    <div className="form-group" style={{ marginBottom: '20px' }}>
+                                        <label className="form-label">Phone Number *</label>
+                                        <input
+                                            type="tel"
+                                            className="form-input"
+                                            value={formData.phone}
+                                            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                                            placeholder="Enter phone number"
+                                            required
+                                            disabled={createLoading}
+                                        />
+                                    </div>
+                                    <div className="form-group" style={{ marginBottom: '20px' }}>
+                                        <label className="form-label">Password *</label>
+                                        <input
+                                            type="password"
+                                            className="form-input"
+                                            value={formData.password}
+                                            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                                            placeholder="Enter password (min 6 characters)"
+                                            required
+                                            disabled={createLoading}
+                                            minLength={6}
+                                        />
+                                    </div>
+                                    <div className="form-group" style={{ marginBottom: '20px' }}>
+                                        <label className="form-label">Confirm Password *</label>
+                                        <input
+                                            type="password"
+                                            className="form-input"
+                                            value={formData.confirmPassword}
+                                            onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                                            placeholder="Confirm password"
+                                            required
+                                            disabled={createLoading}
+                                        />
+                                    </div>
+                                </div>
+                                <div className="modal-footer" style={{ flexShrink: 0, borderTop: '1px solid var(--border)', paddingTop: '16px', marginTop: '16px' }}>
+                                    <button 
+                                        type="button"
+                                        className="btn-secondary"
+                                        onClick={handleAddAdminCancel}
+                                        disabled={createLoading}
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button 
+                                        type="submit"
+                                        className="btn-primary"
+                                        disabled={createLoading}
+                                    >
+                                        {createLoading ? (
+                                            <>
+                                                <IconLoader className="animate-spin" style={{ marginRight: '8px' }} />
+                                                Creating...
+                                            </>
+                                        ) : (
+                                            'Create Administrator'
+                                        )}
+                                    </button>
+                                </div>
+                            </form>
                         </div>
                     </div>
                 )}
@@ -541,47 +1335,570 @@ export default function AdminAdminUsers() {
                 {/* Permission Settings Modal */}
                 {showPermissionModal && userToEdit && (
                     <div className="modal-overlay" onClick={handlePermissionClose}>
-                        <div className="modal-content permission-modal" onClick={(e) => e.stopPropagation()}>
-                            <div className="modal-header">
+                        <div className="modal-content permission-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '700px', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
+                            <div className="modal-header" style={{ flexShrink: 0 }}>
                                 <h2>Permission Settings</h2>
                                 <button 
                                     className="modal-close"
                                     onClick={handlePermissionClose}
+                                    disabled={permissionSaving}
                                 >
-                                    ×
+                                    <IconX />
                                 </button>
                             </div>
-                            <div className="modal-body">
-                                <div className="permission-settings">
-                                    <h3>Edit permissions for {userToEdit.name}</h3>
-                                    <div className="permission-options">
-                                        <label className="permission-option">
-                                            <input type="checkbox" defaultChecked={userToEdit.permissions?.includes('products') || false} />
-                                            <span>Products Management</span>
-                                        </label>
-                                        <label className="permission-option">
-                                            <input type="checkbox" defaultChecked={userToEdit.permissions?.includes('category') || false} />
-                                            <span>Category Management</span>
-                                        </label>
-                                        <label className="permission-option">
-                                            <input type="checkbox" defaultChecked={userToEdit.permissions?.includes('withdraw_request') || false} />
-                                            <span>Withdraw Request Management</span>
-                                        </label>
+                            <div className="modal-body" style={{ flex: '1 1 auto', overflowY: 'auto', padding: '24px' }}>
+                                {permissionLoading ? (
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px' }}>
+                                        <IconLoader className="animate-spin" style={{ width: '24px', height: '24px', color: 'var(--primary)' }} />
+                                        <span style={{ marginLeft: '12px', color: 'var(--muted)' }}>Loading permissions...</span>
                                     </div>
-                                </div>
+                                ) : (
+                                    <div className="permission-settings">
+                                        <div style={{ marginBottom: '24px' }}>
+                                            <h3 style={{ fontSize: '18px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '8px' }}>
+                                                Edit permissions for <span style={{ color: 'var(--primary)' }}>{userToEdit.name}</span>
+                                            </h3>
+                                            <p style={{ fontSize: '14px', color: 'var(--muted)', margin: 0 }}>
+                                                Select the pages this coworker can access. Changes will take effect immediately after saving.
+                                            </p>
+                                        </div>
+
+                                        {/* Dashboard Section */}
+                                        <div className="permission-section" style={{ marginBottom: '20px' }}>
+                                            <div className="permission-section-header" style={{ 
+                                                padding: '8px 12px', 
+                                                marginBottom: '8px'
+                                            }}>
+                                                <h4 style={{ 
+                                                    fontSize: '12px', 
+                                                    fontWeight: '500', 
+                                                    color: 'var(--muted)', 
+                                                    margin: 0, 
+                                                    textTransform: 'uppercase', 
+                                                    letterSpacing: '0.5px',
+                                                    lineHeight: '1.4'
+                                                }}>
+                                                    Dashboard
+                                                </h4>
+                                            </div>
+                                            <div className="permission-options" style={{ paddingLeft: '4px' }}>
+                                                {availablePages
+                                                    .filter(page => page.section === null)
+                                                    .map(page => (
+                                                        <label 
+                                                            key={page.page_path}
+                                                            className="permission-option"
+                                                            style={{
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                padding: '8px 12px',
+                                                                borderRadius: '6px',
+                                                                cursor: 'pointer',
+                                                                transition: 'background 0.15s ease',
+                                                                marginBottom: '2px',
+                                                                lineHeight: '1.4'
+                                                            }}
+                                                            onMouseEnter={(e) => {
+                                                                e.currentTarget.style.background = 'var(--bg-secondary)';
+                                                            }}
+                                                            onMouseLeave={(e) => {
+                                                                e.currentTarget.style.background = 'transparent';
+                                                            }}
+                                                        >
+                                                            <div style={{ 
+                                                                marginRight: '10px',
+                                                                position: 'relative',
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                justifyContent: 'center'
+                                                            }}>
+                                                                <input 
+                                                                    type="checkbox" 
+                                                                    checked={selectedPermissions.has(page.page_path)}
+                                                                    onChange={() => handlePermissionToggle(page.page_path)}
+                                                                    disabled={permissionSaving}
+                                                                    style={{
+                                                                        width: '18px',
+                                                                        height: '18px',
+                                                                        cursor: 'pointer',
+                                                                        accentColor: 'var(--primary)',
+                                                                        margin: 0,
+                                                                        flexShrink: 0
+                                                                    }}
+                                                                    className="permission-checkbox"
+                                                                />
+                                                            </div>
+                                                            <span style={{ 
+                                                                fontSize: '14px', 
+                                                                color: 'var(--text-primary)', 
+                                                                fontWeight: '500',
+                                                                lineHeight: '1.4'
+                                                            }}>
+                                                                {page.page_name}
+                                                            </span>
+                                                        </label>
+                                                    ))}
+                                            </div>
+                                        </div>
+
+                                        {/* Users Section */}
+                                        <div className="permission-section" style={{ marginBottom: '20px' }}>
+                                            <div className="permission-section-header" style={{ 
+                                                padding: '8px 12px', 
+                                                marginBottom: '8px'
+                                            }}>
+                                                <h4 style={{ 
+                                                    fontSize: '12px', 
+                                                    fontWeight: '500', 
+                                                    color: 'var(--muted)', 
+                                                    margin: 0, 
+                                                    textTransform: 'uppercase', 
+                                                    letterSpacing: '0.5px',
+                                                    lineHeight: '1.4'
+                                                }}>
+                                                    Users
+                                                </h4>
+                                            </div>
+                                            <div className="permission-options" style={{ paddingLeft: '4px' }}>
+                                                {availablePages
+                                                    .filter(page => page.section === 'users' && page.page_path !== '/admin-admin-users')
+                                                    .map(page => (
+                                                        <label 
+                                                            key={page.page_path}
+                                                            className="permission-option"
+                                                            style={{
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                padding: '8px 12px',
+                                                                borderRadius: '6px',
+                                                                cursor: 'pointer',
+                                                                transition: 'background 0.15s ease',
+                                                                marginBottom: '2px',
+                                                                lineHeight: '1.4'
+                                                            }}
+                                                            onMouseEnter={(e) => {
+                                                                e.currentTarget.style.background = 'var(--bg-secondary)';
+                                                            }}
+                                                            onMouseLeave={(e) => {
+                                                                e.currentTarget.style.background = 'transparent';
+                                                            }}
+                                                        >
+                                                            <div style={{ 
+                                                                marginRight: '10px',
+                                                                position: 'relative',
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                justifyContent: 'center'
+                                                            }}>
+                                                                <input 
+                                                                    type="checkbox" 
+                                                                    checked={selectedPermissions.has(page.page_path)}
+                                                                    onChange={() => handlePermissionToggle(page.page_path)}
+                                                                    disabled={permissionSaving}
+                                                                    style={{
+                                                                        width: '18px',
+                                                                        height: '18px',
+                                                                        cursor: 'pointer',
+                                                                        accentColor: 'var(--primary)',
+                                                                        margin: 0,
+                                                                        flexShrink: 0
+                                                                    }}
+                                                                    className="permission-checkbox"
+                                                                />
+                                                            </div>
+                                                            <span style={{ 
+                                                                fontSize: '14px', 
+                                                                color: 'var(--text-primary)', 
+                                                                fontWeight: '500',
+                                                                lineHeight: '1.4'
+                                                            }}>
+                                                                {page.page_name}
+                                                            </span>
+                                                        </label>
+                                                    ))}
+                                            </div>
+                                        </div>
+
+                                        {/* Products Section */}
+                                        <div className="permission-section" style={{ marginBottom: '20px' }}>
+                                            <div className="permission-section-header" style={{ 
+                                                padding: '8px 12px', 
+                                                marginBottom: '8px'
+                                            }}>
+                                                <h4 style={{ 
+                                                    fontSize: '12px', 
+                                                    fontWeight: '500', 
+                                                    color: 'var(--muted)', 
+                                                    margin: 0, 
+                                                    textTransform: 'uppercase', 
+                                                    letterSpacing: '0.5px',
+                                                    lineHeight: '1.4'
+                                                }}>
+                                                    Products
+                                                </h4>
+                                            </div>
+                                            <div className="permission-options" style={{ paddingLeft: '4px' }}>
+                                                {availablePages
+                                                    .filter(page => page.section === 'products')
+                                                    .map(page => (
+                                                        <label 
+                                                            key={page.page_path}
+                                                            className="permission-option"
+                                                            style={{
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                padding: '8px 12px',
+                                                                borderRadius: '6px',
+                                                                cursor: 'pointer',
+                                                                transition: 'background 0.15s ease',
+                                                                marginBottom: '2px',
+                                                                lineHeight: '1.4'
+                                                            }}
+                                                            onMouseEnter={(e) => {
+                                                                e.currentTarget.style.background = 'var(--bg-secondary)';
+                                                            }}
+                                                            onMouseLeave={(e) => {
+                                                                e.currentTarget.style.background = 'transparent';
+                                                            }}
+                                                        >
+                                                            <div style={{ 
+                                                                marginRight: '10px',
+                                                                position: 'relative',
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                justifyContent: 'center'
+                                                            }}>
+                                                                <input 
+                                                                    type="checkbox" 
+                                                                    checked={selectedPermissions.has(page.page_path)}
+                                                                    onChange={() => handlePermissionToggle(page.page_path)}
+                                                                    disabled={permissionSaving}
+                                                                    style={{
+                                                                        width: '18px',
+                                                                        height: '18px',
+                                                                        cursor: 'pointer',
+                                                                        accentColor: 'var(--primary)',
+                                                                        margin: 0,
+                                                                        flexShrink: 0
+                                                                    }}
+                                                                    className="permission-checkbox"
+                                                                />
+                                                            </div>
+                                                            <span style={{ 
+                                                                fontSize: '14px', 
+                                                                color: 'var(--text-primary)', 
+                                                                fontWeight: '500',
+                                                                lineHeight: '1.4'
+                                                            }}>
+                                                                {page.page_name}
+                                                            </span>
+                                                        </label>
+                                                    ))}
+                                            </div>
+                                        </div>
+
+                                        {/* Payment Section */}
+                                        <div className="permission-section" style={{ marginBottom: '20px' }}>
+                                            <div className="permission-section-header" style={{ 
+                                                padding: '8px 12px', 
+                                                marginBottom: '8px'
+                                            }}>
+                                                <h4 style={{ 
+                                                    fontSize: '12px', 
+                                                    fontWeight: '500', 
+                                                    color: 'var(--muted)', 
+                                                    margin: 0, 
+                                                    textTransform: 'uppercase', 
+                                                    letterSpacing: '0.5px',
+                                                    lineHeight: '1.4'
+                                                }}>
+                                                    Payment
+                                                </h4>
+                                            </div>
+                                            <div className="permission-options" style={{ paddingLeft: '4px' }}>
+                                                {availablePages
+                                                    .filter(page => page.section === 'payment')
+                                                    .map(page => (
+                                                        <label 
+                                                            key={page.page_path}
+                                                            className="permission-option"
+                                                            style={{
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                padding: '8px 12px',
+                                                                borderRadius: '6px',
+                                                                cursor: 'pointer',
+                                                                transition: 'background 0.15s ease',
+                                                                marginBottom: '2px',
+                                                                lineHeight: '1.4'
+                                                            }}
+                                                            onMouseEnter={(e) => {
+                                                                e.currentTarget.style.background = 'var(--bg-secondary)';
+                                                            }}
+                                                            onMouseLeave={(e) => {
+                                                                e.currentTarget.style.background = 'transparent';
+                                                            }}
+                                                        >
+                                                            <div style={{ 
+                                                                marginRight: '10px',
+                                                                position: 'relative',
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                justifyContent: 'center'
+                                                            }}>
+                                                                <input 
+                                                                    type="checkbox" 
+                                                                    checked={selectedPermissions.has(page.page_path)}
+                                                                    onChange={() => handlePermissionToggle(page.page_path)}
+                                                                    disabled={permissionSaving}
+                                                                    style={{
+                                                                        width: '18px',
+                                                                        height: '18px',
+                                                                        cursor: 'pointer',
+                                                                        accentColor: 'var(--primary)',
+                                                                        margin: 0,
+                                                                        flexShrink: 0
+                                                                    }}
+                                                                    className="permission-checkbox"
+                                                                />
+                                                            </div>
+                                                            <span style={{ 
+                                                                fontSize: '14px', 
+                                                                color: 'var(--text-primary)', 
+                                                                fontWeight: '500',
+                                                                lineHeight: '1.4'
+                                                            }}>
+                                                                {page.page_name}
+                                                            </span>
+                                                        </label>
+                                                    ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
-                            <div className="modal-footer">
+                            <div className="modal-footer" style={{ flexShrink: 0, borderTop: '1px solid var(--border)', padding: '16px 24px', display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
                                 <button 
                                     className="btn-secondary"
                                     onClick={handlePermissionClose}
+                                    disabled={permissionSaving}
                                 >
                                     Cancel
                                 </button>
                                 <button 
                                     className="btn-primary"
-                                    onClick={handlePermissionClose}
+                                    onClick={handlePermissionSave}
+                                    disabled={permissionSaving || permissionLoading}
                                 >
-                                    Save Changes
+                                    {permissionSaving ? (
+                                        <>
+                                            <IconLoader className="animate-spin" style={{ marginRight: '8px' }} />
+                                            Saving...
+                                        </>
+                                    ) : (
+                                        'Save Changes'
+                                    )}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                        {/* Admin Detail Modal */}
+                        {showAdminDetailModal && adminToView && (
+                            <AdminDetailModal
+                                open={showAdminDetailModal}
+                                onClose={() => {
+                                    setShowAdminDetailModal(false);
+                                    setAdminToView(null);
+                                }}
+                                admin={adminToView}
+                            />
+                        )}
+
+                        {/* Add Coworker Modal */}
+                        {showAddCoworkerModal && (
+                            <div className="modal-overlay" onClick={handleAddCoworkerCancel}>
+                                <div className="modal-content add-admin-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '500px', display: 'flex', flexDirection: 'column', maxHeight: '90vh' }}>
+                                    <div className="modal-header" style={{ flexShrink: 0 }}>
+                                        <h2>Add Co-worker</h2>
+                                        <button 
+                                            className="modal-close"
+                                            onClick={handleAddCoworkerCancel}
+                                            disabled={createCoworkerLoading}
+                                        >
+                                            <IconX />
+                                        </button>
+                                    </div>
+                                    <form onSubmit={handleAddCoworkerSubmit} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+                                        <div className="modal-body" style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
+                                            {createCoworkerError && (
+                                                <div className="error-message" style={{ 
+                                                    padding: '12px', 
+                                                    background: '#fee2e2', 
+                                                    color: '#dc2626', 
+                                                    borderRadius: '8px', 
+                                                    marginBottom: '20px',
+                                                    fontSize: '14px'
+                                                }}>
+                                                    {createCoworkerError}
+                                                </div>
+                                            )}
+                                            <div className="form-group" style={{ marginBottom: '20px' }}>
+                                                <label className="form-label">Name *</label>
+                                                <input
+                                                    type="text"
+                                                    className="form-input"
+                                                    value={coworkerFormData.name}
+                                                    onChange={(e) => {
+                                                        // Auto-capitalize first letter of each word
+                                                        const value = e.target.value;
+                                                        const capitalized = value.split(' ').map(word => 
+                                                            word.length > 0 
+                                                                ? word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+                                                                : ''
+                                                        ).join(' ');
+                                                        setCoworkerFormData({ ...coworkerFormData, name: capitalized });
+                                                    }}
+                                                    placeholder="Enter full name"
+                                                    required
+                                                    disabled={createCoworkerLoading}
+                                                />
+                                            </div>
+                                            <div className="form-group" style={{ marginBottom: '20px' }}>
+                                                <label className="form-label">Email *</label>
+                                                <input
+                                                    type="email"
+                                                    className="form-input"
+                                                    value={coworkerFormData.email}
+                                                    onChange={(e) => setCoworkerFormData({ ...coworkerFormData, email: e.target.value })}
+                                                    placeholder="Enter email address"
+                                                    required
+                                                    disabled={createCoworkerLoading}
+                                                />
+                                            </div>
+                                            <div className="form-group" style={{ marginBottom: '20px' }}>
+                                                <label className="form-label">Phone Number *</label>
+                                                <input
+                                                    type="tel"
+                                                    className="form-input"
+                                                    value={coworkerFormData.phone}
+                                                    onChange={(e) => setCoworkerFormData({ ...coworkerFormData, phone: e.target.value })}
+                                                    placeholder="Enter phone number"
+                                                    required
+                                                    disabled={createCoworkerLoading}
+                                                />
+                                            </div>
+                                            <div className="form-group" style={{ marginBottom: '20px' }}>
+                                                <label className="form-label">Password *</label>
+                                                <input
+                                                    type="password"
+                                                    className="form-input"
+                                                    value={coworkerFormData.password}
+                                                    onChange={(e) => setCoworkerFormData({ ...coworkerFormData, password: e.target.value })}
+                                                    placeholder="Enter password (min 6 characters)"
+                                                    required
+                                                    disabled={createCoworkerLoading}
+                                                    minLength={6}
+                                                />
+                                            </div>
+                                            <div className="form-group" style={{ marginBottom: '20px' }}>
+                                                <label className="form-label">Confirm Password *</label>
+                                                <input
+                                                    type="password"
+                                                    className="form-input"
+                                                    value={coworkerFormData.confirmPassword}
+                                                    onChange={(e) => setCoworkerFormData({ ...coworkerFormData, confirmPassword: e.target.value })}
+                                                    placeholder="Confirm password"
+                                                    required
+                                                    disabled={createCoworkerLoading}
+                                                    minLength={6}
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className="modal-footer" style={{ flexShrink: 0, borderTop: '1px solid var(--border)', paddingTop: '16px', marginTop: 'auto' }}>
+                                            <button 
+                                                type="button"
+                                                className="btn-secondary"
+                                                onClick={handleAddCoworkerCancel}
+                                                disabled={createCoworkerLoading}
+                                                style={{ marginRight: '12px' }}
+                                            >
+                                                Cancel
+                                            </button>
+                                            <button 
+                                                type="submit"
+                                                className="btn-primary"
+                                                disabled={createCoworkerLoading}
+                                            >
+                                                {createCoworkerLoading ? (
+                                                    <>
+                                                        <IconLoader className="animate-spin" style={{ marginRight: '8px' }} />
+                                                        Creating...
+                                                    </>
+                                                ) : (
+                                                    'Create Co-worker'
+                                                )}
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Coworker Detail Modal */}
+                        {showCoworkerDetailModal && coworkerToView && (
+                            <CoworkerDetailModal
+                                open={showCoworkerDetailModal}
+                                onClose={() => {
+                                    setShowCoworkerDetailModal(false);
+                                    setCoworkerToView(null);
+                                }}
+                                coworker={coworkerToView}
+                                onStatusToggle={handleStatusToggle}
+                                onEditPermissions={handlePermissionClick}
+                            />
+                        )}
+
+                {/* Admin Delete Confirmation Modal */}
+                {showAdminDeleteModal && adminToDelete && (
+                    <div className="modal-overlay" onClick={handleAdminDeleteCancel}>
+                        <div className="modal-content delete-modal" onClick={(e) => e.stopPropagation()}>
+                            <div className="modal-header">
+                                <h2>Delete Administrator</h2>
+                                <button 
+                                    className="modal-close"
+                                    onClick={handleAdminDeleteCancel}
+                                    disabled={deleteAdminLoading}
+                                >
+                                    <IconX />
+                                </button>
+                            </div>
+                            <div className="modal-body">
+                                <p>Are you sure you want to delete <strong>{adminToDelete.name}</strong>?</p>
+                                <p className="warning-text">This action cannot be undone and will permanently revoke all administrator access.</p>
+                            </div>
+                            <div className="modal-footer">
+                                <button 
+                                    className="btn-secondary"
+                                    onClick={handleAdminDeleteCancel}
+                                    disabled={deleteAdminLoading}
+                                >
+                                    Cancel
+                                </button>
+                                <button 
+                                    className="btn-danger"
+                                    onClick={handleAdminDeleteConfirm}
+                                    disabled={deleteAdminLoading}
+                                >
+                                    {deleteAdminLoading ? (
+                                        <>
+                                            <IconLoader className="animate-spin" style={{ marginRight: '8px' }} />
+                                            Deleting...
+                                        </>
+                                    ) : (
+                                        'Delete'
+                                    )}
                                 </button>
                             </div>
                         </div>

@@ -441,6 +441,31 @@ export async function updateProduct(productId, productData, userId) {
 export async function deleteProduct(productId) {
   const supabase = getSupabase();
 
+  // Check if product is referenced in any order_items
+  const { data: orderItems, error: checkError } = await supabase
+    .from('order_items')
+    .select('id, order_id')
+    .eq('product_id', productId)
+    .limit(1);
+
+  if (checkError) {
+    throw new Error(`Error checking product references: ${checkError.message}`);
+  }
+
+  if (orderItems && orderItems.length > 0) {
+    // Get count of order items for better error message
+    const { count } = await supabase
+      .from('order_items')
+      .select('*', { count: 'exact', head: true })
+      .eq('product_id', productId);
+
+    const itemCount = count || orderItems.length;
+    throw new Error(
+      `Cannot delete product: This product is referenced in ${itemCount} order item${itemCount > 1 ? 's' : ''} from existing orders. ` +
+      `To delete this product, you must first remove it from all orders or deactivate it instead.`
+    );
+  }
+
   // First, delete all product images (database records and storage files)
   const { deleteAllProductImages } = await import('./productImages.js');
   

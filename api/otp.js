@@ -1,6 +1,6 @@
 import { createOTP, findOTP, verifyOTP, generateOTP, markAllOTPsAsVerified } from './_repo/otps.js';
 import { sendSMS, validatePhone } from './_utils/sms.js';
-import { findUserByPhone } from './_repo/users.js';
+import { findUserByPhone, createUser } from './_repo/users.js';
 import { getSupabase } from './_db.js';
 
 export default async function handler(req, res) {
@@ -157,7 +157,6 @@ async function handleVerifyOTP(req, res, body) {
 
   // For signup, create user account after OTP verification
   if (purpose === 'signup') {
-    const { createUser } = await import('../_repo/users.js');
     const supabase = getSupabase();
     
     // Get signup data from OTP record

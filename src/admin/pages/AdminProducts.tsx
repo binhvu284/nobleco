@@ -1,9 +1,9 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import AdminLayout from '../components/AdminLayout';
-import { IconPlus, IconSearch, IconFilter, IconList, IconGrid, IconMoreVertical, IconEdit, IconTrash2, IconEye, IconPackage, IconLayout, IconChevronDown, IconChevronUp, IconCheck, IconX, IconImage, IconHistory } from '../components/icons';
+import { IconPlus, IconSearch, IconFilter, IconList, IconGrid, IconMoreVertical, IconEdit, IconTrash2, IconEye, IconPackage, IconLayout, IconChevronDown, IconChevronUp, IconCheck, IconX, IconImage, IconHistory, IconUpload } from '../components/icons';
 import ProductDetailModal from '../components/ProductDetailModal';
 import ConfirmModal from '../components/ConfirmModal';
-import UpdateDataModal from '../components/UpdateDataModal';
+import ExcelImportModal from '../components/ExcelImportModal';
 import AddProductModal from '../components/AddProductModal';
 import ActivityLogModal from '../components/ActivityLogModal';
 
@@ -109,7 +109,7 @@ export default function AdminProducts() {
     const [notification, setNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [productToDelete, setProductToDelete] = useState<{ id: number, name: string } | null>(null);
-    const [showUpdateDataModal, setShowUpdateDataModal] = useState(false);
+    const [showExcelImportModal, setShowExcelImportModal] = useState(false);
     const [editingProduct, setEditingProduct] = useState<Product | null>(null);
     const [autoSyncEnabled, setAutoSyncEnabled] = useState(() => {
         const saved = localStorage.getItem('autoSyncEnabled');
@@ -438,6 +438,68 @@ export default function AdminProducts() {
         setProductToDelete(null);
     };
 
+    const handleExcelImport = async (file: File): Promise<{ success: boolean; estimatedCount?: number; errors?: string[] }> => {
+        try {
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const authToken = localStorage.getItem('nobleco_auth_token');
+            const response = await fetch('/api/products/upload-excel', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${authToken}`
+                },
+                body: formData
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.error || 'Failed to import products');
+            }
+
+            const result = await response.json();
+            return {
+                success: true,
+                estimatedCount: result.processed || 0,
+                errors: result.errors || []
+            };
+        } catch (error) {
+            console.error('Excel import error:', error);
+            return {
+                success: false,
+                errors: [error instanceof Error ? error.message : 'Unknown error occurred']
+            };
+        }
+    };
+
+    const handleDownloadTemplate = async () => {
+        try {
+            const authToken = localStorage.getItem('nobleco_auth_token');
+            const response = await fetch('/api/products/download-template', {
+                headers: {
+                    'Authorization': `Bearer ${authToken}`
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to download template');
+            }
+
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'product-import-template.xlsx';
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+        } catch (error) {
+            console.error('Template download error:', error);
+            throw error;
+        }
+    };
+
     const handleSyncData = async (integrationId: number) => {
         // TODO: Implement sync logic
         console.log('Syncing data from integration:', integrationId);
@@ -547,12 +609,12 @@ export default function AdminProducts() {
                             <span>Activity Log</span>
                         </button>
                         <button 
-                            className="btn-update-data" 
-                            title="Update Data from Third Party"
-                            onClick={() => setShowUpdateDataModal(true)}
+                            className="btn-import" 
+                            title="Import Products from Excel"
+                            onClick={() => setShowExcelImportModal(true)}
                         >
-                            <IconPackage />
-                            <span>Update Data</span>
+                            <IconUpload />
+                            <span>Import</span>
                         </button>
                     </div>
                     <div className="toolbar-right">
@@ -1138,16 +1200,12 @@ export default function AdminProducts() {
                 product={editingProduct}
             />
 
-            {/* Update Data Modal */}
-            <UpdateDataModal
-                open={showUpdateDataModal}
-                onClose={() => setShowUpdateDataModal(false)}
-                onSync={handleSyncData}
-                autoSyncEnabled={autoSyncEnabled}
-                onAutoSyncChange={(enabled) => {
-                    setAutoSyncEnabled(enabled);
-                    localStorage.setItem('autoSyncEnabled', enabled.toString());
-                }}
+            {/* Excel Import Modal */}
+            <ExcelImportModal
+                open={showExcelImportModal}
+                onClose={() => setShowExcelImportModal(false)}
+                onImport={handleExcelImport}
+                onDownloadTemplate={handleDownloadTemplate}
             />
 
             {/* Filter Popup */}

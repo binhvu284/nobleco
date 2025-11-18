@@ -400,7 +400,7 @@ export default async function handler(req, res) {
 
     if (req.method === 'POST') {
       const body = req.body || await readBody(req);
-      const { email, username, password, role, inferiorId, account } = body || {};
+      const { email, username, name, phone, password, role, inferiorId, account } = body || {};
       
       // Handle seed-admin endpoint (similar to signup but for admin seeding)
       const isSeedAdmin = req.query?.endpoint === 'seed-admin' || account !== undefined;
@@ -481,11 +481,30 @@ export default async function handler(req, res) {
       }
       
       // Handle user creation
-      if (!email || !username) {
-        return res.status(400).json({ error: 'email and username are required' });
+      // Support both old format (username) and new format (name + phone for admin/coworker)
+      if (!email) {
+        return res.status(400).json({ error: 'email is required' });
       }
+      
+      // For admin and coworker creation, require name and phone
+      if (role === 'admin' || role === 'coworker') {
+        if (!name || !phone) {
+          return res.status(400).json({ error: 'name and phone are required for admin and coworker users' });
+        }
+      } else {
+        // For regular users, require username (backward compatibility)
+        if (!username) {
+          return res.status(400).json({ error: 'username is required' });
+        }
+      }
+      
       try {
-        const created = await createUser({ email, username, password, role });
+        // Use name if provided (for admin/coworker), otherwise use username (for regular users)
+        const userData = (role === 'admin' || role === 'coworker')
+          ? { email, name, phone, password, role }
+          : { email, username, password, role };
+        
+        const created = await createUser(userData);
         const { password: _pw, ...safe } = created;
         return res.status(201).json(safe);
       } catch (e) {

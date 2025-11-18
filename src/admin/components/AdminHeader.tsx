@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { IconDashboard, IconUsers, IconSettings, IconUser, IconLogout, IconMenu, IconAdmin, IconBox, IconTag, IconShoppingBag } from './icons';
+import { IconDashboard, IconUsers, IconSettings, IconUser, IconLogout, IconMenu, IconAdmin, IconBox, IconTag, IconShoppingBag, IconTicket } from './icons';
 import { useState as useModalState } from 'react';
 import { logout, getCurrentUser } from '../../auth';
 import AdminProfileModal from './AdminProfileModal';
@@ -127,6 +127,7 @@ export default function AdminHeader({ title, mobileMenuOpen, onMobileMenuToggle 
         if (location.pathname.startsWith('/admin-categories')) return <IconTag style={{ marginRight: 8 }} />;
         if (location.pathname.startsWith('/admin-orders')) return <IconShoppingBag style={{ marginRight: 8 }} />;
         if (location.pathname.startsWith('/admin-dashboard')) return <IconDashboard style={{ marginRight: 8 }} />;
+        if (location.pathname.startsWith('/admin-discount')) return <IconTicket style={{ marginRight: 8 }} />;
         return <IconSettings style={{ marginRight: 8 }} />;
     };
 
@@ -210,7 +211,7 @@ export default function AdminHeader({ title, mobileMenuOpen, onMobileMenuToggle 
                         <a href="#settings" onClick={(e) => { e.preventDefault(); setOpen(false); setSettingOpen(true); }}>
                             <IconSettings style={{ marginRight: 8 }} /> Settings
                         </a>
-                        <a href="/" onClick={(e) => { e.preventDefault(); setOpen(false); logout(); navigate('/'); }}>
+                        <a href="/login" onClick={(e) => { e.preventDefault(); setOpen(false); logout(); navigate('/login', { replace: true }); }}>
                             <IconLogout style={{ marginRight: 8 }} /> Logout
                         </a>
                     </div>

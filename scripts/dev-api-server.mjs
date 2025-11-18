@@ -1,10 +1,13 @@
 import 'dotenv/config';
 import express from 'express';
+import multer from 'multer';
 import usersHandler from '../api/users.js';
 import loginHandler from '../api/auth/login.js';
 import signupHandler from '../api/auth/signup.js';
 import diagnosticsHandler from '../api/diagnostics.js';
 import productsHandler from '../api/products.js';
+import downloadTemplateHandler from '../api/products/download-template.js';
+import uploadExcelHandler from '../api/products/upload-excel.js';
 import categoriesHandler from '../api/categories.js';
 import clientsHandler from '../api/clients.js';
 import commissionRatesHandler from '../api/commission-rates.js';
@@ -19,10 +22,17 @@ import listHandler from '../api/integrations/list.js';
 import supabaseConfigHandler from '../api/supabase-config.js';
 import ordersHandler from '../api/orders/index.js';
 import orderByIdHandler from '../api/orders/[id].js';
+import coworkerPermissionsHandler from '../api/coworker-permissions.js';
 
 const app = express();
 app.use(express.json({ limit: '50mb' })); // Increase limit for base64 image uploads
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+
+// Configure multer for file uploads
+const upload = multer({ 
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
+});
 
 // Adapter to map Vercel-style (req, res) handlers to Express routes
 function toRoute(handler) {
@@ -50,6 +60,15 @@ app.all('/api/users/wallet', (req, res) => {
   return usersHandler(req, res);
 });
 app.all('/api/products', toRoute(productsHandler));
+app.get('/api/products/download-template', toRoute(downloadTemplateHandler));
+app.post('/api/products/upload-excel', upload.single('file'), async (req, res) => {
+  // Attach file buffer to request body for handler
+  if (req.file) {
+    req.body.fileBuffer = req.file.buffer;
+    req.body.fileName = req.file.originalname;
+  }
+  return uploadExcelHandler(req, res);
+});
 app.all('/api/categories', toRoute(categoriesHandler));
 app.all('/api/clients', toRoute(clientsHandler));
 app.all('/api/orders', toRoute(ordersHandler));
@@ -87,6 +106,7 @@ app.all('/api/diagnostics', toRoute(diagnosticsHandler));
 app.all('/api/auth/login', toRoute(loginHandler));
 app.all('/api/auth/signup', toRoute(signupHandler));
 app.all('/api/auth/reset-password', toRoute(resetPasswordHandler));
+app.all('/api/coworker-permissions', toRoute(coworkerPermissionsHandler));
 app.all('/api/seed-admin', (req, res) => {
   req.query = { ...req.query, endpoint: 'seed-admin' };
   return usersHandler(req, res);

@@ -33,8 +33,48 @@ export default function Login() {
         // If already logged in, redirect to appropriate dashboard
         if (isAuthenticated()) {
             const role = getUserRole();
+            const currentUser = getCurrentUser();
             if (role === 'admin') {
                 navigate('/admin-dashboard', { replace: true });
+            } else if (role === 'coworker' && currentUser?.id) {
+                // For coworkers, find the first page they have access to
+                (async () => {
+                    try {
+                        const authToken = localStorage.getItem('nobleco_auth_token');
+                        const permissionsResponse = await fetch(`/api/coworker-permissions?coworkerId=${currentUser.id}`, {
+                            headers: {
+                                'Authorization': `Bearer ${authToken}`
+                            }
+                        });
+                        if (permissionsResponse.ok) {
+                            const permissions = await permissionsResponse.json();
+                            if (Array.isArray(permissions) && permissions.length > 0) {
+                                const pageOrder = [
+                                    '/admin-dashboard',
+                                    '/admin-clients',
+                                    '/admin-products',
+                                    '/admin-categories',
+                                    '/admin-orders',
+                                    '/admin-commission',
+                                    '/admin-request',
+                                    '/admin-discount',
+                                    '/admin-users',
+                                    '/admin-admin-users'
+                                ];
+                                const permissionPaths = permissions.map((p: any) => p.page_path);
+                                const firstAccessiblePage = pageOrder.find(page => permissionPaths.includes(page)) || permissionPaths[0];
+                                navigate(firstAccessiblePage, { replace: true });
+                            } else {
+                                navigate('/admin-access-denied', { replace: true });
+                            }
+                        } else {
+                            navigate('/admin-dashboard', { replace: true });
+                        }
+                    } catch (error) {
+                        console.error('Error fetching coworker permissions:', error);
+                        navigate('/admin-dashboard', { replace: true });
+                    }
+                })();
             } else {
                 navigate('/dashboard', { replace: true });
             }
@@ -71,6 +111,47 @@ export default function Login() {
             // Redirect based on user role
             if (result.user.role === 'admin') {
                 navigate('/admin-dashboard', { replace: true });
+            } else if (result.user.role === 'coworker') {
+                // For coworkers, find the first page they have access to
+                try {
+                    const authToken = localStorage.getItem('nobleco_auth_token');
+                    const permissionsResponse = await fetch(`/api/coworker-permissions?coworkerId=${result.user.id}`, {
+                        headers: {
+                            'Authorization': `Bearer ${authToken}`
+                        }
+                    });
+                    if (permissionsResponse.ok) {
+                        const permissions = await permissionsResponse.json();
+                        if (Array.isArray(permissions) && permissions.length > 0) {
+                            // Find the first accessible page (prioritize dashboard, then others)
+                            const pageOrder = [
+                                '/admin-dashboard',
+                                '/admin-clients',
+                                '/admin-products',
+                                '/admin-categories',
+                                '/admin-orders',
+                                '/admin-commission',
+                                '/admin-request',
+                                '/admin-discount',
+                                '/admin-users',
+                                '/admin-admin-users'
+                            ];
+                            const permissionPaths = permissions.map((p: any) => p.page_path);
+                            const firstAccessiblePage = pageOrder.find(page => permissionPaths.includes(page)) || permissionPaths[0];
+                            navigate(firstAccessiblePage, { replace: true });
+                        } else {
+                            // No permissions, redirect to access denied
+                            navigate('/admin-access-denied', { replace: true });
+                        }
+                    } else {
+                        // Error fetching permissions, try dashboard first
+                        navigate('/admin-dashboard', { replace: true });
+                    }
+                } catch (error) {
+                    console.error('Error fetching coworker permissions:', error);
+                    // Fallback to dashboard
+                    navigate('/admin-dashboard', { replace: true });
+                }
             } else {
                 navigate('/dashboard', { replace: true });
             }
