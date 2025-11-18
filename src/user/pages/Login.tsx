@@ -1,6 +1,6 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { login, isAuthenticated, getUserRole } from '../../auth';
+import { login, isAuthenticated, getUserRole, getCurrentUser } from '../../auth';
 import AuthFooter from '../../components/AuthFooter';
 
 export default function Login() {

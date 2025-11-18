@@ -416,7 +416,7 @@ export default function AdminAdminUsers() {
             });
             if (response.ok) {
                 const data = await response.json();
-                const permissionPaths = new Set(data.map((p: any) => p.page_path));
+                const permissionPaths = new Set<string>(data.map((p: any) => p.page_path as string));
                 setSelectedPermissions(permissionPaths);
             } else {
                 console.error('Failed to fetch permissions:', response.status);
@@ -1705,14 +1705,22 @@ export default function AdminAdminUsers() {
                 )}
 
                         {/* Admin Detail Modal */}
-                        {showAdminDetailModal && adminToView && (
+                        {showAdminDetailModal && adminToView && adminToView.role !== 'user' && (
                             <AdminDetailModal
                                 open={showAdminDetailModal}
                                 onClose={() => {
                                     setShowAdminDetailModal(false);
                                     setAdminToView(null);
                                 }}
-                                admin={adminToView}
+                                admin={{
+                                    id: adminToView.id,
+                                    name: adminToView.name,
+                                    email: adminToView.email,
+                                    phone: (adminToView as any).phone,
+                                    role: adminToView.role === 'admin' ? 'admin' : 'coworker',
+                                    status: adminToView.status,
+                                    created_at: adminToView.created_at
+                                }}
                             />
                         )}
 
@@ -1847,14 +1855,22 @@ export default function AdminAdminUsers() {
                         )}
 
                         {/* Coworker Detail Modal */}
-                        {showCoworkerDetailModal && coworkerToView && (
+                        {showCoworkerDetailModal && coworkerToView && coworkerToView.role === 'coworker' && (
                             <CoworkerDetailModal
                                 open={showCoworkerDetailModal}
                                 onClose={() => {
                                     setShowCoworkerDetailModal(false);
                                     setCoworkerToView(null);
                                 }}
-                                coworker={coworkerToView}
+                                coworker={{
+                                    id: coworkerToView.id,
+                                    name: coworkerToView.name,
+                                    email: coworkerToView.email,
+                                    phone: (coworkerToView as any).phone,
+                                    role: 'coworker' as const,
+                                    status: coworkerToView.status,
+                                    created_at: coworkerToView.created_at
+                                }}
                                 onStatusToggle={handleStatusToggle}
                                 onEditPermissions={handlePermissionClick}
                             />
