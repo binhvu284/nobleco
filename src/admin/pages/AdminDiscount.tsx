@@ -726,7 +726,7 @@ export default function AdminDiscount() {
                 {/* Delete Confirmation Modal */}
                 {showDeleteConfirm && discountToDelete && (
                     <ConfirmModal
-                        isOpen={showDeleteConfirm}
+                        open={showDeleteConfirm}
                         onClose={() => {
                             setShowDeleteConfirm(false);
                             setDiscountToDelete(null);
@@ -737,14 +737,14 @@ export default function AdminDiscount() {
                         confirmText="Delete"
                         cancelText="Cancel"
                         type="danger"
-                        isLoading={deleteLoading}
+                        loading={deleteLoading}
                     />
                 )}
 
                 {/* Status Toggle Confirmation Modal */}
                 {showStatusConfirm && discountToToggle && (
                     <ConfirmModal
-                        isOpen={showStatusConfirm}
+                        open={showStatusConfirm}
                         onClose={() => {
                             setShowStatusConfirm(false);
                             setDiscountToToggle(null);
@@ -755,7 +755,7 @@ export default function AdminDiscount() {
                         confirmText={discountToToggle.status === 'active' ? 'Deactivate' : 'Activate'}
                         cancelText="Cancel"
                         type={discountToToggle.status === 'active' ? 'warning' : 'info'}
-                        isLoading={statusLoading}
+                        loading={statusLoading}
                     />
                 )}
             </div>

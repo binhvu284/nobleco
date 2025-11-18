@@ -308,14 +308,14 @@ export default function ExcelImportModal({ open, onClose, onImport, onDownloadTe
                                 <div 
                                     className="progress-bar" 
                                     style={{ 
-                                        width: `${fileAnalysis.estimatedCount > 0 
+                                        width: `${fileAnalysis && fileAnalysis.estimatedCount > 0 
                                             ? (importProgress.current / fileAnalysis.estimatedCount) * 100 
                                             : 0}%` 
                                     }}
                                 />
                             </div>
                             <div className="progress-text">
-                                {importProgress.current} / {fileAnalysis.estimatedCount} products imported
+                                {importProgress.current} / {fileAnalysis?.estimatedCount || 0} products imported
                             </div>
                         </div>
                     )}
