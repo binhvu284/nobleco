@@ -15,10 +15,42 @@ import {
     IconShoppingBag, 
     IconTag, 
     IconCreditCard,
-    IconMoreVertical
+    IconMoreVertical,
+    IconTicket
 } from './icons';
+import { getCurrentUser } from '../../auth';
 
 export default function AdminSidebar({ collapsed, onToggle, onNavigate, onMobileClose }: { collapsed: boolean; onToggle: () => void; onNavigate?: () => void; onMobileClose?: () => void }) {
+    const [coworkerPermissions, setCoworkerPermissions] = useState<string[]>([]);
+    const currentUser = getCurrentUser();
+    const isCoworker = currentUser?.role === 'coworker';
+
+    // Fetch coworker permissions
+    useEffect(() => {
+        if (isCoworker && currentUser?.id) {
+            const authToken = localStorage.getItem('nobleco_auth_token');
+            fetch(`/api/coworker-permissions?coworkerId=${currentUser.id}`, {
+                headers: {
+                    'Authorization': `Bearer ${authToken}`
+                }
+            })
+                .then(res => res.json())
+                .then(data => {
+                    if (Array.isArray(data)) {
+                        setCoworkerPermissions(data.map((p: any) => p.page_path));
+                    }
+                })
+                .catch(err => {
+                    console.error('Error fetching coworker permissions:', err);
+                });
+        }
+    }, [isCoworker, currentUser?.id]);
+
+    // Helper function to check if coworker has access to a page
+    const hasAccess = (pagePath: string): boolean => {
+        if (!isCoworker) return true; // Admin has access to everything
+        return coworkerPermissions.includes(pagePath);
+    };
     // Load saved state from localStorage or use defaults
     const getInitialSections = () => {
         const saved = localStorage.getItem('admin-sidebar-sections');
@@ -89,14 +121,17 @@ export default function AdminSidebar({ collapsed, onToggle, onNavigate, onMobile
                 </button>
             </div>
             <nav className="admin-nav">
-                {/* Dashboard - Always visible */}
-                <NavLink to="/admin-dashboard" onClick={onNavigate} className={({ isActive }) => isActive ? 'active' : ''}>
-                    <IconDashboard />
-                    {!collapsed && <span>Dashboard</span>}
-                </NavLink>
+                {/* Dashboard - Always visible if has access */}
+                {hasAccess('/admin-dashboard') && (
+                    <NavLink to="/admin-dashboard" onClick={onNavigate} className={({ isActive }) => isActive ? 'active' : ''}>
+                        <IconDashboard />
+                        {!collapsed && <span>Dashboard</span>}
+                    </NavLink>
+                )}
 
-                {/* Users Section */}
-                <div className={`nav-section ${isUsersActive ? 'active' : ''}`}>
+                {/* Users Section - Only show if has access to at least one page */}
+                {(hasAccess('/admin-users') || hasAccess('/admin-admin-users') || hasAccess('/admin-clients')) && (
+                    <div className={`nav-section ${isUsersActive ? 'active' : ''}`}>
                     {!collapsed ? (
                         <>
                             <button 
@@ -111,123 +146,171 @@ export default function AdminSidebar({ collapsed, onToggle, onNavigate, onMobile
                             </button>
                             {openSections.users && (
                                 <nav className="section-content">
-                                    <NavLink to="/admin-users" onClick={onNavigate} className={({ isActive }) => isActive ? 'active' : ''}>
-                                        <IconUsers />
-                                        <span>Users</span>
-                                    </NavLink>
-                                    <NavLink to="/admin-admin-users" onClick={onNavigate} className={({ isActive }) => isActive ? 'active' : ''}>
-                                        <IconAdmin />
-                                        <span>Admin Users</span>
-                                    </NavLink>
-                                    <NavLink to="/admin-clients" onClick={onNavigate} className={({ isActive }) => isActive ? 'active' : ''}>
-                                        <IconAddressBook />
-                                        <span>Clients</span>
-                                    </NavLink>
+                                    {hasAccess('/admin-users') && (
+                                        <NavLink to="/admin-users" onClick={onNavigate} className={({ isActive }) => isActive ? 'active' : ''}>
+                                            <IconUsers />
+                                            <span>Users</span>
+                                        </NavLink>
+                                    )}
+                                    {hasAccess('/admin-admin-users') && (
+                                        <NavLink to="/admin-admin-users" onClick={onNavigate} className={({ isActive }) => isActive ? 'active' : ''}>
+                                            <IconAdmin />
+                                            <span>Admin Users</span>
+                                        </NavLink>
+                                    )}
+                                    {hasAccess('/admin-clients') && (
+                                        <NavLink to="/admin-clients" onClick={onNavigate} className={({ isActive }) => isActive ? 'active' : ''}>
+                                            <IconAddressBook />
+                                            <span>Clients</span>
+                                        </NavLink>
+                                    )}
                                 </nav>
                             )}
                         </>
                     ) : (
                         /* Collapsed state - show all user page icons */
                         <div className="collapsed-section">
-                            <NavLink to="/admin-users" onClick={onNavigate} className={({ isActive }) => isActive ? 'active' : ''} title="Users">
-                                <IconUsers />
-                            </NavLink>
-                            <NavLink to="/admin-admin-users" onClick={onNavigate} className={({ isActive }) => isActive ? 'active' : ''} title="Admin Users">
-                                <IconAdmin />
-                            </NavLink>
-                            <NavLink to="/admin-clients" onClick={onNavigate} className={({ isActive }) => isActive ? 'active' : ''} title="Clients">
-                                <IconAddressBook />
-                            </NavLink>
+                            {hasAccess('/admin-users') && (
+                                <NavLink to="/admin-users" onClick={onNavigate} className={({ isActive }) => isActive ? 'active' : ''} title="Users">
+                                    <IconUsers />
+                                </NavLink>
+                            )}
+                            {hasAccess('/admin-admin-users') && (
+                                <NavLink to="/admin-admin-users" onClick={onNavigate} className={({ isActive }) => isActive ? 'active' : ''} title="Admin Users">
+                                    <IconAdmin />
+                                </NavLink>
+                            )}
+                            {hasAccess('/admin-clients') && (
+                                <NavLink to="/admin-clients" onClick={onNavigate} className={({ isActive }) => isActive ? 'active' : ''} title="Clients">
+                                    <IconAddressBook />
+                                </NavLink>
+                            )}
                         </div>
                     )}
                 </div>
+                )}
 
-                {/* Products Section */}
-                <div className={`nav-section ${isProductsActive ? 'active' : ''}`}>
-                    {!collapsed ? (
-                        <>
-                            <button 
-                                className="section-header" 
-                                onClick={() => toggleSection('products')}
-                                type="button"
-                            >
-                                <span className="section-title">PRODUCTS</span>
-                                <span className="section-toggle">
-                                    {openSections.products ? <IconChevronUp /> : <IconChevronDown />}
-                                </span>
-                            </button>
-                            {openSections.products && (
-                                <nav className="section-content">
-                                    <NavLink to="/admin-products" onClick={onNavigate} className={({ isActive }) => isActive ? 'active' : ''}>
+                {/* Products Section - Only show if has access to at least one page */}
+                {(hasAccess('/admin-products') || hasAccess('/admin-categories') || hasAccess('/admin-orders')) && (
+                    <div className={`nav-section ${isProductsActive ? 'active' : ''}`}>
+                        {!collapsed ? (
+                            <>
+                                <button 
+                                    className="section-header" 
+                                    onClick={() => toggleSection('products')}
+                                    type="button"
+                                >
+                                    <span className="section-title">PRODUCTS</span>
+                                    <span className="section-toggle">
+                                        {openSections.products ? <IconChevronUp /> : <IconChevronDown />}
+                                    </span>
+                                </button>
+                                {openSections.products && (
+                                    <nav className="section-content">
+                                        {hasAccess('/admin-products') && (
+                                            <NavLink to="/admin-products" onClick={onNavigate} className={({ isActive }) => isActive ? 'active' : ''}>
+                                                <IconBox />
+                                                <span>Products</span>
+                                            </NavLink>
+                                        )}
+                                        {hasAccess('/admin-categories') && (
+                                            <NavLink to="/admin-categories" onClick={onNavigate} className={({ isActive }) => isActive ? 'active' : ''}>
+                                                <IconTag />
+                                                <span>Categories</span>
+                                            </NavLink>
+                                        )}
+                                        {hasAccess('/admin-orders') && (
+                                            <NavLink to="/admin-orders" onClick={onNavigate} className={({ isActive }) => isActive ? 'active' : ''}>
+                                                <IconShoppingBag />
+                                                <span>Orders</span>
+                                            </NavLink>
+                                        )}
+                                    </nav>
+                                )}
+                            </>
+                        ) : (
+                            /* Collapsed state - show all product page icons */
+                            <div className="collapsed-section">
+                                {hasAccess('/admin-products') && (
+                                    <NavLink to="/admin-products" onClick={onNavigate} className={({ isActive }) => isActive ? 'active' : ''} title="Products">
                                         <IconBox />
-                                        <span>Products</span>
                                     </NavLink>
-                                    <NavLink to="/admin-categories" onClick={onNavigate} className={({ isActive }) => isActive ? 'active' : ''}>
+                                )}
+                                {hasAccess('/admin-categories') && (
+                                    <NavLink to="/admin-categories" onClick={onNavigate} className={({ isActive }) => isActive ? 'active' : ''} title="Categories">
                                         <IconTag />
-                                        <span>Categories</span>
                                     </NavLink>
-                                    <NavLink to="/admin-orders" onClick={onNavigate} className={({ isActive }) => isActive ? 'active' : ''}>
+                                )}
+                                {hasAccess('/admin-orders') && (
+                                    <NavLink to="/admin-orders" onClick={onNavigate} className={({ isActive }) => isActive ? 'active' : ''} title="Orders">
                                         <IconShoppingBag />
-                                        <span>Orders</span>
                                     </NavLink>
-                                </nav>
-                            )}
-                        </>
-                    ) : (
-                        /* Collapsed state - show all product page icons */
-                        <div className="collapsed-section">
-                            <NavLink to="/admin-products" onClick={onNavigate} className={({ isActive }) => isActive ? 'active' : ''} title="Products">
-                                <IconBox />
-                            </NavLink>
-                            <NavLink to="/admin-categories" onClick={onNavigate} className={({ isActive }) => isActive ? 'active' : ''} title="Categories">
-                                <IconTag />
-                            </NavLink>
-                            <NavLink to="/admin-orders" onClick={onNavigate} className={({ isActive }) => isActive ? 'active' : ''} title="Orders">
-                                <IconShoppingBag />
-                            </NavLink>
-                        </div>
-                    )}
-                </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                )}
 
-                {/* Payment Section */}
-                <div className={`nav-section ${isPaymentActive ? 'active' : ''}`}>
-                    {!collapsed ? (
-                        <>
-                            <button 
-                                className="section-header" 
-                                onClick={() => toggleSection('payment')}
-                                type="button"
-                            >
-                                <span className="section-title">PAYMENT</span>
-                                <span className="section-toggle">
-                                    {openSections.payment ? <IconChevronUp /> : <IconChevronDown />}
-                                </span>
-                            </button>
-                            {openSections.payment && (
-                                <nav className="section-content">
-                                    <NavLink to="/admin-commission" onClick={onNavigate} className={({ isActive }) => isActive ? 'active' : ''}>
+                {/* Payment Section - Only show if has access to at least one page */}
+                {(hasAccess('/admin-commission') || hasAccess('/admin-request') || hasAccess('/admin-discount')) && (
+                    <div className={`nav-section ${isPaymentActive ? 'active' : ''}`}>
+                        {!collapsed ? (
+                            <>
+                                <button 
+                                    className="section-header" 
+                                    onClick={() => toggleSection('payment')}
+                                    type="button"
+                                >
+                                    <span className="section-title">PAYMENT</span>
+                                    <span className="section-toggle">
+                                        {openSections.payment ? <IconChevronUp /> : <IconChevronDown />}
+                                    </span>
+                                </button>
+                                {openSections.payment && (
+                                    <nav className="section-content">
+                                        {hasAccess('/admin-commission') && (
+                                            <NavLink to="/admin-commission" onClick={onNavigate} className={({ isActive }) => isActive ? 'active' : ''}>
+                                                <IconPercent />
+                                                <span>Commission</span>
+                                            </NavLink>
+                                        )}
+                                        {hasAccess('/admin-request') && (
+                                            <NavLink to="/admin-request" onClick={onNavigate} className={({ isActive }) => isActive ? 'active' : ''}>
+                                                <IconWallet />
+                                                <span>Withdraw Request</span>
+                                            </NavLink>
+                                        )}
+                                        {hasAccess('/admin-discount') && (
+                                            <NavLink to="/admin-discount" onClick={onNavigate} className={({ isActive }) => isActive ? 'active' : ''}>
+                                                <IconTicket />
+                                                <span>Discount Code</span>
+                                            </NavLink>
+                                        )}
+                                    </nav>
+                                )}
+                            </>
+                        ) : (
+                            /* Collapsed state - show all payment page icons */
+                            <div className="collapsed-section">
+                                {hasAccess('/admin-commission') && (
+                                    <NavLink to="/admin-commission" onClick={onNavigate} className={({ isActive }) => isActive ? 'active' : ''} title="Commission">
                                         <IconPercent />
-                                        <span>Commission</span>
                                     </NavLink>
-                                    <NavLink to="/admin-request" onClick={onNavigate} className={({ isActive }) => isActive ? 'active' : ''}>
+                                )}
+                                {hasAccess('/admin-request') && (
+                                    <NavLink to="/admin-request" onClick={onNavigate} className={({ isActive }) => isActive ? 'active' : ''} title="Withdraw Request">
                                         <IconWallet />
-                                        <span>Withdraw Request</span>
                                     </NavLink>
-                                </nav>
-                            )}
-                        </>
-                    ) : (
-                        /* Collapsed state - show all payment page icons */
-                        <div className="collapsed-section">
-                            <NavLink to="/admin-commission" onClick={onNavigate} className={({ isActive }) => isActive ? 'active' : ''} title="Commission">
-                                <IconPercent />
-                            </NavLink>
-                            <NavLink to="/admin-request" onClick={onNavigate} className={({ isActive }) => isActive ? 'active' : ''} title="Withdraw Request">
-                                <IconWallet />
-                            </NavLink>
-                        </div>
-                    )}
-                </div>
+                                )}
+                                {hasAccess('/admin-discount') && (
+                                    <NavLink to="/admin-discount" onClick={onNavigate} className={({ isActive }) => isActive ? 'active' : ''} title="Discount Code">
+                                        <IconTicket />
+                                    </NavLink>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                )}
             </nav>
         </aside>
     );

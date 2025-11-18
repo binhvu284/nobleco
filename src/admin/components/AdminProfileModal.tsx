@@ -29,8 +29,7 @@ export default function AdminProfileModal({ open, onClose }: { open: boolean; on
     const [isHoveringAvatar, setIsHoveringAvatar] = useState(false);
     const [formData, setFormData] = useState({
         name: '',
-        phone: '',
-        address: ''
+        phone: ''
     });
 
     useEffect(() => {
@@ -68,8 +67,7 @@ export default function AdminProfileModal({ open, onClose }: { open: boolean; on
                 setUser(freshUser);
                 setFormData({
                     name: freshUser.name || '',
-                    phone: freshUser.phone || '',
-                    address: freshUser.address || ''
+                    phone: freshUser.phone || ''
                 });
                 
                 // Load avatar
@@ -88,8 +86,7 @@ export default function AdminProfileModal({ open, onClose }: { open: boolean; on
                 setUser(currentUser);
                 setFormData({
                     name: currentUser.name || '',
-                    phone: currentUser.phone || '',
-                    address: currentUser.address || ''
+                    phone: currentUser.phone || ''
                 });
             }
         } catch (err) {
@@ -100,8 +97,7 @@ export default function AdminProfileModal({ open, onClose }: { open: boolean; on
                 setUser(currentUser);
                 setFormData({
                     name: currentUser.name || '',
-                    phone: currentUser.phone || '',
-                    address: currentUser.address || ''
+                    phone: currentUser.phone || ''
                 });
             }
         } finally {
@@ -127,7 +123,6 @@ export default function AdminProfileModal({ open, onClose }: { open: boolean; on
                 body: JSON.stringify({
                     id: user.id,
                     name: formData.name,
-                    address: formData.address,
                     // Phone is not editable, so don't send it
                 }),
             });
@@ -157,8 +152,7 @@ export default function AdminProfileModal({ open, onClose }: { open: boolean; on
             // Update form data with the latest values from server
             setFormData({
                 name: data.user.name || '',
-                phone: data.user.phone || '',
-                address: data.user.address || ''
+                phone: data.user.phone || ''
             });
             
             setIsEditing(false);
@@ -456,8 +450,7 @@ export default function AdminProfileModal({ open, onClose }: { open: boolean; on
         if (user) {
             setFormData({
                 name: user.name || '',
-                phone: user.phone || '',
-                address: user.address || ''
+                phone: user.phone || ''
             });
         }
         setError('');
@@ -649,10 +642,6 @@ export default function AdminProfileModal({ open, onClose }: { open: boolean; on
                                     <label>Phone Number</label>
                                     <div className="profile-field-value email-display">{user.phone || 'Not set'}</div>
                                 </div>
-                                <div className="profile-field">
-                                    <label>Role</label>
-                                    <div className="profile-field-value role-display">Administrator</div>
-                                </div>
                             </div>
                         </div>
 
@@ -684,18 +673,9 @@ export default function AdminProfileModal({ open, onClose }: { open: boolean; on
                                         <div className="profile-field-value">{formData.name || 'Not set'}</div>
                                     )}
                                 </div>
-                                <div className="profile-field profile-field-full">
-                                    <label>Address</label>
-                                    {isEditing ? (
-                                        <textarea
-                                            value={formData.address}
-                                            onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                                            placeholder="Enter your address"
-                                            rows={2}
-                                        />
-                                    ) : (
-                                        <div className="profile-field-value">{formData.address || 'Not set'}</div>
-                                    )}
+                                <div className="profile-field">
+                                    <label>Role</label>
+                                    <div className="profile-field-value role-display">Administrator</div>
                                 </div>
                             </div>
                         </div>

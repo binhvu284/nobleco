@@ -5,7 +5,7 @@ export interface User {
     id: string | number;
     email: string;
     name: string;
-    role: 'user' | 'admin';
+    role: 'user' | 'admin' | 'coworker';
     points?: number;
     level?: string;
     status?: string;
@@ -26,15 +26,23 @@ export function getCurrentUser(): User | null {
     try {
         const userData = localStorage.getItem(USER_KEY);
         if (!userData) return null;
-        return JSON.parse(userData);
+        const user = JSON.parse(userData);
+        
+        // Check if coworker is inactive - auto logout
+        if (user.role === 'coworker' && user.status === 'inactive') {
+            logout();
+            return null;
+        }
+        
+        return user;
     } catch {
         return null;
     }
 }
 
-export function getUserRole(): 'user' | 'admin' | null {
+export function getUserRole(): 'user' | 'admin' | 'coworker' | null {
     const user = getCurrentUser();
-    return user?.role ?? null;
+    return (user?.role as 'user' | 'admin' | 'coworker') ?? null;
 }
 
 export async function login(emailOrPhone: string, password: string): Promise<{ success: boolean; user?: User; error?: string }> {

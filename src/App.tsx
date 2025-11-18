@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 import ProtectedRoute from './components/ProtectedRoute';
+import CoworkerProtectedRoute from './components/CoworkerProtectedRoute';
 import Login from './user/pages/Login';
 import SignUp from './user/pages/SignUp';
 import ForgotPassword from './user/pages/ForgotPassword';
@@ -26,6 +27,8 @@ import AdminCategories from './admin/pages/AdminCategories';
 import AdminOrders from './admin/pages/AdminOrders';
 import AdminCommission from './admin/pages/AdminCommission';
 import AdminRequest from './admin/pages/AdminRequest';
+import AdminDiscount from './admin/pages/AdminDiscount';
+import AccessDenied from './admin/pages/AccessDenied';
 // Profile/Setting modals are launched from headers; no route imports
 
 export default function App() {
@@ -53,18 +56,20 @@ export default function App() {
                 <Route path="/training-materials" element={<TrainingMaterials />} />
             </Route>
             
-            {/* Protected Admin routes - require 'admin' role */}
+            {/* Protected Admin routes - require 'admin' role or 'coworker' with permissions */}
             <Route element={<ProtectedRoute requiredRole="admin" />}>
-                <Route path="/admin-dashboard" element={<AdminDashboard />} />
-                <Route path="/admin-users" element={<AdminUsers />} />
-                <Route path="/admin-admin-users" element={<AdminAdminUsers />} />
-                <Route path="/admin-clients" element={<AdminClients />} />
-                <Route path="/admin-products" element={<AdminProducts />} />
-                <Route path="/admin-product-detail/:id" element={<AdminProductDetail />} />
-                <Route path="/admin-categories" element={<AdminCategories />} />
-                <Route path="/admin-orders" element={<AdminOrders />} />
-                <Route path="/admin-commission" element={<AdminCommission />} />
-                <Route path="/admin-request" element={<AdminRequest />} />
+                <Route path="/admin-access-denied" element={<AccessDenied />} />
+                <Route path="/admin-dashboard" element={<CoworkerProtectedRoute><AdminDashboard /></CoworkerProtectedRoute>} />
+                <Route path="/admin-users" element={<CoworkerProtectedRoute><AdminUsers /></CoworkerProtectedRoute>} />
+                <Route path="/admin-admin-users" element={<CoworkerProtectedRoute><AdminAdminUsers /></CoworkerProtectedRoute>} />
+                <Route path="/admin-clients" element={<CoworkerProtectedRoute><AdminClients /></CoworkerProtectedRoute>} />
+                <Route path="/admin-products" element={<CoworkerProtectedRoute><AdminProducts /></CoworkerProtectedRoute>} />
+                <Route path="/admin-product-detail/:id" element={<CoworkerProtectedRoute><AdminProductDetail /></CoworkerProtectedRoute>} />
+                <Route path="/admin-categories" element={<CoworkerProtectedRoute><AdminCategories /></CoworkerProtectedRoute>} />
+                <Route path="/admin-orders" element={<CoworkerProtectedRoute><AdminOrders /></CoworkerProtectedRoute>} />
+                <Route path="/admin-commission" element={<CoworkerProtectedRoute><AdminCommission /></CoworkerProtectedRoute>} />
+                <Route path="/admin-request" element={<CoworkerProtectedRoute><AdminRequest /></CoworkerProtectedRoute>} />
+                <Route path="/admin-discount" element={<CoworkerProtectedRoute><AdminDiscount /></CoworkerProtectedRoute>} />
             </Route>
 
             {/* Catchall: redirect to home */}

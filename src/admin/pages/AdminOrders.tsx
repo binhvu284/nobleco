@@ -3,6 +3,7 @@ import AdminLayout from '../components/AdminLayout';
 import { IconSearch, IconFilter, IconList, IconGrid, IconEye, IconTrash2, IconMoreVertical } from '../components/icons';
 import { getCurrentUser } from '../../auth';
 import AdminOrderDetailModal from '../components/AdminOrderDetailModal';
+import ConfirmModal from '../components/ConfirmModal';
 import { getAvatarColor, getAvatarInitial, getAvatarViewportStyles } from '../../utils/avatarUtils';
 
 // Order status type based on database schema
@@ -71,6 +72,9 @@ export default function AdminOrders() {
     const [isMobile, setIsMobile] = useState(false);
     const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
     const [showOrderDetailModal, setShowOrderDetailModal] = useState(false);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [orderToDelete, setOrderToDelete] = useState<Order | null>(null);
+    const [deleteLoading, setDeleteLoading] = useState(false);
 
     // Load orders
     useEffect(() => {
@@ -171,15 +175,22 @@ export default function AdminOrders() {
         setActiveDropdown(null);
     };
 
-    // Handle delete
-    const handleDelete = async (orderId: number) => {
-        if (!confirm('Are you sure you want to delete this order?')) {
-            return;
-        }
+    // Handle delete click - show confirmation modal
+    const handleDelete = (order: Order) => {
+        setActiveDropdown(null);
+        setOrderToDelete(order);
+        setShowDeleteConfirm(true);
+    };
+
+    // Handle delete confirmation
+    const handleDeleteConfirm = async () => {
+        if (!orderToDelete) return;
+
+        setDeleteLoading(true);
 
         try {
             const authToken = localStorage.getItem('nobleco_auth_token');
-            const response = await fetch(`/api/orders/${orderId}`, {
+            const response = await fetch(`/api/orders/${orderToDelete.id}`, {
                 method: 'DELETE',
                 headers: {
                     'Authorization': `Bearer ${authToken}`
@@ -187,8 +198,9 @@ export default function AdminOrders() {
             });
 
             if (response.ok) {
-                setOrders(orders.filter(o => o.id !== orderId));
-                alert('Order deleted successfully');
+                setOrders(orders.filter(o => o.id !== orderToDelete.id));
+                setShowDeleteConfirm(false);
+                setOrderToDelete(null);
             } else {
                 const error = await response.json();
                 throw new Error(error.error || 'Failed to delete order');
@@ -196,8 +208,15 @@ export default function AdminOrders() {
         } catch (error) {
             console.error('Error deleting order:', error);
             alert((error as Error).message || 'Failed to delete order');
+        } finally {
+            setDeleteLoading(false);
         }
-        setActiveDropdown(null);
+    };
+
+    // Handle delete cancel
+    const handleDeleteCancel = () => {
+        setShowDeleteConfirm(false);
+        setOrderToDelete(null);
     };
 
     // Toggle dropdown
@@ -448,7 +467,7 @@ export default function AdminOrders() {
                                                         </button>
                                                         <button
                                                             className="unified-dropdown-item danger"
-                                                            onClick={() => handleDelete(order.id)}
+                                                            onClick={() => handleDelete(order)}
                                                         >
                                                             <IconTrash2 />
                                                             Delete
@@ -511,7 +530,7 @@ export default function AdminOrders() {
                                                         </button>
                                                         <button
                                                             className="unified-dropdown-item danger"
-                                                            onClick={() => handleDelete(order.id)}
+                                                            onClick={() => handleDelete(order)}
                                                         >
                                                             <IconTrash2 />
                                                             Delete
@@ -606,6 +625,19 @@ export default function AdminOrders() {
                         setShowOrderDetailModal(false);
                         setSelectedOrderId(null);
                     }}
+                />
+
+                {/* Delete Confirmation Modal */}
+                <ConfirmModal
+                    open={showDeleteConfirm}
+                    onClose={handleDeleteCancel}
+                    onConfirm={handleDeleteConfirm}
+                    title="Delete Order"
+                    message={orderToDelete ? `Are you sure you want to delete order "${orderToDelete.order_number}"? This will permanently remove the order and all associated order items. This action cannot be undone.` : 'Are you sure you want to delete this order?'}
+                    confirmText="Delete"
+                    cancelText="Cancel"
+                    type="danger"
+                    loading={deleteLoading}
                 />
             </div>
         </AdminLayout>

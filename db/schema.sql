@@ -64,6 +64,15 @@ CREATE TABLE public.commission_transactions (
   CONSTRAINT commission_transactions_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
   CONSTRAINT commission_transactions_order_id_fkey FOREIGN KEY (order_id) REFERENCES public.orders(id)
 );
+CREATE TABLE public.coworker_permissions (
+  id integer NOT NULL DEFAULT nextval('coworker_permissions_id_seq'::regclass),
+  coworker_id integer NOT NULL,
+  page_path character varying NOT NULL,
+  page_name character varying NOT NULL,
+  created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT coworker_permissions_pkey PRIMARY KEY (id),
+  CONSTRAINT coworker_permissions_coworker_id_fkey FOREIGN KEY (coworker_id) REFERENCES public.users(id)
+);
 CREATE TABLE public.order_items (
   id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
   order_id bigint NOT NULL,
@@ -118,6 +127,7 @@ CREATE TABLE public.otps (
   verified boolean DEFAULT false,
   attempts integer DEFAULT 0,
   created_at timestamp with time zone NOT NULL DEFAULT now(),
+  signup_data jsonb,
   CONSTRAINT otps_pkey PRIMARY KEY (id),
   CONSTRAINT otps_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
 );
