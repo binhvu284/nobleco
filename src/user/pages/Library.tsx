@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import UserLayout from '../components/UserLayout';
 import { IconSearch, IconFilter, IconLibrary, IconCalendar, IconUser } from '../../admin/components/icons';
+import AuthFooter from '../../components/AuthFooter';
 
 interface Post {
     id: number;
@@ -330,6 +331,8 @@ export default function Library() {
                     </div>
                 )}
             </div>
+            {/* Temporary footer for proof - will be removed later */}
+            <AuthFooter />
         </UserLayout>
     );
 }
