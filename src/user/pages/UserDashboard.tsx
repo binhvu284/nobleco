@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import UserLayout from '../components/UserLayout';
+import AuthFooter from '../../components/AuthFooter';
 
 type StatCard = {
     title: string;
@@ -398,6 +399,8 @@ export default function UserDashboard() {
                     </div>
                 </div>
             </div>
+            {/* Temporary footer for proof - will be removed later */}
+            <AuthFooter />
         </UserLayout>
     );
 }

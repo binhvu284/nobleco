@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import UserLayout from '../components/UserLayout';
 import { IconSearch, IconFilter, IconBook, IconFileText, IconDownload, IconPlay, IconCalendar, IconUser } from '../../admin/components/icons';
+import AuthFooter from '../../components/AuthFooter';
 
 interface Material {
     id: number;
@@ -392,6 +393,8 @@ export default function TrainingMaterials() {
                     </div>
                 )}
             </div>
+            {/* Temporary footer for proof - will be removed later */}
+            <AuthFooter />
         </UserLayout>
     );
 }
