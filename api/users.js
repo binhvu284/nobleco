@@ -179,7 +179,49 @@ export default async function handler(req, res) {
           commissionRates = getCommissionRates(normalizedLevel);
         }
         
-        const transactions = await getTransactionHistory(userId);
+        // Fetch wallet logs instead of transactions
+        let transactions = [];
+        try {
+          const { getWalletLogsByUserId } = await import('./_repo/walletLog.js');
+          const walletLogs = await getWalletLogsByUserId(userId);
+          transactions = walletLogs.map(log => ({
+            id: log.id,
+            type: log.log_type === 'Withdraw' ? 'withdrawal' : 'commission',
+            amount: parseFloat(log.point_amount),
+            description: log.description || log.log_type,
+            date: new Date(log.log_time).toLocaleString('en-US', {
+              year: 'numeric',
+              month: 'short',
+              day: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit'
+            }),
+            status: log.log_type === 'Withdraw' ? 'completed' : undefined
+          }));
+        } catch (error) {
+          console.warn('Error fetching wallet logs:', error);
+          // Fallback to empty array if wallet_log table doesn't exist yet
+        }
+
+        // Fetch bank info
+        let bankInfo = null;
+        try {
+          const { getBankInfo } = await import('./_repo/bankInfo.js');
+          bankInfo = await getBankInfo(userId);
+        } catch (error) {
+          console.warn('Error fetching bank info:', error);
+          // Continue without bank info if table doesn't exist yet
+        }
+
+        // Fetch pending withdraw requests
+        let pendingRequests = [];
+        try {
+          const { getPendingWithdrawRequests } = await import('./_repo/withdrawRequests.js');
+          pendingRequests = await getPendingWithdrawRequests(userId);
+        } catch (error) {
+          console.warn('Error fetching pending withdraw requests:', error);
+          // Continue without pending requests if table doesn't exist yet
+        }
 
         res.setHeader('Cache-Control', 'public, max-age=60, s-maxage=60');
         
@@ -194,7 +236,9 @@ export default async function handler(req, res) {
             joinedDate: user.created_at
           },
           commissionRates,
-          transactions
+          transactions,
+          bankInfo,
+          pendingRequests
         });
       } catch (e) {
         console.error('Error fetching wallet data:', e);

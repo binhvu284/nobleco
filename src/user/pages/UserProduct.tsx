@@ -396,8 +396,29 @@ export default function UserProduct() {
                     {/* Products Grid/List */}
                     <main className="products-main">
                         {loading ? (
-                            <div className="loading-state">
-                                <p>Loading products...</p>
+                            <div className={`products-${viewMode} products-loading`}>
+                                {[...Array(6)].map((_, index) => (
+                                    <div key={index} className="product-card skeleton-product-card">
+                                        <div className="product-image skeleton-image">
+                                            <div className="skeleton" />
+                                        </div>
+                                        <div className="product-info">
+                                            <div>
+                                                <div className="skeleton skeleton-text skeleton-title" style={{ marginBottom: '8px' }} />
+                                                <div className="skeleton skeleton-text skeleton-subtitle" style={{ marginBottom: '8px', width: '100%' }} />
+                                                <div className="skeleton skeleton-text skeleton-subtitle" style={{ width: '60%' }} />
+                                                <div className="product-categories" style={{ marginTop: '12px' }}>
+                                                    <div className="skeleton skeleton-badge" style={{ width: '80px', height: '24px' }} />
+                                                    <div className="skeleton skeleton-badge" style={{ width: '100px', height: '24px', marginLeft: '8px' }} />
+                                                </div>
+                                            </div>
+                                            <div className="product-footer">
+                                                <div className="skeleton skeleton-text" style={{ width: '120px', height: '24px' }} />
+                                                <div className="skeleton skeleton-badge" style={{ width: '140px', height: '40px', borderRadius: '8px' }} />
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
                             </div>
                         ) : filteredProducts.length === 0 ? (
                             <div className="empty-state">

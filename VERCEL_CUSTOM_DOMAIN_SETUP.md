@@ -6,6 +6,55 @@ Vercel uses a **dynamic edge network** distributed across multiple servers globa
 
 ## Step-by-Step Guide
 
+### Quick Start: Connecting Subdomain (e.g., app.noblecovn.com)
+
+**For subdomains like `app.noblecovn.com`, follow these steps:**
+
+#### Step 1: Add Domain in Vercel Dashboard
+1. Go to your Vercel project: https://vercel.com/dashboard
+2. Click on your project
+3. Go to **Settings** → **Domains**
+4. Click **Add Domain**
+5. Enter your subdomain: `app.noblecovn.com`
+6. Click **Add**
+
+#### Step 2: Verify Domain Ownership (If Required)
+If Vercel shows "Verification Needed" or "This domain is linked to another Vercel account":
+1. In Vercel dashboard, look for the TXT record you need to add
+2. It will look like: `_vercel` → `vc-domain-verify=app.noblecovn.com,e...`
+3. In Cloudflare (or your DNS provider):
+   - **Type:** TXT
+   - **Name:** `_vercel` (this creates `_vercel.noblecovn.com`)
+   - **Value:** Copy the exact value from Vercel (e.g., `vc-domain-verify=app.noblecovn.com,e...`)
+   - **TTL:** Auto (or 3600)
+   - **Proxy:** DNS only (grey cloud icon)
+4. Save the record
+5. Wait a few minutes, then click "Refresh" in Vercel dashboard
+
+#### Step 3: Update DNS Record in Cloudflare
+**Replace the old A record with a CNAME record:**
+
+1. **Delete the old A record:**
+   - Find the A record: `app` → `76.76.21.21`
+   - Click "Edit" → Delete it
+
+2. **Add the new CNAME record:**
+   - **Type:** CNAME
+   - **Name:** `app` (this creates `app.noblecovn.com`)
+   - **Value/Target:** Copy from Vercel dashboard (e.g., `70ce2804f58e7352.vercel-dns-017.com.`)
+     - ⚠️ **Important:** Include the trailing dot (`.`) at the end if Vercel shows it
+   - **TTL:** Auto (or 3600)
+   - **Proxy status:** DNS only (grey cloud icon - turn off Cloudflare proxy)
+   - Save the record
+
+#### Step 4: Verify Configuration
+1. Wait 5-10 minutes for DNS propagation
+2. In Vercel dashboard, click "Refresh" on your domain
+3. The status should change from "Verification Needed" to "Valid Configuration" ✅
+4. Test by visiting `https://app.noblecovn.com` in your browser
+
+**Note:** The old A record with IP `76.76.21.21` will continue to work, but Vercel recommends using the new CNAME record (`70ce2804f58e7352.vercel-dns-017.com.`) for better reliability and automatic IP updates.
+
 ### Method 1: Using CNAME Records (Recommended)
 
 This is the **preferred method** because it automatically handles IP changes.
