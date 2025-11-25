@@ -13,7 +13,9 @@ import {
     IconMoreVertical,
     IconPackage,
     IconShoppingBag,
-    IconTrash2
+    IconTrash2,
+    IconX,
+    IconChevronDown
 } from '../../admin/components/icons';
 
 // Order status type based on database schema
@@ -71,7 +73,21 @@ export default function UserOrders() {
     const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
     const [filterStatus, setFilterStatus] = useState<OrderStatus | 'all'>('all');
     const [showFilterDropdown, setShowFilterDropdown] = useState(false);
+    const [showFilterPopup, setShowFilterPopup] = useState(false);
     const [activeDropdown, setActiveDropdown] = useState<number | null>(null);
+    
+    // Filter states
+    const [clients, setClients] = useState<{ id: number; name: string; phone: string }[]>([]);
+    const [selectedClients, setSelectedClients] = useState<number[]>([]);
+    const [showClientDropdown, setShowClientDropdown] = useState(false);
+    const [clientSearchQuery, setClientSearchQuery] = useState('');
+    const [amountMin, setAmountMin] = useState<string>('');
+    const [amountMax, setAmountMax] = useState<string>('');
+    const [filterStatusPopup, setFilterStatusPopup] = useState<'all' | 'processing' | 'completed'>('all');
+    const [createDateFrom, setCreateDateFrom] = useState<string>('');
+    const [createDateTo, setCreateDateTo] = useState<string>('');
+    const [completedDateFrom, setCompletedDateFrom] = useState<string>('');
+    const [completedDateTo, setCompletedDateTo] = useState<string>('');
     const [isMobile, setIsMobile] = useState(false);
     const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
     const [showOrderDetail, setShowOrderDetail] = useState(false);
@@ -237,13 +253,31 @@ export default function UserOrders() {
         }
     }, []); // Empty deps - function doesn't depend on any state/props
 
+    // Load clients for filter
+    const loadClients = useCallback(async () => {
+        try {
+            const currentUser = getCurrentUser();
+            if (!currentUser?.id) return;
+
+            const userId = typeof currentUser.id === 'string' ? parseInt(currentUser.id, 10) : currentUser.id;
+            const response = await fetch(`/api/clients?userId=${userId}`);
+            if (response.ok) {
+                const data = await response.json();
+                setClients(data || []);
+            }
+        } catch (error) {
+            console.error('Error loading clients:', error);
+        }
+    }, []);
+
     // Load orders on mount and when navigating back to this page
     useEffect(() => {
         // Only reload if we're on the orders page
         if (location.pathname === '/orders') {
             loadOrders();
+            loadClients();
         }
-    }, [location.pathname, loadOrders]); // Reload when navigating to /orders page
+    }, [location.pathname, loadOrders, loadClients]); // Reload when navigating to /orders page
 
     // Also reload when page becomes visible (user switches back to tab/window)
     useEffect(() => {
@@ -262,16 +296,36 @@ export default function UserOrders() {
     // Filter orders
     const filteredOrders = useMemo(() => {
         return orders.filter(order => {
+            // Search filter
             const matchesSearch = 
                 order.order_number.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
                 order.client?.name.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
                 order.client?.phone?.toLowerCase().includes(debouncedSearchTerm.toLowerCase());
             
-            const matchesStatus = filterStatus === 'all' || order.status === filterStatus;
+            // Status filter (from popup)
+            const matchesStatus = filterStatusPopup === 'all' || order.status === filterStatusPopup;
             
-            return matchesSearch && matchesStatus;
+            // Client filter
+            const matchesClient = selectedClients.length === 0 || (order.client_id && selectedClients.includes(order.client_id));
+            
+            // Amount range filter
+            const matchesAmount = (!amountMin || order.total_amount >= parseFloat(amountMin)) &&
+                                 (!amountMax || order.total_amount <= parseFloat(amountMax));
+            
+            // Create date range filter
+            const orderCreateDate = new Date(order.created_at);
+            const matchesCreateDate = (!createDateFrom || orderCreateDate >= new Date(createDateFrom)) &&
+                                     (!createDateTo || orderCreateDate <= new Date(createDateTo + 'T23:59:59'));
+            
+            // Completed date range filter
+            const matchesCompletedDate = (!completedDateFrom || !completedDateTo || !order.completed_at) ||
+                                        (order.completed_at && 
+                                         new Date(order.completed_at) >= new Date(completedDateFrom) &&
+                                         new Date(order.completed_at) <= new Date(completedDateTo + 'T23:59:59'));
+            
+            return matchesSearch && matchesStatus && matchesClient && matchesAmount && matchesCreateDate && matchesCompletedDate;
         });
-    }, [orders, debouncedSearchTerm, filterStatus]);
+    }, [orders, debouncedSearchTerm, filterStatusPopup, selectedClients, amountMin, amountMax, createDateFrom, createDateTo, completedDateFrom, completedDateTo]);
 
     // Get status display
     const getStatusDisplay = (status: OrderStatus) => {
@@ -403,6 +457,9 @@ export default function UserOrders() {
             if (!target.closest('.filter-dropdown-container')) {
                 setShowFilterDropdown(false);
             }
+            if (!target.closest('.filter-dropdown-wrapper')) {
+                setShowClientDropdown(false);
+            }
         };
 
         document.addEventListener('click', handleClickOutside);
@@ -442,8 +499,8 @@ export default function UserOrders() {
                         <div className="filter-dropdown-container">
                             <button 
                                 className="btn-filter"
-                                onClick={() => setShowFilterDropdown(!showFilterDropdown)}
-                                title="Filter by status"
+                                onClick={() => setShowFilterPopup(true)}
+                                title="Filter orders"
                             >
                                 <IconFilter />
                             </button>
@@ -573,11 +630,11 @@ export default function UserOrders() {
                                 <tr>
                                     <th>Order Number</th>
                                     <th>Client</th>
-                                    <th>Items</th>
+                                    <th>Product</th>
                                     <th>Total Amount</th>
-                                    <th>Payment Method</th>
                                     <th>Status</th>
                                     <th>Created Date</th>
+                                    <th>Completed Date</th>
                                     <th></th>
                                 </tr>
                             </thead>
@@ -613,15 +670,17 @@ export default function UserOrders() {
                                             <span className="order-value">{formatVND(order.total_amount)}</span>
                                         </td>
                                         <td>
-                                            <span className="payment-method">{getPaymentMethodDisplay(order.payment_method)}</span>
-                                        </td>
-                                        <td>
                                             <span className={`status-badge ${getStatusDisplay(order.status).class}`}>
                                                 {getStatusDisplay(order.status).label}
                                             </span>
                                         </td>
                                         <td>
                                             <span className="order-date">{formatDate(order.created_at)}</span>
+                                        </td>
+                                        <td>
+                                            <span className="order-date">
+                                                {order.completed_at ? formatDate(order.completed_at) : '-'}
+                                            </span>
                                         </td>
                                         <td>
                                             <div className={`unified-dropdown ${activeDropdown === order.id ? 'active' : ''}`}>
@@ -840,6 +899,180 @@ export default function UserOrders() {
                     type="danger"
                     loading={deleteLoading}
                 />
+
+                {/* Filter Popup */}
+                <>
+                    <div className={`filter-popup-overlay ${showFilterPopup ? 'active' : ''}`} onClick={() => setShowFilterPopup(false)} />
+                    <div className={`filter-popup ${showFilterPopup ? 'active' : ''}`}>
+                            <div className="filter-popup-header">
+                                <h3>Filter Orders</h3>
+                                <button className="filter-popup-close" onClick={() => setShowFilterPopup(false)}>
+                                    <IconX />
+                                </button>
+                            </div>
+                            <div className="filter-popup-content">
+                                {/* Client Filter */}
+                                <div className="filter-group">
+                                    <label>Client</label>
+                                    <div className="filter-dropdown-wrapper">
+                                        <button
+                                            className={`filter-select-btn ${showClientDropdown ? 'active' : ''}`}
+                                            onClick={() => setShowClientDropdown(!showClientDropdown)}
+                                        >
+                                            <span className={selectedClients.length > 0 ? 'has-selection' : ''}>
+                                                {selectedClients.length === 0
+                                                    ? 'All Clients'
+                                                    : `${selectedClients.length} client${selectedClients.length > 1 ? 's' : ''} selected`}
+                                            </span>
+                                            <IconChevronDown />
+                                        </button>
+                                        {showClientDropdown && (
+                                            <div className="filter-dropdown-menu-multi">
+                                                <div className="filter-dropdown-search">
+                                                    <IconSearch />
+                                                    <input
+                                                        type="text"
+                                                        placeholder="Search clients..."
+                                                        className="filter-search-input"
+                                                        value={clientSearchQuery}
+                                                        onChange={(e) => setClientSearchQuery(e.target.value)}
+                                                    />
+                                                </div>
+                                                <div className="filter-dropdown-options">
+                                                    {clients
+                                                        .filter(client => 
+                                                            client.name.toLowerCase().includes(clientSearchQuery.toLowerCase()) ||
+                                                            client.phone?.toLowerCase().includes(clientSearchQuery.toLowerCase())
+                                                        )
+                                                        .map(client => (
+                                                            <label key={client.id} className="filter-checkbox-option">
+                                                                <input
+                                                                    type="checkbox"
+                                                                    checked={selectedClients.includes(client.id)}
+                                                                    onChange={(e) => {
+                                                                        if (e.target.checked) {
+                                                                            setSelectedClients([...selectedClients, client.id]);
+                                                                        } else {
+                                                                            setSelectedClients(selectedClients.filter(id => id !== client.id));
+                                                                        }
+                                                                    }}
+                                                                />
+                                                                <span>{client.name} ({client.phone})</span>
+                                                            </label>
+                                                        ))}
+                                                    {clients.filter(client => 
+                                                        client.name.toLowerCase().includes(clientSearchQuery.toLowerCase()) ||
+                                                        client.phone?.toLowerCase().includes(clientSearchQuery.toLowerCase())
+                                                    ).length === 0 && (
+                                                        <div className="filter-empty">No clients found</div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Total Amount Range */}
+                                <div className="filter-group">
+                                    <label>Total Amount</label>
+                                    <div className="filter-range-inputs">
+                                        <input
+                                            type="number"
+                                            placeholder="Min"
+                                            value={amountMin}
+                                            onChange={(e) => setAmountMin(e.target.value)}
+                                            className="filter-input"
+                                        />
+                                        <span>to</span>
+                                        <input
+                                            type="number"
+                                            placeholder="Max"
+                                            value={amountMax}
+                                            onChange={(e) => setAmountMax(e.target.value)}
+                                            className="filter-input"
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Status Filter */}
+                                <div className="filter-group">
+                                    <label>Status</label>
+                                    <select
+                                        value={filterStatusPopup}
+                                        onChange={(e) => setFilterStatusPopup(e.target.value as 'all' | 'processing' | 'completed')}
+                                        className="filter-select"
+                                    >
+                                        <option value="all">All</option>
+                                        <option value="processing">Processing</option>
+                                        <option value="completed">Completed</option>
+                                    </select>
+                                </div>
+
+                                {/* Create Date Range */}
+                                <div className="filter-group">
+                                    <label>Create Date</label>
+                                    <div className="filter-range-inputs">
+                                        <input
+                                            type="date"
+                                            value={createDateFrom}
+                                            onChange={(e) => setCreateDateFrom(e.target.value)}
+                                            className="filter-input"
+                                        />
+                                        <span>to</span>
+                                        <input
+                                            type="date"
+                                            value={createDateTo}
+                                            onChange={(e) => setCreateDateTo(e.target.value)}
+                                            className="filter-input"
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Completed Date Range */}
+                                <div className="filter-group">
+                                    <label>Completed Date</label>
+                                    <div className="filter-range-inputs">
+                                        <input
+                                            type="date"
+                                            value={completedDateFrom}
+                                            onChange={(e) => setCompletedDateFrom(e.target.value)}
+                                            className="filter-input"
+                                        />
+                                        <span>to</span>
+                                        <input
+                                            type="date"
+                                            value={completedDateTo}
+                                            onChange={(e) => setCompletedDateTo(e.target.value)}
+                                            className="filter-input"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="filter-popup-footer">
+                                <button
+                                    className="btn-filter-clear"
+                                    onClick={() => {
+                                        setSelectedClients([]);
+                                        setAmountMin('');
+                                        setAmountMax('');
+                                        setFilterStatusPopup('all');
+                                        setCreateDateFrom('');
+                                        setCreateDateTo('');
+                                        setCompletedDateFrom('');
+                                        setCompletedDateTo('');
+                                    }}
+                                >
+                                    Clear All
+                                </button>
+                                <button
+                                    className="btn-filter-apply"
+                                    onClick={() => setShowFilterPopup(false)}
+                                >
+                                    Apply Filters
+                                </button>
+                            </div>
+                        </div>
+                </>
             </div>
         </UserLayout>
     );

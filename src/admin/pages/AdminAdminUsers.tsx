@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import AdminLayout from '../components/AdminLayout';
 import { IconCrown, IconShield, IconTrash2, IconSettings, IconMoreHorizontal, IconPlay, IconPause, IconLoader, IconPlus, IconX, IconEye, IconCheck } from '../components/icons';
 import UserDetailModal from '../components/UserDetailModal';
 import AdminDetailModal from '../components/AdminDetailModal';
 import CoworkerDetailModal from '../components/CoworkerDetailModal';
 import { getAvatarInitial, getAvatarColor, getAvatarViewportStyles } from '../../utils/avatarUtils';
+import { getCurrentUser } from '../../auth';
 
 interface AdminUser {
     id: number;
@@ -172,8 +173,31 @@ export default function AdminAdminUsers() {
         fetchCoworkers();
     }, []);
 
-    // Use adminUsers directly since it's already filtered and sorted
-    const administrators = adminUsers;
+    // Get current logged-in user
+    const currentUser = getCurrentUser();
+    const currentUserId = currentUser ? Number(currentUser.id) : null;
+
+    // Sort administrators with current user first, then alphabetically
+    const administrators = useMemo(() => {
+        if (!currentUserId) {
+            // If no current user, return as-is (already sorted alphabetically)
+            return adminUsers;
+        }
+        
+        // Separate current user from others
+        const currentUserAdmin = adminUsers.find(admin => admin.id === currentUserId);
+        const otherAdmins = adminUsers.filter(admin => admin.id !== currentUserId);
+        
+        // Sort other admins alphabetically
+        const sortedOtherAdmins = [...otherAdmins].sort((a, b) => {
+            const nameA = (a.name || '').toLowerCase();
+            const nameB = (b.name || '').toLowerCase();
+            return nameA.localeCompare(nameB);
+        });
+        
+        // Return current user first, then others
+        return currentUserAdmin ? [currentUserAdmin, ...sortedOtherAdmins] : sortedOtherAdmins;
+    }, [adminUsers, currentUserId]);
 
     const [deleteCoworkerLoading, setDeleteCoworkerLoading] = useState(false);
 
@@ -750,7 +774,12 @@ export default function AdminAdminUsers() {
                                         )}
                                     </div>
                                     <div className="admin-details">
-                                        <h3 className="admin-name">{admin.name}</h3>
+                                        <h3 className="admin-name">
+                                            {admin.name}
+                                            {currentUserId !== null && admin.id === currentUserId && (
+                                                <span style={{ marginLeft: '8px', color: 'var(--primary)', fontWeight: '500', fontSize: '0.9em' }}>(me)</span>
+                                            )}
+                                        </h3>
                                         <p className="admin-email">{admin.email}</p>
                                     </div>
                                     <div className="admin-badge">
@@ -777,7 +806,7 @@ export default function AdminAdminUsers() {
                                                     <IconEye />
                                                     Detail
                                                 </button>
-                                                {administrators.length > 1 && (
+                                                {administrators.length > 1 && currentUserId !== null && admin.id !== currentUserId && (
                                                     <button 
                                                         className="unified-dropdown-item danger"
                                                         onClick={() => handleAdminDeleteClick(admin)}

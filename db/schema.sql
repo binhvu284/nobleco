@@ -292,6 +292,22 @@ CREATE TABLE public.users (
   state text,
   CONSTRAINT users_pkey PRIMARY KEY (id)
 );
+CREATE TABLE public.wallet_log (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  user_id bigint NOT NULL,
+  log_time timestamp with time zone NOT NULL DEFAULT now(),
+  log_type text NOT NULL CHECK (log_type = ANY (ARRAY['My order commission'::text, 'Level 1 commission'::text, 'Level 2 commission'::text, 'Withdraw'::text])),
+  point_amount numeric NOT NULL,
+  balance_after numeric CHECK (balance_after >= 0::numeric),
+  related_order_id bigint,
+  related_withdraw_request_id bigint,
+  description text,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT wallet_log_pkey PRIMARY KEY (id),
+  CONSTRAINT wallet_log_related_order_id_fkey FOREIGN KEY (related_order_id) REFERENCES public.orders(id),
+  CONSTRAINT wallet_log_related_withdraw_request_id_fkey FOREIGN KEY (related_withdraw_request_id) REFERENCES public.withdraw_request(id),
+  CONSTRAINT wallet_log_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+);
 CREATE TABLE public.webhook_logs (
   id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
   webhook_type text NOT NULL,
@@ -306,4 +322,21 @@ CREATE TABLE public.webhook_logs (
   processed_at timestamp with time zone,
   CONSTRAINT webhook_logs_pkey PRIMARY KEY (id),
   CONSTRAINT webhook_logs_order_id_fkey FOREIGN KEY (order_id) REFERENCES public.orders(id)
+);
+CREATE TABLE public.withdraw_request (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  user_id bigint NOT NULL,
+  amount numeric NOT NULL CHECK (amount >= 0::numeric),
+  point integer NOT NULL CHECK (point > 0),
+  exchange_rate numeric CHECK (exchange_rate > 0::numeric),
+  request_date timestamp with time zone NOT NULL DEFAULT now(),
+  completed_date timestamp with time zone,
+  status text NOT NULL DEFAULT 'pending'::text CHECK (status = ANY (ARRAY['pending'::text, 'approve'::text, 'reject'::text])),
+  processed_by bigint,
+  admin_notes text,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT withdraw_request_pkey PRIMARY KEY (id),
+  CONSTRAINT withdraw_request_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
+  CONSTRAINT withdraw_request_processed_by_fkey FOREIGN KEY (processed_by) REFERENCES public.users(id)
 );
