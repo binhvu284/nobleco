@@ -1,7 +1,41 @@
 import XLSX from 'xlsx';
+import formidable from 'formidable';
 import { createProduct, updateProductCategories } from '../_repo/products.js';
 import { listCategories } from '../_repo/categories.js';
 import { getSupabase } from '../_db.js';
+
+// Helper to parse multipart/form-data file upload (for Vercel/serverless)
+async function parseFormData(req) {
+  return new Promise((resolve, reject) => {
+    const form = formidable({
+      maxFileSize: 10 * 1024 * 1024, // 10MB
+      keepExtensions: false,
+      allowEmptyFiles: false,
+    });
+
+    form.parse(req, async (err, fields, files) => {
+      if (err) {
+        reject(err);
+        return;
+      }
+
+      const file = Array.isArray(files.file) ? files.file[0] : files.file;
+      if (!file) {
+        reject(new Error('No file provided'));
+        return;
+      }
+
+      try {
+        // Read file buffer from filepath
+        const fs = await import('fs/promises');
+        const fileBuffer = await fs.readFile(file.filepath);
+        resolve(fileBuffer);
+      } catch (readError) {
+        reject(new Error(`Failed to read file: ${readError.message}`));
+      }
+    });
+  });
+}
 
 // Helper to get current user from request
 async function getCurrentUser(req) {
@@ -196,8 +230,29 @@ export default async function handler(req, res) {
     }
 
     // Handle file upload (multipart/form-data)
-    // File buffer should be attached by multer middleware
-    const fileBuffer = req.body?.fileBuffer;
+    // In dev: file buffer is attached by multer middleware
+    // In Vercel: parse multipart/form-data manually
+    let fileBuffer = req.body?.fileBuffer;
+    
+    // If fileBuffer is not available (Vercel/serverless), parse FormData
+    if (!fileBuffer || !Buffer.isBuffer(fileBuffer) || fileBuffer.length === 0) {
+      // Check Content-Type
+      const contentType = req.headers['content-type'] || '';
+      if (!contentType.includes('multipart/form-data')) {
+        return res.status(400).json({ 
+          error: 'Invalid content type. Expected multipart/form-data.' 
+        });
+      }
+      
+      try {
+        fileBuffer = await parseFormData(req);
+      } catch (parseError) {
+        console.error('Error parsing form data:', parseError);
+        return res.status(400).json({ 
+          error: parseError.message || 'Failed to parse uploaded file. Please ensure you are uploading a valid Excel file.' 
+        });
+      }
+    }
     
     if (!fileBuffer || !Buffer.isBuffer(fileBuffer) || fileBuffer.length === 0) {
       return res.status(400).json({ error: 'No file provided. Please upload an Excel file.' });
