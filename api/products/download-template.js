@@ -25,6 +25,7 @@ export default async function handler(req, res) {
       'Product Code',
       'Supplier Code',
       'Product Name',
+      'Type',
       'Description',
       'Price (VND)',
       'Stock',
@@ -46,6 +47,7 @@ export default async function handler(req, res) {
       '01R0924001',           // Product Code
       'RDM24213',             // Supplier Code
       'Sample Product Name',  // Product Name
+      'L',                    // Type (L, N, or K)
       'Sample description',   // Description
       88300000,               // Price (VND)
       1,                      // Stock
@@ -76,6 +78,7 @@ export default async function handler(req, res) {
       { wch: 15 },  // Product Code
       { wch: 15 },  // Supplier Code
       { wch: 25 },  // Product Name
+      { wch: 10 },  // Type
       { wch: 30 },  // Description
       { wch: 15 },  // Price
       { wch: 10 },  // Stock

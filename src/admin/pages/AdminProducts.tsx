@@ -606,7 +606,7 @@ export default function AdminProducts() {
                             onClick={() => setShowActivityLog(true)}
                         >
                             <IconHistory />
-                            <span>Activity Log</span>
+                            <span className="btn-text">Activity Log</span>
                         </button>
                         <button 
                             className="btn-import" 
@@ -614,19 +614,20 @@ export default function AdminProducts() {
                             onClick={() => setShowExcelImportModal(true)}
                         >
                             <IconUpload />
-                            <span>Import</span>
+                            <span className="btn-text">Import</span>
                         </button>
                     </div>
                     <div className="toolbar-right">
                         <button 
                             className="btn-add" 
+                            title="Add Product"
                             onClick={() => {
                                 setEditingProduct(null);
                                 setShowAddProductModal(true);
                             }}
                         >
                             <IconPlus />
-                            <span>Add Product</span>
+                            <span className="btn-text">Add Product</span>
                         </button>
                         {/* Desktop view toggle */}
                         <div className="view-toggle desktop-only">

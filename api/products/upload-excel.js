@@ -123,6 +123,7 @@ function parseExcelFile(buffer) {
     productCode: headers.findIndex(h => h && h.toLowerCase().includes('product code')),
     supplierCode: headers.findIndex(h => h && h.toLowerCase().includes('supplier code')),
     productName: headers.findIndex(h => h && h.toLowerCase().includes('product name')),
+    type: headers.findIndex(h => h && h.toLowerCase().includes('type') && !h.toLowerCase().includes('category')),
     description: headers.findIndex(h => h && h.toLowerCase().includes('description')),
     price: headers.findIndex(h => h && h.toLowerCase().includes('price')),
     stock: headers.findIndex(h => h && h.toLowerCase().includes('stock')),
@@ -172,19 +173,34 @@ function parseExcelFile(buffer) {
       }
       
       // Parse optional fields
+      // Normalize gold purity to lowercase (accept both "18K" and "18k")
+      const goldPurityRaw = row[columnMap.goldPurity] ? String(row[columnMap.goldPurity]).trim() : null;
+      const goldPurity = goldPurityRaw ? goldPurityRaw.toLowerCase() : null;
+      
+      // Normalize dimensions: replace commas with dots for decimal values
+      // This ensures commas are not treated as value separators
+      let dimensionsRaw = row[columnMap.dimensions] ? String(row[columnMap.dimensions]).trim() : null;
+      let dimensions = null;
+      if (dimensionsRaw) {
+        // Replace commas that are part of decimal numbers with dots
+        // Pattern: digit, comma, digit (e.g., "2,5" -> "2.5")
+        dimensions = dimensionsRaw.replace(/(\d),(\d)/g, '$1.$2');
+      }
+      
       const product = {
         serial_number: productCode,
         supplier_id: row[columnMap.supplierCode] ? String(row[columnMap.supplierCode]).trim() : null,
         name: productName,
+        type: row[columnMap.type] ? String(row[columnMap.type]).trim().toUpperCase() : null,
         short_description: row[columnMap.description] ? String(row[columnMap.description]).trim() : 'No description available',
         long_description: row[columnMap.notes] ? String(row[columnMap.notes]).trim() : null,
         price: price,
         stock: row[columnMap.stock] ? parseInt(String(row[columnMap.stock])) || 0 : 0,
         carat_weight_ct: row[columnMap.caratWeight] ? parseFloat(String(row[columnMap.caratWeight])) || null : null,
-        gold_purity: row[columnMap.goldPurity] ? String(row[columnMap.goldPurity]).trim() : null,
+        gold_purity: goldPurity,
         product_weight_g: row[columnMap.productWeight] ? parseFloat(String(row[columnMap.productWeight])) || null : null,
         shape: row[columnMap.shape] ? String(row[columnMap.shape]).trim() : null,
-        dimensions: row[columnMap.dimensions] ? String(row[columnMap.dimensions]).trim() : null,
+        dimensions: dimensions,
         stone_count: row[columnMap.stoneCount] ? parseInt(String(row[columnMap.stoneCount])) || null : null,
         center_stone_size_mm: row[columnMap.centerStoneSize] ? parseFloat(String(row[columnMap.centerStoneSize])) || null : null,
         ni_tay: row[columnMap.ringSize] ? parseFloat(String(row[columnMap.ringSize])) || null : null,

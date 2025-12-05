@@ -291,6 +291,7 @@ export default function ExcelImportModal({ open, onClose, onImport, onDownloadTe
                         <ul>
                             <li><strong>Format:</strong> Single row format - each product should be on one row</li>
                             <li><strong>Multiple values:</strong> Separate multiple values with commas (e.g., "Value1, Value2")</li>
+                            <li><strong>Decimal values:</strong> Use "." (dot) to indicate decimal values. This is used to distinguish from commas which are used for multiple values (e.g., use "2.5" not "2,5")</li>
                             <li><strong>Categories:</strong> Category names must exactly match the format (Capital letter, space) of values in the Category table</li>
                             <li><strong>Unrecognized values:</strong> Any mismatch or unrecognized category values will be imported as null</li>
                             <li><strong>File type:</strong> Only .xlsx files are accepted</li>
