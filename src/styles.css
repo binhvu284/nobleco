@@ -10743,6 +10743,42 @@ input:focus {
     z-index: 1;
 }
 
+.admin-products-toolbar .search-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+    flex: 1;
+    min-width: 200px;
+    max-width: 500px;
+}
+
+.admin-products-toolbar .search-container .search-icon {
+    position: absolute;
+    left: 12px;
+    width: 16px;
+    height: 16px;
+    color: var(--text-secondary);
+    z-index: 1;
+    pointer-events: none;
+}
+
+.admin-products-toolbar .search-container .search-input {
+    width: 100%;
+    padding: 10px 12px 10px 40px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 14px;
+    background: white;
+    color: var(--text-primary);
+    transition: border-color 0.2s;
+}
+
+.admin-products-toolbar .search-container .search-input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
 .search-box {
     position: relative;
     flex: 1;
@@ -12236,6 +12272,39 @@ input:focus {
     }
 }
 
+/* Mobile devices - hide button text, show icons only */
+@media (max-width: 768px) {
+    .admin-products-toolbar .btn-text {
+        display: none;
+    }
+    
+    .admin-products-toolbar .btn-filter,
+    .admin-products-toolbar .btn-activity-log,
+    .admin-products-toolbar .btn-import,
+    .admin-products-toolbar .btn-add {
+        padding: 10px;
+        min-width: 40px;
+        justify-content: center;
+    }
+    
+    .admin-products-toolbar .toolbar-left {
+        gap: 6px;
+    }
+    
+    .admin-products-toolbar .toolbar-right {
+        gap: 6px;
+    }
+    
+    .admin-products-toolbar .search-container {
+        flex: 1;
+        min-width: 0;
+    }
+    
+    .admin-products-toolbar .search-container .search-input {
+        font-size: 14px;
+    }
+}
+
 /* Extra small mobile devices */
 @media (max-width: 480px) {
     .admin-products-page {
@@ -12260,106 +12329,17 @@ input:focus {
         font-size: 12px;
     }
     
-    .btn-filter, .btn-update-data {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 16px;
-    background: var(--primary);
-    color: white;
-    border: none;
-    border-radius: 8px;
-    font-size: 0.875rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.btn-update-data:hover {
-    background: var(--primary-dark);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
-}
-
-.btn-update-data svg {
-    width: 18px;
-    height: 18px;
-}
-
-.btn-stock-management {
-        padding: 6px 8px;
-        font-size: 11px;
-    }
-    
-    .view-btn-new {
-        padding: 4px 6px;
-        min-width: 28px;
-        height: 28px;
-    }
-    
-    .view-btn-new svg {
-        width: 14px;
-        height: 14px;
-    }
-    
-    .btn-create-product-compact {
-        padding: 6px;
-        min-width: 28px;
-        gap: 4px;
-    }
-    
-    /* Mobile column dropdown z-index fix for small screens */
-    .mobile-column-selector .column-dropdown {
-        z-index: 9999 !important;
-    }
-    
-    .products-grid {
-        grid-template-columns: repeat(3, 1fr);
-        gap: 6px;
-    }
-    
-    .product-card-image {
-        height: 70px;
-        font-size: 20px;
-    }
-    
-    .product-card-content {
-        padding: 6px;
-    }
-    
-    .product-card-header h4 {
-        font-size: 0.75rem;
-    }
-    
-    .product-card-description {
-        font-size: 0.65rem;
-        -webkit-line-clamp: 1;
-        line-clamp: 1;
-    }
-    
-    .product-card-categories .category-badge {
-        font-size: 0.55rem;
-        padding: 1px 3px;
-    }
-    
-    .product-card-footer .price {
-        font-size: 0.75rem;
-    }
-    
-    .product-card-stock {
-        font-size: 0.65rem;
-    }
-    
-    /* Larger three-dot button for extra small screens */
-    .btn-more {
+    .admin-products-toolbar .btn-filter,
+    .admin-products-toolbar .btn-activity-log,
+    .admin-products-toolbar .btn-import,
+    .admin-products-toolbar .btn-add {
         padding: 8px;
         min-width: 36px;
-        min-height: 36px;
     }
     
-    .btn-more svg {
-        width: 18px;
-        height: 18px;
+    .admin-products-toolbar .search-container .search-input {
+        font-size: 12px;
+        padding: 6px 8px 6px 32px;
     }
 }
 
