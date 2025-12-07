@@ -115,17 +115,38 @@ export default function Payment() {
                     throw new Error('Invalid response from server');
                 }
                 
-                // Generate QR code locally using order number as payment code
-                // Sepay will detect this code in transaction content
-                // Works for both new and existing payments
+                // Generate VietQR code for Vietnamese bank transfer
+                // Format: VietQR standard with bank account, amount, and payment code
                 if (paymentData.order_number) {
                     try {
-                        // Create QR code with payment info: order number and amount
-                        // Format: Order number (payment code) + amount for easy scanning
-                        const qrData = `${paymentData.order_number}\nAmount: ${formatVND(orderData.total)}`;
+                        // Get merchant bank account info for VietQR
+                        const configResponse = await fetch('/api/payment-config');
+                        let bankInfo = null;
+                        if (configResponse.ok) {
+                            const configData = await configResponse.json();
+                            bankInfo = configData.bank_account;
+                        }
+
+                        let qrData: string;
+                        
+                        if (bankInfo?.account_number) {
+                            // Generate QR code with bank transfer info
+                            // Format: Bank account + amount + payment code (for Sepay detection)
+                            const amount = Math.round(orderData.total);
+                            const paymentCode = paymentData.order_number;
+                            
+                            // Create QR code data that banking apps can read
+                            // Include bank account, amount, and payment code in description
+                            qrData = `STK:${bankInfo.account_number}|SoTien:${amount}|NoiDung:${paymentCode}`;
+                        } else {
+                            // Fallback: Payment code only (user will manually transfer)
+                            qrData = `Payment Code: ${paymentData.order_number}\nAmount: ${formatVND(orderData.total)}`;
+                        }
+                        
                         const qrCodeDataUrl = await QRCode.toDataURL(qrData, {
                             width: 300,
                             margin: 2,
+                            errorCorrectionLevel: 'M',
                             color: {
                                 dark: '#000000',
                                 light: '#FFFFFF'
@@ -137,8 +158,22 @@ export default function Payment() {
                     }
                 }
                 
+                // Get bank account info from payment config if not in response
                 if (paymentData.bank_account) {
                     setBankAccount(paymentData.bank_account);
+                } else {
+                    // Fetch bank account info from config
+                    try {
+                        const configResponse = await fetch('/api/payment-config');
+                        if (configResponse.ok) {
+                            const configData = await configResponse.json();
+                            if (configData.bank_account) {
+                                setBankAccount(configData.bank_account);
+                            }
+                        }
+                    } catch (e) {
+                        console.error('Error fetching bank account info:', e);
+                    }
                 }
                 
                 setCreatingPayment(false);

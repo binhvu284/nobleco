@@ -29,6 +29,7 @@ import adminWithdrawRequestsHandler from '../api/admin-withdraw-requests.js';
 import sepayWebhookHandler from '../api/sepay/webhook.js';
 import createPaymentHandler from '../api/orders/[id]/create-payment.js';
 import paymentStatusHandler from '../api/orders/[id]/payment-status.js';
+import paymentConfigHandler from '../api/payment-config.js';
 
 const app = express();
 app.use(express.json({ limit: '50mb' })); // Increase limit for base64 image uploads
@@ -125,6 +126,7 @@ app.get('/api/orders/:id/payment-status', (req, res) => {
   req.query = { ...req.query, id: req.params.id };
   return paymentStatusHandler(req, res);
 });
+app.all('/api/payment-config', toRoute(paymentConfigHandler));
 app.all('/api/seed-admin', (req, res) => {
   req.query = { ...req.query, endpoint: 'seed-admin' };
   return usersHandler(req, res);
