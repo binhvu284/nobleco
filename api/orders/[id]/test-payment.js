@@ -90,7 +90,7 @@ export default async function handler(req, res) {
       payment_date: new Date().toISOString(),
       sepay_transaction_id: `TEST-${Date.now()}`,
       webhook_received_at: new Date().toISOString(),
-      payment_confirmed_by: 'test',
+      payment_confirmed_by: 'manual', // Must be one of: 'manual', 'webhook', 'polling'
       completed_at: new Date().toISOString()
     };
 
