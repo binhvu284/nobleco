@@ -29,6 +29,7 @@ import adminWithdrawRequestsHandler from '../api/admin-withdraw-requests.js';
 import sepayWebhookHandler from '../api/sepay/webhook.js';
 import createPaymentHandler from '../api/orders/[id]/create-payment.js';
 import paymentStatusHandler from '../api/orders/[id]/payment-status.js';
+import testPaymentHandler from '../api/orders/[id]/test-payment.js';
 import paymentConfigHandler from '../api/payment-config.js';
 
 const app = express();
@@ -125,6 +126,10 @@ app.post('/api/orders/:id/create-payment', (req, res) => {
 app.get('/api/orders/:id/payment-status', (req, res) => {
   req.query = { ...req.query, id: req.params.id };
   return paymentStatusHandler(req, res);
+});
+app.post('/api/orders/:id/test-payment', (req, res) => {
+  req.query = { ...req.query, id: req.params.id };
+  return testPaymentHandler(req, res);
 });
 app.all('/api/payment-config', toRoute(paymentConfigHandler));
 app.all('/api/seed-admin', (req, res) => {

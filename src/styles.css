@@ -16199,6 +16199,31 @@ input:focus {
     color: #065f46;
 }
 
+.status-badge.status-paid {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.status-badge.status-pending {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.status-badge.status-partial {
+    background: #dbeafe;
+    color: #1e40af;
+}
+
+.status-badge.status-failed {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.status-badge.status-refunded {
+    background: #f3e8ff;
+    color: #6b21a8;
+}
+
 .status-badge.status-cancelled {
     background: #fee2e2;
     color: #991b1b;
