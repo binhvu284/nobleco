@@ -72,15 +72,28 @@ export default async function handler(req, res) {
     const content = payload.content || payload.description || '';
     
     // If payment code is null, try to extract it from content/description
-    // Order numbers typically follow pattern: ORD-YYYY-XXXXXX or ORDYYYYXXXXXX
+    // Order numbers in DB: "ORD-2025-656656667" (with dashes)
+    // Order numbers in content: "ORD2025656656667" (without dashes)
     if (!paymentCode && content) {
       // Look for order number patterns in content
-      // Pattern 1: ORD2025656656667 (ORD followed by numbers)
-      // Pattern 2: ORD-2025-656656667 (ORD-YYYY-XXXXXX)
+      // Pattern: ORD followed by 4-digit year, then rest of numbers
+      // Example: "ORD2025656656667" -> extract "ORD2025656656667"
       const orderNumberMatch = content.match(/(ORD[-]?\d{4}[-]?\d+)/i);
       if (orderNumberMatch) {
-        paymentCode = orderNumberMatch[1].toUpperCase();
-        console.log(`Extracted payment code from content: ${paymentCode}`);
+        let extractedCode = orderNumberMatch[1].toUpperCase();
+        
+        // Normalize: Convert "ORD2025656656667" to "ORD-2025-656656667" format
+        // Extract year (4 digits after ORD) and rest
+        const normalizeMatch = extractedCode.match(/^ORD[-]?(\d{4})[-]?(\d+)$/i);
+        if (normalizeMatch) {
+          const year = normalizeMatch[1];
+          const rest = normalizeMatch[2];
+          paymentCode = `ORD-${year}-${rest}`;
+          console.log(`Extracted and normalized payment code from content: ${extractedCode} -> ${paymentCode}`);
+        } else {
+          paymentCode = extractedCode;
+          console.log(`Extracted payment code from content: ${paymentCode}`);
+        }
       }
     }
 
@@ -109,6 +122,7 @@ export default async function handler(req, res) {
     // Payment code is required to match transaction to order
     if (!paymentCode) {
       console.warn(`Transaction ${transactionId} has no payment code, skipping`);
+      console.warn(`Content was: ${content}`);
       await updateWebhookLogStatus(webhookLogId, {
         processed: false,
         processing_error: 'No payment code in transaction'
@@ -121,7 +135,8 @@ export default async function handler(req, res) {
       paymentCode,
       transferType,
       transferAmount,
-      transactionDate
+      transactionDate,
+      content: content.substring(0, 100) // Log first 100 chars of content
     });
 
     // Process payment (money in transaction)
