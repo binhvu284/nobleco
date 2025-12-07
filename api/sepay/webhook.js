@@ -64,12 +64,25 @@ export default async function handler(req, res) {
 
     // Extract transaction information
     const transactionId = payload.id;
-    const paymentCode = payload.code; // This is the order number/payment code
+    let paymentCode = payload.code; // This is the order number/payment code (may be null)
     const transferType = payload.transferType; // "in" or "out"
     const transferAmount = payload.transferAmount;
     const transactionDate = payload.transactionDate;
     const accountNumber = payload.accountNumber;
-    const content = payload.content;
+    const content = payload.content || payload.description || '';
+    
+    // If payment code is null, try to extract it from content/description
+    // Order numbers typically follow pattern: ORD-YYYY-XXXXXX or ORDYYYYXXXXXX
+    if (!paymentCode && content) {
+      // Look for order number patterns in content
+      // Pattern 1: ORD2025656656667 (ORD followed by numbers)
+      // Pattern 2: ORD-2025-656656667 (ORD-YYYY-XXXXXX)
+      const orderNumberMatch = content.match(/(ORD[-]?\d{4}[-]?\d+)/i);
+      if (orderNumberMatch) {
+        paymentCode = orderNumberMatch[1].toUpperCase();
+        console.log(`Extracted payment code from content: ${paymentCode}`);
+      }
+    }
 
     // Log webhook event (before processing)
     const webhookLog = await logWebhookEvent({
@@ -164,12 +177,65 @@ async function handlePaymentSuccess({ paymentCode, transactionId, transferAmount
 
   try {
     // Find order by payment code (order number)
-    // The payment code should match the order_number field
-    const { data: orders, error } = await supabase
+    // Order numbers in DB: "ORD-2025-656656667" (with dashes)
+    // Order numbers in content: "ORD2025656656667" (without dashes)
+    // Try exact match first, then try normalized versions
+    
+    let orders = null;
+    let error = null;
+    
+    // Try exact match first
+    let { data, error: queryError } = await supabase
       .from('orders')
       .select('id, order_number, total_amount, status, payment_status, created_by')
       .eq('order_number', paymentCode)
       .limit(1);
+    
+    orders = data;
+    error = queryError;
+    
+    // If not found, try matching with normalized format
+    // Convert "ORD2025656656667" to "ORD-2025-656656667" format
+    if ((!orders || orders.length === 0) && paymentCode) {
+      // Try to normalize: ORD2025656656667 -> ORD-2025-656656667
+      // Extract year (4 digits after ORD) and rest
+      const normalizedMatch = paymentCode.match(/^ORD[-]?(\d{4})[-]?(\d+)$/i);
+      if (normalizedMatch) {
+        const year = normalizedMatch[1];
+        const rest = normalizedMatch[2];
+        const normalizedCode = `ORD-${year}-${rest}`;
+        
+        console.log(`Trying normalized payment code: ${normalizedCode}`);
+        const { data: normalizedData, error: normalizedError } = await supabase
+          .from('orders')
+          .select('id, order_number, total_amount, status, payment_status, created_by')
+          .eq('order_number', normalizedCode)
+          .limit(1);
+        
+        if (normalizedData && normalizedData.length > 0) {
+          orders = normalizedData;
+          error = normalizedError;
+          console.log(`Found order with normalized code: ${normalizedCode}`);
+        }
+      }
+      
+      // Also try reverse: if paymentCode has dashes, try without dashes
+      if ((!orders || orders.length === 0) && paymentCode.includes('-')) {
+        const noDashCode = paymentCode.replace(/-/g, '');
+        console.log(`Trying payment code without dashes: ${noDashCode}`);
+        const { data: noDashData, error: noDashError } = await supabase
+          .from('orders')
+          .select('id, order_number, total_amount, status, payment_status, created_by')
+          .eq('order_number', noDashCode)
+          .limit(1);
+        
+        if (noDashData && noDashData.length > 0) {
+          orders = noDashData;
+          error = noDashError;
+          console.log(`Found order with no-dash code: ${noDashCode}`);
+        }
+      }
+    }
     
     if (error) {
       throw new Error(`Database error finding order: ${error.message}`);
@@ -177,6 +243,7 @@ async function handlePaymentSuccess({ paymentCode, transactionId, transferAmount
 
     if (!orders || orders.length === 0) {
       console.warn(`Order not found for payment code: ${paymentCode}`);
+      console.warn(`Content was: ${content}`);
       await updateWebhookLogStatus(webhookLogId, {
         processed: false,
         processing_error: `Order not found for payment code: ${paymentCode}`
