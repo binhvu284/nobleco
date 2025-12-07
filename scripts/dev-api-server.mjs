@@ -80,6 +80,19 @@ app.post('/api/products/upload-excel', upload.single('file'), async (req, res) =
 app.all('/api/categories', toRoute(categoriesHandler));
 app.all('/api/clients', toRoute(clientsHandler));
 app.all('/api/orders', toRoute(ordersHandler));
+// Register specific routes BEFORE generic :id route to avoid conflicts
+app.post('/api/orders/:id/create-payment', (req, res) => {
+  req.query = { ...req.query, id: req.params.id };
+  return createPaymentHandler(req, res);
+});
+app.get('/api/orders/:id/payment-status', (req, res) => {
+  req.query = { ...req.query, id: req.params.id };
+  return paymentStatusHandler(req, res);
+});
+app.post('/api/orders/:id/test-payment', (req, res) => {
+  req.query = { ...req.query, id: req.params.id };
+  return testPaymentHandler(req, res);
+});
 app.get('/api/orders/:id', (req, res) => {
   req.query = { ...req.query, id: req.params.id };
   return orderByIdHandler(req, res);
@@ -119,18 +132,6 @@ app.all('/api/bank-info', toRoute(bankInfoHandler));
 app.all('/api/withdraw-requests', toRoute(withdrawRequestsHandler));
 app.all('/api/admin-withdraw-requests', toRoute(adminWithdrawRequestsHandler));
 app.all('/api/sepay/webhook', toRoute(sepayWebhookHandler));
-app.post('/api/orders/:id/create-payment', (req, res) => {
-  req.query = { ...req.query, id: req.params.id };
-  return createPaymentHandler(req, res);
-});
-app.get('/api/orders/:id/payment-status', (req, res) => {
-  req.query = { ...req.query, id: req.params.id };
-  return paymentStatusHandler(req, res);
-});
-app.post('/api/orders/:id/test-payment', (req, res) => {
-  req.query = { ...req.query, id: req.params.id };
-  return testPaymentHandler(req, res);
-});
 app.all('/api/payment-config', toRoute(paymentConfigHandler));
 app.all('/api/seed-admin', (req, res) => {
   req.query = { ...req.query, endpoint: 'seed-admin' };
