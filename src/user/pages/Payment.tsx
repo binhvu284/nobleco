@@ -133,9 +133,11 @@ export default function Payment() {
                             const amount = Math.round(orderData.total);
                             const paymentCode = paymentData.order_number; // Payment code for Sepay detection
                             
-                            // Encode parameters for URL
-                            const qrCodeImageUrl = `https://qr.sepay.vn/img?acc=${encodeURIComponent(bankInfo.account_number)}&bank=${encodeURIComponent(bankInfo.bank_name)}&amount=${amount}&des=${encodeURIComponent(paymentCode)}`;
+                            // Build QR code URL - don't encode bank name, use as-is
+                            // Sepay expects specific bank name format (e.g., "MB" not "MBBank")
+                            const qrCodeImageUrl = `https://qr.sepay.vn/img?acc=${bankInfo.account_number}&bank=${bankInfo.bank_name}&amount=${amount}&des=${encodeURIComponent(paymentCode)}`;
                             
+                            console.log('QR Code URL:', qrCodeImageUrl); // Debug log
                             setQrCodeUrl(qrCodeImageUrl);
                         } else {
                             // Fallback: Generate simple QR code with payment code if bank info not available

@@ -50,7 +50,31 @@ export default async function handler(req, res) {
           bankAccount.bank_name = bankInfo.bank_name;
           bankAccount.account_number = bankInfo.bank_number;
           bankAccount.account_owner = bankInfo.bank_owner_name;
-          // Map bank name to BIN code (common Vietnamese banks)
+          // Map bank name to Sepay's expected format and BIN code
+          // Sepay QR generator expects specific bank name format
+          const bankNameMap = {
+            'Vietcombank': 'Vietcombank',
+            'VietinBank': 'VietinBank',
+            'Vietinbank': 'VietinBank',
+            'BIDV': 'BIDV',
+            'Agribank': 'Agribank',
+            'Techcombank': 'Techcombank',
+            'ACB': 'ACB',
+            'TPBank': 'TPBank',
+            'TPbank': 'TPBank',
+            'VPBank': 'VPBank',
+            'VPbank': 'VPBank',
+            'MBBank': 'MB',  // Sepay expects "MB" not "MBBank"
+            'MB': 'MB',
+            'Military Bank': 'MB',
+            'Sacombank': 'Sacombank'
+          };
+          
+          // Normalize bank name for Sepay QR generator
+          const normalizedBankName = bankNameMap[bankInfo.bank_name] || bankInfo.bank_name;
+          bankAccount.bank_name = normalizedBankName;
+          
+          // Map to BIN code (for reference, not used in QR URL)
           const bankCodeMap = {
             'Vietcombank': '970422',
             'VietinBank': '970415',
@@ -60,10 +84,10 @@ export default async function handler(req, res) {
             'ACB': '970416',
             'TPBank': '970423',
             'VPBank': '970432',
-            'MBBank': '970422',
+            'MB': '970422',
             'Sacombank': '970403'
           };
-          bankAccount.bank_code = bankCodeMap[bankInfo.bank_name] || '';
+          bankAccount.bank_code = bankCodeMap[normalizedBankName] || '';
         }
       }
     }
