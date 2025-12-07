@@ -117,6 +117,7 @@ export default function Payment() {
                 
                 // Generate QR code locally using order number as payment code
                 // Sepay will detect this code in transaction content
+                // Works for both new and existing payments
                 if (paymentData.order_number) {
                     try {
                         // Create QR code with payment info: order number and amount

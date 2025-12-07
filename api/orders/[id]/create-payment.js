@@ -67,11 +67,19 @@ export default async function handler(req, res) {
       return res.status(403).json({ error: 'Forbidden' });
     }
 
-    // Check if payment already created
+    // Check if payment already created - return existing payment data
     if (order.sepay_order_id) {
-      return res.status(400).json({ 
-        error: 'Payment order already created',
-        sepay_order_id: order.sepay_order_id
+      return res.status(200).json({
+        success: true,
+        sepay_order_id: order.sepay_order_id,
+        order_number: order.order_number, // Return order number for QR code regeneration
+        amount: order.total_amount,
+        qr_code_url: null, // QR code will be generated on frontend
+        payment_url: null,
+        virtual_account: null,
+        bank_account: null,
+        expires_at: null,
+        already_exists: true // Flag to indicate this is existing payment
       });
     }
 
