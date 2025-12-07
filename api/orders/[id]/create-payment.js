@@ -117,6 +117,8 @@ export default async function handler(req, res) {
     return res.status(200).json({
       success: true,
       sepay_order_id: sepayData.sepay_order_id,
+      order_number: order.order_number, // Return order number for QR code generation
+      amount: order.total_amount,
       qr_code_url: sepayData.qr_code_url,
       payment_url: sepayData.payment_url,
       virtual_account: sepayData.virtual_account,

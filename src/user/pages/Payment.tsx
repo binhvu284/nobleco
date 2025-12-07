@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import QRCode from 'qrcode';
 import UserLayout from '../components/UserLayout';
 import {
     IconChevronLeft,
@@ -97,16 +98,44 @@ export default function Payment() {
                 });
 
                 if (!response.ok) {
-                    const error = await response.json();
-                    throw new Error(error.error || 'Failed to create payment order');
+                    let errorMessage = 'Failed to create payment order';
+                    try {
+                        const error = await response.json();
+                        errorMessage = error.error || errorMessage;
+                    } catch (e) {
+                        errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+                    }
+                    throw new Error(errorMessage);
                 }
 
-                const paymentData = await response.json();
-                
-                // Set QR code and bank account info
-                if (paymentData.qr_code_url) {
-                    setQrCodeUrl(paymentData.qr_code_url);
+                let paymentData;
+                try {
+                    paymentData = await response.json();
+                } catch (e) {
+                    throw new Error('Invalid response from server');
                 }
+                
+                // Generate QR code locally using order number as payment code
+                // Sepay will detect this code in transaction content
+                if (paymentData.order_number) {
+                    try {
+                        // Create QR code with payment info: order number and amount
+                        // Format: Order number (payment code) + amount for easy scanning
+                        const qrData = `${paymentData.order_number}\nAmount: ${formatVND(orderData.total)}`;
+                        const qrCodeDataUrl = await QRCode.toDataURL(qrData, {
+                            width: 300,
+                            margin: 2,
+                            color: {
+                                dark: '#000000',
+                                light: '#FFFFFF'
+                            }
+                        });
+                        setQrCodeUrl(qrCodeDataUrl);
+                    } catch (qrError) {
+                        console.error('Error generating QR code:', qrError);
+                    }
+                }
+                
                 if (paymentData.bank_account) {
                     setBankAccount(paymentData.bank_account);
                 }
