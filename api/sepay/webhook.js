@@ -27,8 +27,14 @@ export default async function handler(req, res) {
   let webhookLogId = null;
 
   try {
-    // Get webhook signature from headers
-    const signature = req.headers['x-signature'] || req.headers['x-sepay-signature'];
+    // Verify API Key authentication (Sepay uses: Authorization: Apikey API_KEY)
+    const authHeader = req.headers.authorization || req.headers['authorization'];
+    const SEPAY_API_KEY = process.env.SEPAY_API_KEY;
+    
+    if (SEPAY_API_KEY && authHeader !== `Apikey ${SEPAY_API_KEY}`) {
+      // If API key is configured but doesn't match, reject
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
     
     // Parse webhook payload
     let payload = req.body;
@@ -40,72 +46,82 @@ export default async function handler(req, res) {
       }
     }
 
+    // Sepay webhook payload structure:
+    // {
+    //   id: transaction_id,
+    //   gateway: "BankName",
+    //   transactionDate: "2023-03-25 14:02:37",
+    //   accountNumber: "0123499999",
+    //   code: "ORDER_NUMBER",  // Payment code (order number)
+    //   content: "transfer content",
+    //   transferType: "in" | "out",
+    //   transferAmount: 2277000,
+    //   accumulated: 19077000,
+    //   subAccount: null,
+    //   referenceCode: "MBVCB.3278907687",
+    //   description: ""
+    // }
+
+    // Extract transaction information
+    const transactionId = payload.id;
+    const paymentCode = payload.code; // This is the order number/payment code
+    const transferType = payload.transferType; // "in" or "out"
+    const transferAmount = payload.transferAmount;
+    const transactionDate = payload.transactionDate;
+    const accountNumber = payload.accountNumber;
+    const content = payload.content;
+
     // Log webhook event (before processing)
     const webhookLog = await logWebhookEvent({
       webhook_type: 'sepay_payment',
-      event_type: payload.event_type || payload.type || 'unknown',
-      order_id: payload.order_id ? parseInt(payload.order_id, 10) : null,
+      event_type: transferType === 'in' ? 'payment.paid' : transferType === 'out' ? 'payment.out' : 'unknown',
+      order_id: null, // Will be set after finding order by payment code
       payload: payload,
-      signature: signature || null,
+      signature: authHeader || null,
       processed: false
     });
 
     webhookLogId = webhookLog.id;
 
-    // Verify webhook signature
-    if (signature) {
-      try {
-        const isValid = await verifySepayWebhookSignature(JSON.stringify(payload), signature);
-        if (!isValid) {
-          await updateWebhookLogStatus(webhookLogId, {
-            processed: false,
-            processing_error: 'Invalid webhook signature'
-          });
-          return res.status(401).json({ error: 'Invalid signature' });
-        }
-      } catch (sigError) {
-        console.error('Error verifying webhook signature:', sigError);
-        await updateWebhookLogStatus(webhookLogId, {
-          processed: false,
-          processing_error: `Signature verification error: ${sigError.message}`
-        });
-        return res.status(401).json({ error: 'Signature verification failed' });
-      }
+    // Only process "money in" transactions (customer payments)
+    if (transferType !== 'in') {
+      console.log(`Skipping transaction ${transactionId}: transferType is "${transferType}" (only "in" is processed)`);
+      await updateWebhookLogStatus(webhookLogId, {
+        processed: true,
+        response_data: { status: 'skipped', reason: 'not_money_in' }
+      });
+      return res.status(200).json({ success: true, message: 'Transaction skipped (not money in)' });
     }
 
-    // Extract event type and order information
-    const eventType = payload.event_type || payload.type || 'unknown';
-    const sepayOrderId = payload.order_id || payload.sepay_order_id;
-    const transactionId = payload.transaction_id || payload.id;
-    const orderId = payload.metadata?.order_id || payload.order_id;
+    // Payment code is required to match transaction to order
+    if (!paymentCode) {
+      console.warn(`Transaction ${transactionId} has no payment code, skipping`);
+      await updateWebhookLogStatus(webhookLogId, {
+        processed: false,
+        processing_error: 'No payment code in transaction'
+      });
+      return res.status(200).json({ success: true, message: 'Transaction skipped (no payment code)' });
+    }
 
     console.log('Sepay webhook received:', {
-      eventType,
-      sepayOrderId,
       transactionId,
-      orderId
+      paymentCode,
+      transferType,
+      transferAmount,
+      transactionDate
     });
 
-    // Handle different event types
-    if (eventType === 'payment.success' || eventType === 'payment.paid') {
-      await handlePaymentSuccess({
-        orderId: orderId ? parseInt(orderId, 10) : null,
-        sepayOrderId,
-        transactionId,
-        payload,
-        webhookLogId
-      });
-    } else if (eventType === 'payment.failed' || eventType === 'payment.failure') {
-      await handlePaymentFailed({
-        orderId: orderId ? parseInt(orderId, 10) : null,
-        sepayOrderId,
-        transactionId,
-        payload,
-        webhookLogId
-      });
-    } else {
-      console.log(`Unhandled webhook event type: ${eventType}`);
-    }
+    // Process payment (money in transaction)
+    await handlePaymentSuccess({
+      paymentCode,
+      transactionId,
+      transferAmount,
+      transactionDate,
+      accountNumber,
+      content,
+      payload,
+      webhookLogId
+    });
 
     // Mark webhook as processed
     await updateWebhookLogStatus(webhookLogId, {
@@ -114,9 +130,9 @@ export default async function handler(req, res) {
     });
 
     // Return success response to Sepay
+    // Sepay requires: {"success": true} with HTTP 200 or 201
     return res.status(200).json({ 
-      success: true,
-      message: 'Webhook processed successfully'
+      success: true
     });
 
   } catch (error) {
@@ -143,36 +159,68 @@ export default async function handler(req, res) {
 }
 
 // Handle successful payment
-async function handlePaymentSuccess({ orderId, sepayOrderId, transactionId, payload, webhookLogId }) {
+async function handlePaymentSuccess({ paymentCode, transactionId, transferAmount, transactionDate, accountNumber, content, payload, webhookLogId }) {
   const supabase = getSupabase();
 
   try {
-    // Find order by sepay_order_id if orderId not provided
-    let order = null;
-    if (orderId) {
-      order = await getOrderById(orderId);
-    } else if (sepayOrderId) {
-      // Find order by sepay_order_id
-      const { data: orders, error } = await supabase
-        .from('orders')
-        .select('id')
-        .eq('sepay_order_id', sepayOrderId)
-        .limit(1);
-      
-      if (!error && orders && orders.length > 0) {
-        order = await getOrderById(orders[0].id);
-        orderId = orders[0].id;
-      }
+    // Find order by payment code (order number)
+    // The payment code should match the order_number field
+    const { data: orders, error } = await supabase
+      .from('orders')
+      .select('id, order_number, total_amount, status, payment_status, created_by')
+      .eq('order_number', paymentCode)
+      .limit(1);
+    
+    if (error) {
+      throw new Error(`Database error finding order: ${error.message}`);
     }
 
-    if (!order) {
-      throw new Error(`Order not found for sepay_order_id: ${sepayOrderId}`);
+    if (!orders || orders.length === 0) {
+      console.warn(`Order not found for payment code: ${paymentCode}`);
+      await updateWebhookLogStatus(webhookLogId, {
+        processed: false,
+        processing_error: `Order not found for payment code: ${paymentCode}`
+      });
+      return; // Don't fail webhook, just log
     }
 
-    // Check if order is already completed (idempotency)
+    const order = orders[0];
+    const orderId = order.id;
+
+    // Check if transaction already processed (idempotency)
+    // Use transaction ID to prevent duplicate processing
+    const { data: existingLogs } = await supabase
+      .from('webhook_logs')
+      .select('id')
+      .eq('payload->>id', transactionId.toString())
+      .eq('processed', true)
+      .limit(1);
+
+    if (existingLogs && existingLogs.length > 0) {
+      console.log(`Transaction ${transactionId} already processed, skipping`);
+      await updateWebhookLogStatus(webhookLogId, {
+        processed: true,
+        response_data: { status: 'duplicate', orderId }
+      });
+      return;
+    }
+
+    // Check if order is already completed
     if (order.status === 'completed' && order.payment_status === 'paid') {
       console.log(`Order ${orderId} already completed, skipping webhook processing`);
+      await updateWebhookLogStatus(webhookLogId, {
+        processed: true,
+        response_data: { status: 'already_completed', orderId }
+      });
       return;
+    }
+
+    // Verify amount matches (optional - you may want to allow partial payments)
+    const amountDifference = Math.abs(transferAmount - order.total_amount);
+    if (amountDifference > 1000) { // Allow 1000 VND difference for rounding
+      console.warn(`Amount mismatch for order ${orderId}: expected ${order.total_amount}, received ${transferAmount}`);
+      // You can choose to reject or accept with warning
+      // For now, we'll accept but log the warning
     }
 
     // Update order status
@@ -180,14 +228,21 @@ async function handlePaymentSuccess({ orderId, sepayOrderId, transactionId, payl
       status: 'completed',
       payment_status: 'paid',
       payment_method: 'bank_transfer',
-      payment_date: payload.paid_at || new Date().toISOString(),
-      sepay_transaction_id: transactionId,
+      payment_date: transactionDate ? new Date(transactionDate).toISOString() : new Date().toISOString(),
+      sepay_transaction_id: transactionId.toString(),
       webhook_received_at: new Date().toISOString(),
       payment_confirmed_by: 'webhook',
       completed_at: new Date().toISOString()
     };
 
     await updateOrder(orderId, updateData);
+
+    // Update webhook log with order ID
+    await updateWebhookLogStatus(webhookLogId, {
+      order_id: orderId,
+      processed: true,
+      response_data: { status: 'success', orderId, transferAmount }
+    });
 
     // Process commissions
     try {
@@ -199,50 +254,19 @@ async function handlePaymentSuccess({ orderId, sepayOrderId, transactionId, payl
       // This can be handled manually later
     }
 
-    console.log(`Order ${orderId} completed successfully via webhook`);
+    console.log(`Order ${orderId} (${paymentCode}) completed successfully via webhook. Transaction: ${transactionId}, Amount: ${transferAmount} VND`);
   } catch (error) {
     console.error('Error handling payment success:', error);
     throw error;
   }
 }
 
-// Handle failed payment
+// Note: Sepay webhooks only send "money in" (transferType: "in") transactions for payments
+// Failed payments are not sent via webhook - they're just transactions that never happened
+// This function is kept for compatibility but may not be used with Sepay
 async function handlePaymentFailed({ orderId, sepayOrderId, transactionId, payload, webhookLogId }) {
-  const supabase = getSupabase();
-
-  try {
-    // Find order
-    let order = null;
-    if (orderId) {
-      order = await getOrderById(orderId);
-    } else if (sepayOrderId) {
-      const { data: orders, error } = await supabase
-        .from('orders')
-        .select('id')
-        .eq('sepay_order_id', sepayOrderId)
-        .limit(1);
-      
-      if (!error && orders && orders.length > 0) {
-        order = await getOrderById(orders[0].id);
-        orderId = orders[0].id;
-      }
-    }
-
-    if (!order) {
-      console.warn(`Order not found for failed payment: sepay_order_id=${sepayOrderId}`);
-      return;
-    }
-
-    // Update order payment status to failed
-    await updateOrder(orderId, {
-      payment_status: 'failed',
-      webhook_received_at: new Date().toISOString()
-    });
-
-    console.log(`Order ${orderId} payment marked as failed`);
-  } catch (error) {
-    console.error('Error handling payment failure:', error);
-    throw error;
-  }
+  // Sepay doesn't send "failed" payment webhooks
+  // Payments either succeed (money in) or don't happen
+  console.log('Payment failed handler called, but Sepay only sends successful payment webhooks');
 }
 

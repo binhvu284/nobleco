@@ -26,6 +26,9 @@ import coworkerPermissionsHandler from '../api/coworker-permissions.js';
 import bankInfoHandler from '../api/bank-info.js';
 import withdrawRequestsHandler from '../api/withdraw-requests.js';
 import adminWithdrawRequestsHandler from '../api/admin-withdraw-requests.js';
+import sepayWebhookHandler from '../api/sepay/webhook.js';
+import createPaymentHandler from '../api/orders/[id]/create-payment.js';
+import paymentStatusHandler from '../api/orders/[id]/payment-status.js';
 
 const app = express();
 app.use(express.json({ limit: '50mb' })); // Increase limit for base64 image uploads
@@ -113,6 +116,15 @@ app.all('/api/coworker-permissions', toRoute(coworkerPermissionsHandler));
 app.all('/api/bank-info', toRoute(bankInfoHandler));
 app.all('/api/withdraw-requests', toRoute(withdrawRequestsHandler));
 app.all('/api/admin-withdraw-requests', toRoute(adminWithdrawRequestsHandler));
+app.all('/api/sepay/webhook', toRoute(sepayWebhookHandler));
+app.post('/api/orders/:id/create-payment', (req, res) => {
+  req.query = { ...req.query, id: req.params.id };
+  return createPaymentHandler(req, res);
+});
+app.get('/api/orders/:id/payment-status', (req, res) => {
+  req.query = { ...req.query, id: req.params.id };
+  return paymentStatusHandler(req, res);
+});
 app.all('/api/seed-admin', (req, res) => {
   req.query = { ...req.query, endpoint: 'seed-admin' };
   return usersHandler(req, res);
