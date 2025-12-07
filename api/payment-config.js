@@ -21,7 +21,7 @@ export default async function handler(req, res) {
 
   try {
     // Get merchant bank account from environment or database
-    // For now, use environment variables (configure in Vercel)
+    // This should match the bank account configured in Sepay dashboard
     const bankAccount = {
       bank_name: process.env.MERCHANT_BANK_NAME || '',
       bank_code: process.env.MERCHANT_BANK_CODE || '', // BIN code (e.g., '970422' for Vietcombank)

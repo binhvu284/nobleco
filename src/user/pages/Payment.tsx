@@ -115,11 +115,11 @@ export default function Payment() {
                     throw new Error('Invalid response from server');
                 }
                 
-                // Generate VietQR code for Vietnamese bank transfer
-                // Format: VietQR standard with bank account, amount, and payment code
+                // Generate VietQR code using Sepay's QR code generator
+                // Sepay QR generator creates proper VietQR format for Vietnamese banking apps
                 if (paymentData.order_number) {
                     try {
-                        // Get merchant bank account info for VietQR
+                        // Get merchant bank account info
                         const configResponse = await fetch('/api/payment-config');
                         let bankInfo = null;
                         if (configResponse.ok) {
@@ -127,32 +127,30 @@ export default function Payment() {
                             bankInfo = configData.bank_account;
                         }
 
-                        let qrData: string;
-                        
-                        if (bankInfo?.account_number) {
-                            // Generate QR code with bank transfer info
-                            // Format: Bank account + amount + payment code (for Sepay detection)
+                        if (bankInfo?.account_number && bankInfo?.bank_name) {
+                            // Use Sepay's QR code generator API
+                            // Format: https://qr.sepay.vn/img?acc=ACCOUNT&bank=BANK_NAME&amount=AMOUNT&des=DESCRIPTION
                             const amount = Math.round(orderData.total);
-                            const paymentCode = paymentData.order_number;
+                            const paymentCode = paymentData.order_number; // Payment code for Sepay detection
                             
-                            // Create QR code data that banking apps can read
-                            // Include bank account, amount, and payment code in description
-                            qrData = `STK:${bankInfo.account_number}|SoTien:${amount}|NoiDung:${paymentCode}`;
+                            // Encode parameters for URL
+                            const qrCodeImageUrl = `https://qr.sepay.vn/img?acc=${encodeURIComponent(bankInfo.account_number)}&bank=${encodeURIComponent(bankInfo.bank_name)}&amount=${amount}&des=${encodeURIComponent(paymentCode)}`;
+                            
+                            setQrCodeUrl(qrCodeImageUrl);
                         } else {
-                            // Fallback: Payment code only (user will manually transfer)
-                            qrData = `Payment Code: ${paymentData.order_number}\nAmount: ${formatVND(orderData.total)}`;
+                            // Fallback: Generate simple QR code with payment code if bank info not available
+                            const qrData = `Payment Code: ${paymentData.order_number}\nAmount: ${formatVND(orderData.total)}`;
+                            const qrCodeDataUrl = await QRCode.toDataURL(qrData, {
+                                width: 300,
+                                margin: 2,
+                                errorCorrectionLevel: 'M',
+                                color: {
+                                    dark: '#000000',
+                                    light: '#FFFFFF'
+                                }
+                            });
+                            setQrCodeUrl(qrCodeDataUrl);
                         }
-                        
-                        const qrCodeDataUrl = await QRCode.toDataURL(qrData, {
-                            width: 300,
-                            margin: 2,
-                            errorCorrectionLevel: 'M',
-                            color: {
-                                dark: '#000000',
-                                light: '#FFFFFF'
-                            }
-                        });
-                        setQrCodeUrl(qrCodeDataUrl);
                     } catch (qrError) {
                         console.error('Error generating QR code:', qrError);
                     }
