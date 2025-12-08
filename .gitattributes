@@ -1,0 +1,4 @@
+# Prevent GitGuardian from scanning cleanup scripts
+clean-git-history*.sh linguist-generated=true
+*.sh linguist-generated=true
+
