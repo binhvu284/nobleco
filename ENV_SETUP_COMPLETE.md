@@ -4,7 +4,7 @@
 
 - **Domain:** `app.nobleco.vn`
 - **Payment Method:** Bank Transfer (Sepay.vn)
-- **Sepay API Key:** `[REDACTED-SEPAY-API-KEY]`
+- **Sepay API Key:** `your_sepay_api_key_here` ⚠️ **NEVER commit real API keys to git!**
 
 ## Complete .env File for Vercel Import
 
@@ -19,7 +19,9 @@ Copy this content to create your `.env` file, then import it to Vercel:
 # ============================================
 
 # Sepay.vn Bank Transfer Payment Integration
-SEPAY_API_KEY=[REDACTED-SEPAY-API-KEY]
+# ⚠️ SECURITY: Replace with your actual API key from Sepay Dashboard
+# NEVER commit real API keys to git!
+SEPAY_API_KEY=your_sepay_api_key_here
 
 # Application Base URL
 NEXT_PUBLIC_BASE_URL=https://app.nobleco.vn

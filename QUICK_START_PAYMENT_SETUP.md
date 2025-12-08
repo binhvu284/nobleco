@@ -3,7 +3,7 @@
 ## Your Configuration
 
 - **Domain:** `app.nobleco.vn`
-- **Sepay API Key:** `[REDACTED-SEPAY-API-KEY]`
+- **Sepay API Key:** `your_sepay_api_key_here` ⚠️ **NEVER commit real API keys to git!**
 - **Payment Method:** Bank Transfer Only
 
 ## Quick Setup Steps
@@ -14,7 +14,9 @@
 
 1. Create `.env` file with this content:
 ```env
-SEPAY_API_KEY=[REDACTED-SEPAY-API-KEY]
+# ⚠️ SECURITY: Replace with your actual API key from Sepay Dashboard
+# NEVER commit real API keys to git!
+SEPAY_API_KEY=your_sepay_api_key_here
 NEXT_PUBLIC_BASE_URL=https://app.nobleco.vn
 VITE_SUPABASE_URL=your-supabase-url
 VITE_SUPABASE_ANON_KEY=your-anon-key
@@ -27,7 +29,7 @@ SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 **Option B: Manual Entry**
 
 Add each variable manually in Vercel Dashboard:
-- `SEPAY_API_KEY` = `[REDACTED-SEPAY-API-KEY]`
+- `SEPAY_API_KEY` = `your_sepay_api_key_here` (Get from Sepay Dashboard)
 - `NEXT_PUBLIC_BASE_URL` = `https://app.nobleco.vn`
 - (Add Supabase variables)
 
@@ -46,7 +48,7 @@ Add each variable manually in Vercel Dashboard:
    - **Gọi đến URL:** `https://app.nobleco.vn/api/sepay/webhook`
    - **Kiểu chứng thực:** API Key
    - **Request Content type:** application/json
-   - **API Key:** `[REDACTED-SEPAY-API-KEY]`
+   - **API Key:** `your_sepay_api_key_here` (Use the same key as in environment variables)
 
 4. **Save Webhook**
 

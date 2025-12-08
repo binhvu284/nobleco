@@ -8,6 +8,23 @@ yarn-error.log*
 pnpm-debug.log*
 .vercel
 .env*
+.env.local
+.env.*.local
+.env.production
+.env.development
+
+# Secrets and keys
+*.key
+*.pem
+*.p12
+secrets.txt
+credentials.json
+*.secret
+
+# IDE files that might contain secrets
+.vscode/settings.json
+.idea/
+*.swp
 
 # TypeScript build info
 *.tsbuildinfo
