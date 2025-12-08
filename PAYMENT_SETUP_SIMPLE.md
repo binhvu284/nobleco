@@ -29,7 +29,7 @@ Add bank account info in Wallet page (as admin user). System will auto-detect.
 In Sepay Dashboard → WebHooks:
 - URL: `https://app.nobleco.vn/api/sepay/webhook`
 - Event: "Có tiền vào" (Money In)
-- Auth: API Key = `[REDACTED-SEPAY-API-KEY]`
+- Auth: API Key = `your_sepay_api_key_here` (Use the same key as in environment variables)
 
 ### Step 3: Configure Payment Code Recognition
 

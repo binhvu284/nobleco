@@ -55,7 +55,7 @@
 
 2. **Generate New API Key:**
    - Navigate to **API Access** or **Settings** → **API Keys**
-   - Revoke/delete the old key: `[REDACTED-SEPAY-API-KEY]`
+   - Revoke/delete the old exposed key (check git history for the actual key)
    - Generate a new API key
    - **Copy the new key immediately**
 
@@ -104,7 +104,10 @@
    # Download from: https://rtyley.github.io/bfg-repo-cleaner/
    
    # Create a file with secrets to remove
-   echo "[REDACTED-SEPAY-API-KEY]" > secrets.txt
+   # Create secrets.txt with all exposed secrets (one per line)
+   # Include: old Supabase Service Role JWT, old Sepay API key, etc.
+   echo "old_secret_1" > secrets.txt
+   echo "old_secret_2" >> secrets.txt
    # Add your old Supabase Service Role key to secrets.txt
    
    # Remove secrets from history

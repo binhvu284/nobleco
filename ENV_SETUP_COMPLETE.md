@@ -69,7 +69,7 @@ SUPABASE_SERVICE_ROLE_KEY=your-supabase-service-role-key-here
 
 After importing, verify these variables are present:
 
-- ✅ `SEPAY_API_KEY` = `[REDACTED-SEPAY-API-KEY]`
+- ✅ `SEPAY_API_KEY` = `your_sepay_api_key_here` (Get from Sepay Dashboard)
 - ✅ `NEXT_PUBLIC_BASE_URL` = `https://app.nobleco.vn`
 - ✅ `VITE_SUPABASE_URL` = (your Supabase URL)
 - ✅ `VITE_SUPABASE_ANON_KEY` = (your Supabase anon key)
@@ -94,7 +94,7 @@ https://app.nobleco.vn/api/sepay/webhook
 **Sepay Webhook Configuration:**
 - **URL:** `https://app.nobleco.vn/api/sepay/webhook`
 - **Authentication:** API Key
-- **API Key:** `[REDACTED-SEPAY-API-KEY]`
+- **API Key:** `your_sepay_api_key_here` (Use the same key as in environment variables)
 - **Content Type:** `application/json`
 - **Event:** "Có tiền vào" (Money In)
 
@@ -104,7 +104,9 @@ For local development, create a `.env` file with:
 
 ```env
 # Sepay API Key (use same or sandbox key)
-SEPAY_API_KEY=[REDACTED-SEPAY-API-KEY]
+# ⚠️ SECURITY: Replace with your actual API key from Sepay Dashboard
+# NEVER commit real API keys to git!
+SEPAY_API_KEY=your_sepay_api_key_here
 
 # Local development URL
 NEXT_PUBLIC_BASE_URL=http://localhost:3000
