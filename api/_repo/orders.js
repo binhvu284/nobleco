@@ -40,6 +40,8 @@ function normalizeOrder(o) {
     creator: creator, // Preserve creator data with avatar for admin
     notes: o.notes,
     shipping_address: o.shipping_address,
+    discount_code: o.discount_code || null,
+    discount_rate: o.discount_rate ? parseFloat(o.discount_rate) : null,
     sepay_order_id: o.sepay_order_id || null,
     sepay_transaction_id: o.sepay_transaction_id || null,
     webhook_received_at: o.webhook_received_at || null,

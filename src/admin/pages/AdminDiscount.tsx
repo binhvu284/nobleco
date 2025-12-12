@@ -789,7 +789,8 @@ export default function AdminDiscount() {
                             backgroundColor: '#fff',
                             borderRadius: '8px',
                             boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-                            position: 'relative'
+                            position: 'relative',
+                            overflow: 'hidden'
                         }}>
                             <div className="modal-header" style={{
                                 padding: '20px 24px',
@@ -834,7 +835,7 @@ export default function AdminDiscount() {
                                     <IconX />
                                 </button>
                             </div>
-                            <form onSubmit={handleSubmit} className="modal-body" style={{
+                            <div className="modal-body" style={{
                                 padding: '24px',
                                 paddingBottom: '0',
                                 overflowY: 'auto',
@@ -842,6 +843,12 @@ export default function AdminDiscount() {
                                 minHeight: 0,
                                 display: 'flex',
                                 flexDirection: 'column'
+                            }}>
+                            <form onSubmit={handleSubmit} style={{
+                                display: 'flex',
+                                flexDirection: 'column',
+                                flex: 1,
+                                minHeight: 0
                             }}>
                                 <div className="form-group">
                                     <label>
@@ -1223,21 +1230,25 @@ export default function AdminDiscount() {
                                         ⚠️ Valid From date must be before Valid Until date
                                     </div>
                                 )}
-                                <div className="modal-footer" style={{
-                                    display: 'flex',
-                                    justifyContent: 'flex-end',
-                                    gap: '12px',
-                                    padding: '20px 24px',
-                                    borderTop: '1px solid #e5e7eb',
-                                    flexShrink: 0,
-                                    backgroundColor: '#fff',
-                                    position: 'sticky',
-                                    bottom: 0,
-                                    zIndex: 10,
-                                    marginTop: 'auto'
-                                }}>
-                                    <button
-                                        type="button"
+                            </form>
+                            </div>
+                            <div className="modal-footer" style={{
+                                display: 'flex',
+                                justifyContent: 'flex-end',
+                                gap: '12px',
+                                padding: '20px 24px',
+                                borderTop: '1px solid #e5e7eb',
+                                flexShrink: 0,
+                                backgroundColor: '#fff',
+                                position: 'absolute',
+                                bottom: 0,
+                                left: 0,
+                                right: 0,
+                                zIndex: 10,
+                                boxShadow: '0 -2px 8px rgba(0, 0, 0, 0.1)'
+                            }}>
+                                <button
+                                    type="button"
                                         onClick={() => {
                                             setShowCreateModal(false);
                                             setShowEditModal(false);
@@ -1281,20 +1292,20 @@ export default function AdminDiscount() {
                                     >
                                         Cancel
                                     </button>
-                                    <button 
-                                        type="submit"
-                                        onClick={(e) => {
-                                            // Prevent double submission
-                                            if (submitting) {
-                                                e.preventDefault();
-                                                return false;
-                                            }
-                                            console.log('Submit button clicked', {
-                                                submitting,
-                                                formData,
-                                                isValid: formData.code && formData.code.trim() !== '' && formData.discount_rate && formData.discount_rate.trim() !== '' && !isNaN(parseFloat(formData.discount_rate)) && parseFloat(formData.discount_rate) > 0 && parseFloat(formData.discount_rate) <= 100
-                                            });
-                                        }}
+                                <button 
+                                    type="button"
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        // Prevent double submission
+                                        if (submitting) {
+                                            return;
+                                        }
+                                        // Find and submit the form
+                                        const form = document.getElementById('discount-form') as HTMLFormElement;
+                                        if (form) {
+                                            form.requestSubmit();
+                                        }
+                                    }}
                                         disabled={submitting || !formData.code || formData.code.trim() === '' || !!codeDuplicateError || !formData.discount_rate || formData.discount_rate.trim() === '' || isNaN(parseFloat(formData.discount_rate)) || parseFloat(formData.discount_rate) <= 0 || parseFloat(formData.discount_rate) > 100 || (formData.valid_from && formData.valid_until && formData.valid_until_type !== 'unlimited' && new Date(formData.valid_from) > new Date(formData.valid_until)) || (formData.max_usage_type === 'limited' && (!formData.max_usage || formData.max_usage.trim() === '' || isNaN(parseInt(formData.max_usage)) || parseInt(formData.max_usage) <= 0))}
                                         style={{
                                             padding: '12px 24px',
@@ -1345,8 +1356,7 @@ export default function AdminDiscount() {
                                             </>
                                         )}
                                     </button>
-                                </div>
-                            </form>
+                            </div>
                             {submitting && (
                                 <div 
                                     style={{
