@@ -1249,20 +1249,22 @@ export default function AdminDiscount() {
                             }}>
                                 <button
                                     type="button"
-                                        onClick={() => {
-                                            setShowCreateModal(false);
-                                            setShowEditModal(false);
-                                            setEditingDiscount(null);
-                                            setFormData({
-                                                code: '',
-                                                discount_rate: '',
-                                                description: '',
-                                                max_usage: '',
-                                                max_usage_type: 'unlimited',
-                                                valid_from: '',
-                                                valid_until: '',
-                                                valid_until_type: 'custom'
-                                            });
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        setShowCreateModal(false);
+                                        setShowEditModal(false);
+                                        setEditingDiscount(null);
+                                        setFormData({
+                                            code: '',
+                                            discount_rate: '',
+                                            description: '',
+                                            max_usage: '',
+                                            max_usage_type: 'unlimited',
+                                            valid_from: '',
+                                            valid_until: '',
+                                            valid_until_type: 'custom'
+                                        });
                                     }}
                                     style={{
                                         padding: '12px 24px',
