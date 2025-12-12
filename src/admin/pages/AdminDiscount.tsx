@@ -1244,7 +1244,7 @@ export default function AdminDiscount() {
                                 bottom: 0,
                                 left: 0,
                                 right: 0,
-                                zIndex: 10,
+                                zIndex: 100,
                                 boxShadow: '0 -2px 8px rgba(0, 0, 0, 0.1)'
                             }}>
                                 <button
@@ -1263,35 +1263,37 @@ export default function AdminDiscount() {
                                                 valid_until: '',
                                                 valid_until_type: 'custom'
                                             });
-                                        }}
-                                        disabled={submitting}
-                                        style={{
-                                            padding: '12px 24px',
-                                            borderRadius: '8px',
-                                            border: '1px solid #d1d5db',
-                                            backgroundColor: submitting ? '#f3f4f6' : '#fff',
-                                            color: submitting ? '#9ca3af' : '#374151',
-                                            cursor: submitting ? 'not-allowed' : 'pointer',
-                                            fontWeight: '500',
-                                            fontSize: '15px',
-                                            transition: 'all 0.2s',
-                                            minWidth: '120px'
-                                        }}
-                                        onMouseEnter={(e) => {
-                                            if (!submitting) {
-                                                e.currentTarget.style.backgroundColor = '#f9fafb';
-                                                e.currentTarget.style.borderColor = '#9ca3af';
-                                            }
-                                        }}
-                                        onMouseLeave={(e) => {
-                                            if (!submitting) {
-                                                e.currentTarget.style.backgroundColor = '#fff';
-                                                e.currentTarget.style.borderColor = '#d1d5db';
-                                            }
-                                        }}
-                                    >
-                                        Cancel
-                                    </button>
+                                    }}
+                                    style={{
+                                        padding: '12px 24px',
+                                        borderRadius: '8px',
+                                        border: '1px solid #d1d5db',
+                                        backgroundColor: submitting ? '#f3f4f6' : '#fff',
+                                        color: submitting ? '#9ca3af' : '#374151',
+                                        cursor: submitting ? 'not-allowed' : 'pointer',
+                                        fontWeight: '500',
+                                        fontSize: '15px',
+                                        transition: 'all 0.2s',
+                                        minWidth: '120px',
+                                        position: 'relative',
+                                        zIndex: 101
+                                    }}
+                                    disabled={submitting}
+                                    onMouseEnter={(e) => {
+                                        if (!submitting) {
+                                            e.currentTarget.style.backgroundColor = '#f9fafb';
+                                            e.currentTarget.style.borderColor = '#9ca3af';
+                                        }
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        if (!submitting) {
+                                            e.currentTarget.style.backgroundColor = '#fff';
+                                            e.currentTarget.style.borderColor = '#d1d5db';
+                                        }
+                                    }}
+                                >
+                                    Cancel
+                                </button>
                                 <button 
                                     type="button"
                                     onClick={(e) => {
@@ -1306,8 +1308,8 @@ export default function AdminDiscount() {
                                             form.requestSubmit();
                                         }
                                     }}
-                                        disabled={submitting || !formData.code || formData.code.trim() === '' || !!codeDuplicateError || !formData.discount_rate || formData.discount_rate.trim() === '' || isNaN(parseFloat(formData.discount_rate)) || parseFloat(formData.discount_rate) <= 0 || parseFloat(formData.discount_rate) > 100 || (formData.valid_from && formData.valid_until && formData.valid_until_type !== 'unlimited' && new Date(formData.valid_from) > new Date(formData.valid_until)) || (formData.max_usage_type === 'limited' && (!formData.max_usage || formData.max_usage.trim() === '' || isNaN(parseInt(formData.max_usage)) || parseInt(formData.max_usage) <= 0))}
-                                        style={{
+                                    disabled={submitting || !formData.code || formData.code.trim() === '' || !!codeDuplicateError || !formData.discount_rate || formData.discount_rate.trim() === '' || isNaN(parseFloat(formData.discount_rate)) || parseFloat(formData.discount_rate) <= 0 || parseFloat(formData.discount_rate) > 100 || (formData.valid_from && formData.valid_until && formData.valid_until_type !== 'unlimited' && new Date(formData.valid_from) > new Date(formData.valid_until)) || (formData.max_usage_type === 'limited' && (!formData.max_usage || formData.max_usage.trim() === '' || isNaN(parseInt(formData.max_usage)) || parseInt(formData.max_usage) <= 0))}
+                                    style={{
                                             padding: '12px 24px',
                                             borderRadius: '8px',
                                             border: 'none',
@@ -1364,15 +1366,15 @@ export default function AdminDiscount() {
                                         top: 0,
                                         left: 0,
                                         right: 0,
-                                        bottom: 0,
+                                        bottom: '80px',
                                         backgroundColor: 'rgba(255, 255, 255, 0.95)',
                                         display: 'flex',
                                         alignItems: 'center',
                                         justifyContent: 'center',
-                                        zIndex: 1000,
+                                        zIndex: 50,
                                         borderRadius: '8px',
                                         backdropFilter: 'blur(2px)',
-                                        pointerEvents: 'auto'
+                                        pointerEvents: 'none'
                                     }}
                                     onClick={(e) => e.stopPropagation()}
                                 >
