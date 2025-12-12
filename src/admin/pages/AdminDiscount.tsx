@@ -1310,34 +1310,35 @@ export default function AdminDiscount() {
                                     }}
                                     disabled={submitting || !formData.code || formData.code.trim() === '' || !!codeDuplicateError || !formData.discount_rate || formData.discount_rate.trim() === '' || isNaN(parseFloat(formData.discount_rate)) || parseFloat(formData.discount_rate) <= 0 || parseFloat(formData.discount_rate) > 100 || (formData.valid_from && formData.valid_until && formData.valid_until_type !== 'unlimited' && new Date(formData.valid_from) > new Date(formData.valid_until)) || (formData.max_usage_type === 'limited' && (!formData.max_usage || formData.max_usage.trim() === '' || isNaN(parseInt(formData.max_usage)) || parseInt(formData.max_usage) <= 0))}
                                     style={{
-                                            padding: '12px 24px',
-                                            borderRadius: '8px',
-                                            border: 'none',
-                                            backgroundColor: submitting || !formData.code || formData.code.trim() === '' || !!codeDuplicateError || !formData.discount_rate || formData.discount_rate.trim() === '' || isNaN(parseFloat(formData.discount_rate)) || parseFloat(formData.discount_rate) <= 0 || parseFloat(formData.discount_rate) > 100 || (formData.valid_from && formData.valid_until && formData.valid_until_type !== 'unlimited' && new Date(formData.valid_from) > new Date(formData.valid_until)) || (formData.max_usage_type === 'limited' && (!formData.max_usage || formData.max_usage.trim() === '' || isNaN(parseInt(formData.max_usage)) || parseInt(formData.max_usage) <= 0)) ? '#9ca3af' : '#2563eb',
-                                            color: '#fff',
-                                            cursor: submitting || !formData.code || formData.code.trim() === '' || !!codeDuplicateError || !formData.discount_rate || formData.discount_rate.trim() === '' || isNaN(parseFloat(formData.discount_rate)) || parseFloat(formData.discount_rate) <= 0 || parseFloat(formData.discount_rate) > 100 || (formData.valid_from && formData.valid_until && formData.valid_until_type !== 'unlimited' && new Date(formData.valid_from) > new Date(formData.valid_until)) || (formData.max_usage_type === 'limited' && (!formData.max_usage || formData.max_usage.trim() === '' || isNaN(parseInt(formData.max_usage)) || parseInt(formData.max_usage) <= 0)) ? 'not-allowed' : 'pointer',
-                                            fontWeight: '600',
-                                            fontSize: '15px',
-                                            transition: 'all 0.2s',
-                                            minWidth: '180px',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            gap: '8px',
-                                            position: 'relative',
-                                            pointerEvents: submitting ? 'none' : 'auto'
-                                        }}
-                                        onMouseEnter={(e) => {
-                                            if (!e.currentTarget.disabled) {
-                                                e.currentTarget.style.backgroundColor = '#1d4ed8';
-                                            }
-                                        }}
-                                        onMouseLeave={(e) => {
-                                            if (!e.currentTarget.disabled) {
-                                                e.currentTarget.style.backgroundColor = '#2563eb';
-                                            }
-                                        }}
-                                    >
+                                        padding: '12px 24px',
+                                        borderRadius: '8px',
+                                        border: 'none',
+                                        backgroundColor: submitting || !formData.code || formData.code.trim() === '' || !!codeDuplicateError || !formData.discount_rate || formData.discount_rate.trim() === '' || isNaN(parseFloat(formData.discount_rate)) || parseFloat(formData.discount_rate) <= 0 || parseFloat(formData.discount_rate) > 100 || (formData.valid_from && formData.valid_until && formData.valid_until_type !== 'unlimited' && new Date(formData.valid_from) > new Date(formData.valid_until)) || (formData.max_usage_type === 'limited' && (!formData.max_usage || formData.max_usage.trim() === '' || isNaN(parseInt(formData.max_usage)) || parseInt(formData.max_usage) <= 0)) ? '#9ca3af' : '#2563eb',
+                                        color: '#fff',
+                                        cursor: submitting || !formData.code || formData.code.trim() === '' || !!codeDuplicateError || !formData.discount_rate || formData.discount_rate.trim() === '' || isNaN(parseFloat(formData.discount_rate)) || parseFloat(formData.discount_rate) <= 0 || parseFloat(formData.discount_rate) > 100 || (formData.valid_from && formData.valid_until && formData.valid_until_type !== 'unlimited' && new Date(formData.valid_from) > new Date(formData.valid_until)) || (formData.max_usage_type === 'limited' && (!formData.max_usage || formData.max_usage.trim() === '' || isNaN(parseInt(formData.max_usage)) || parseInt(formData.max_usage) <= 0)) ? 'not-allowed' : 'pointer',
+                                        fontWeight: '600',
+                                        fontSize: '15px',
+                                        transition: 'all 0.2s',
+                                        minWidth: '180px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        gap: '8px',
+                                        position: 'relative',
+                                        pointerEvents: submitting ? 'none' : 'auto',
+                                        zIndex: 101
+                                    }}
+                                    onMouseEnter={(e) => {
+                                        if (!e.currentTarget.disabled) {
+                                            e.currentTarget.style.backgroundColor = '#1d4ed8';
+                                        }
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        if (!e.currentTarget.disabled) {
+                                            e.currentTarget.style.backgroundColor = '#2563eb';
+                                        }
+                                    }}
+                                >
                                         {submitting ? (
                                             <>
                                                 <div style={{
