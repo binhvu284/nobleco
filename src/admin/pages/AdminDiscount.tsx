@@ -837,7 +837,7 @@ export default function AdminDiscount() {
                             </div>
                             <div className="modal-body" style={{
                                 padding: '24px',
-                                paddingBottom: '0',
+                                paddingBottom: '100px',
                                 overflowY: 'auto',
                                 flex: 1,
                                 minHeight: 0,
