@@ -334,10 +334,11 @@ async function handlePaymentSuccess({ paymentCode, transactionId, transferAmount
       if (order.discount_code) {
         try {
           const { incrementDiscountCodeUsage } = await import('../_repo/discountCodes.js');
-          await incrementDiscountCodeUsage(order.discount_code);
-          console.log(`Incremented usage count for discount code: ${order.discount_code}`);
+          const updatedDiscount = await incrementDiscountCodeUsage(order.discount_code);
+          console.log(`✓ Incremented usage count for discount code: ${order.discount_code} (new count: ${updatedDiscount?.usage_count || 'unknown'})`);
         } catch (error) {
-          console.error(`Failed to increment discount code usage for ${order.discount_code}:`, error);
+          console.error(`✗ Failed to increment discount code usage for ${order.discount_code}:`, error);
+          console.error('Error details:', error.message, error.stack);
           // Don't fail the webhook if discount code increment fails
         }
       }

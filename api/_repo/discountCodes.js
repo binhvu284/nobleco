@@ -295,11 +295,44 @@ export async function validateDiscountCode(code) {
 
   // Check validity period
   const now = new Date();
-  if (discount.valid_from && new Date(discount.valid_from) > now) {
-    return { valid: false, error: 'Discount code is not yet valid' };
+  
+  // For valid_from, compare dates properly accounting for timezone
+  // If valid_from is set, the code should be valid from the start of that day (in UTC)
+  if (discount.valid_from) {
+    const validFromDate = new Date(discount.valid_from);
+    // Get UTC dates for comparison to avoid timezone issues
+    const validFromUTC = new Date(Date.UTC(
+      validFromDate.getUTCFullYear(),
+      validFromDate.getUTCMonth(),
+      validFromDate.getUTCDate()
+    ));
+    const nowUTC = new Date(Date.UTC(
+      now.getUTCFullYear(),
+      now.getUTCMonth(),
+      now.getUTCDate()
+    ));
+    
+    // Code is valid if valid_from date is today or earlier
+    if (validFromUTC > nowUTC) {
+      return { valid: false, error: 'Discount code is not yet valid' };
+    }
   }
-  if (discount.valid_until && new Date(discount.valid_until) < now) {
-    return { valid: false, error: 'Discount code has expired' };
+  
+  // For valid_until, compare at end of day (23:59:59) so codes are valid until the end of the day
+  if (discount.valid_until) {
+    const validUntilDate = new Date(discount.valid_until);
+    // Get end of day in UTC
+    const validUntilEndOfDayUTC = new Date(Date.UTC(
+      validUntilDate.getUTCFullYear(),
+      validUntilDate.getUTCMonth(),
+      validUntilDate.getUTCDate(),
+      23, 59, 59, 999
+    ));
+    
+    // Code is expired if valid_until is before now
+    if (validUntilEndOfDayUTC < now) {
+      return { valid: false, error: 'Discount code has expired' };
+    }
   }
 
   return { valid: true, discount };

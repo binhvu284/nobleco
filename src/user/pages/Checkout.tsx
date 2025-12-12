@@ -586,6 +586,31 @@ export default function Checkout() {
                     subtotal_amount: subtotal,
                     total_amount: newTotal
                 });
+                
+                // Increment usage count when discount code is successfully applied
+                // Note: This provides immediate feedback. The count will also increment on order completion.
+                try {
+                    const authToken = localStorage.getItem('nobleco_auth_token');
+                    const incrementResponse = await fetch('/api/discount-codes', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${authToken}`
+                        },
+                        body: JSON.stringify({
+                            action: 'increment',
+                            code: codeToApply
+                        })
+                    });
+                    if (!incrementResponse.ok) {
+                        console.warn('Failed to increment discount code usage on application');
+                    } else {
+                        console.log('Discount code usage incremented successfully');
+                    }
+                } catch (err) {
+                    console.warn('Error incrementing discount code usage:', err);
+                    // Don't fail the application if increment fails
+                }
             }
         } catch (error) {
             console.error('Error validating discount code:', error);

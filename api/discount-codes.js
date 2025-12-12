@@ -7,7 +7,8 @@ import {
   updateDiscountCode,
   deleteDiscountCode,
   toggleDiscountCodeStatus,
-  validateDiscountCode
+  validateDiscountCode,
+  incrementDiscountCodeUsage
 } from './_repo/discountCodes.js';
 
 /**
@@ -70,9 +71,19 @@ export default async function handler(req, res) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    // Check admin role for write operations
-    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method) && currentUser?.role !== 'admin') {
+    // Check admin role for write operations (except increment which is allowed for authenticated users)
+    if (['PUT', 'PATCH', 'DELETE'].includes(req.method) && currentUser?.role !== 'admin') {
       return res.status(403).json({ error: 'Forbidden: Admin access required' });
+    }
+    
+    // POST operations: increment is allowed for authenticated users, create requires admin
+    if (req.method === 'POST' && currentUser?.role !== 'admin') {
+      const body = req.body || await readBody(req);
+      const { action } = body;
+      // Allow increment for authenticated users
+      if (action !== 'increment') {
+        return res.status(403).json({ error: 'Forbidden: Admin access required' });
+      }
     }
 
     const { id, code, action } = req.query;
