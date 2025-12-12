@@ -126,6 +126,7 @@ export default function UserWallet() {
     const [requestToDelete, setRequestToDelete] = useState<number | null>(null);
     const [deletingRequest, setDeletingRequest] = useState(false);
     const [withdrawError, setWithdrawError] = useState<string | null>(null);
+    const [submittingWithdraw, setSubmittingWithdraw] = useState(false);
     const bankDropdownRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -388,6 +389,7 @@ export default function UserWallet() {
             return;
         }
 
+        setSubmittingWithdraw(true);
         try {
             const token = localStorage.getItem('nobleco_auth_token');
             
@@ -424,6 +426,8 @@ export default function UserWallet() {
             setWithdrawError(err.message || 'Failed to submit withdrawal request');
             setNotification({ type: 'error', message: err.message || 'Failed to submit withdrawal request' });
             setTimeout(() => setNotification(null), 3000);
+        } finally {
+            setSubmittingWithdraw(false);
         }
     };
 
@@ -628,11 +632,31 @@ export default function UserWallet() {
                                     className="btn-delete-bank" 
                                     onClick={handleBankInfoDelete}
                                     disabled={deletingBankInfo}
+                                    style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        gap: '6px',
+                                        opacity: deletingBankInfo ? 0.6 : 1,
+                                        cursor: deletingBankInfo ? 'not-allowed' : 'pointer'
+                                    }}
                                 >
-                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                        <polyline points="3 6 5 6 21 6"/>
-                                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-                                    </svg>
+                                    {deletingBankInfo ? (
+                                        <div style={{
+                                            width: '16px',
+                                            height: '16px',
+                                            border: '2px solid currentColor',
+                                            borderTopColor: 'transparent',
+                                            borderRadius: '50%',
+                                            animation: 'spin 0.8s linear infinite',
+                                            display: 'inline-block'
+                                        }} />
+                                    ) : (
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <polyline points="3 6 5 6 21 6"/>
+                                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                                        </svg>
+                                    )}
                                     {deletingBankInfo ? 'Deleting...' : 'Remove'}
                                 </button>
                             </div>
@@ -1152,6 +1176,11 @@ export default function UserWallet() {
                                         setShowWithdrawModal(false);
                                         setWithdrawError(null);
                                     }}
+                                    disabled={submittingWithdraw}
+                                    style={{
+                                        opacity: submittingWithdraw ? 0.6 : 1,
+                                        cursor: submittingWithdraw ? 'not-allowed' : 'pointer'
+                                    }}
                                 >
                                     Cancel
                                 </button>
@@ -1159,9 +1188,28 @@ export default function UserWallet() {
                                     type="button" 
                                     className="btn-primary"
                                     onClick={handleWithdrawSubmit}
-                                    disabled={!bankInfo}
+                                    disabled={!bankInfo || submittingWithdraw}
+                                    style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        gap: '8px',
+                                        opacity: (!bankInfo || submittingWithdraw) ? 0.6 : 1,
+                                        cursor: (!bankInfo || submittingWithdraw) ? 'not-allowed' : 'pointer'
+                                    }}
                                 >
-                                    Submit Request
+                                    {submittingWithdraw && (
+                                        <div style={{
+                                            width: '16px',
+                                            height: '16px',
+                                            border: '2px solid rgba(255, 255, 255, 0.3)',
+                                            borderTopColor: 'white',
+                                            borderRadius: '50%',
+                                            animation: 'spin 0.8s linear infinite',
+                                            display: 'inline-block'
+                                        }} />
+                                    )}
+                                    {submittingWithdraw ? 'Submitting...' : 'Submit Request'}
                                 </button>
                             </div>
                         </div>
@@ -1361,6 +1409,10 @@ export default function UserWallet() {
                                         className="btn-secondary" 
                                         onClick={() => setShowBankEditModal(false)}
                                         disabled={savingBankInfo}
+                                        style={{
+                                            opacity: savingBankInfo ? 0.6 : 1,
+                                            cursor: savingBankInfo ? 'not-allowed' : 'pointer'
+                                        }}
                                     >
                                         Cancel
                                     </button>
@@ -1368,7 +1420,26 @@ export default function UserWallet() {
                                         type="submit" 
                                         className="btn-primary"
                                         disabled={savingBankInfo}
+                                        style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            gap: '8px',
+                                            opacity: savingBankInfo ? 0.6 : 1,
+                                            cursor: savingBankInfo ? 'not-allowed' : 'pointer'
+                                        }}
                                     >
+                                        {savingBankInfo && (
+                                            <div style={{
+                                                width: '16px',
+                                                height: '16px',
+                                                border: '2px solid rgba(255, 255, 255, 0.3)',
+                                                borderTopColor: 'white',
+                                                borderRadius: '50%',
+                                                animation: 'spin 0.8s linear infinite',
+                                                display: 'inline-block'
+                                            }} />
+                                        )}
                                         {savingBankInfo ? 'Saving...' : 'Save'}
                                     </button>
                                 </div>
@@ -1414,7 +1485,26 @@ export default function UserWallet() {
                                     className="btn-danger" 
                                     onClick={confirmBankInfoDelete}
                                     disabled={deletingBankInfo}
+                                    style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        gap: '8px',
+                                        opacity: deletingBankInfo ? 0.6 : 1,
+                                        cursor: deletingBankInfo ? 'not-allowed' : 'pointer'
+                                    }}
                                 >
+                                    {deletingBankInfo && (
+                                        <div style={{
+                                            width: '16px',
+                                            height: '16px',
+                                            border: '2px solid rgba(255, 255, 255, 0.3)',
+                                            borderTopColor: 'white',
+                                            borderRadius: '50%',
+                                            animation: 'spin 0.8s linear infinite',
+                                            display: 'inline-block'
+                                        }} />
+                                    )}
                                     {deletingBankInfo ? 'Deleting...' : 'Delete'}
                                 </button>
                             </div>
