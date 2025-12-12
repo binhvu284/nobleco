@@ -880,13 +880,15 @@ export default function AdminRequest() {
                                     <div className="detail-grid">
                                         <div className="detail-item detail-item-full">
                                             <div className="user-info-modal">
-                                                {selectedRequest.users.avatar_url && !failedAvatars.has(selectedRequest.users.id) ? (
+                                                {selectedRequest.users.avatar_url && selectedRequest.users.id && !failedAvatars.has(selectedRequest.users.id) ? (
                                                     <img 
                                                         src={selectedRequest.users.avatar_url} 
                                                         alt={selectedRequest.users.name}
                                                         className="user-avatar-img-modal"
                                                         onError={() => {
-                                                            setFailedAvatars(prev => new Set(prev).add(selectedRequest.users.id));
+                                                            if (selectedRequest.users?.id) {
+                                                                setFailedAvatars(prev => new Set(prev).add(selectedRequest.users!.id));
+                                                            }
                                                         }}
                                                     />
                                                 ) : (
