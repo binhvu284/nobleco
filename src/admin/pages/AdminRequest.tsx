@@ -45,6 +45,7 @@ export default function AdminRequest() {
     const [requestToDelete, setRequestToDelete] = useState<number | null>(null);
     const [loadingAction, setLoadingAction] = useState<{ type: 'approve' | 'reject' | 'delete' | null; requestId: number | null }>({ type: null, requestId: null });
     const [viewMode, setViewMode] = useState<'table' | 'card'>('table');
+    const [failedAvatars, setFailedAvatars] = useState<Set<number>>(new Set());
     
     // Sorting state
     const [sortField, setSortField] = useState<SortField>(null);
@@ -83,8 +84,29 @@ export default function AdminRequest() {
             if (response.ok) {
                 const data = await response.json();
                 console.log('Loaded withdraw requests:', data?.length || 0, 'requests');
-                console.log('Sample request:', data?.[0]);
-                setRequests(data || []);
+                
+                // Fetch avatars for users that don't have them in the response
+                const requestsWithAvatars = await Promise.all(
+                    (data || []).map(async (request: WithdrawRequest) => {
+                        if (request.users && !request.users.avatar_url) {
+                            try {
+                                const avatarRes = await fetch(`/api/user-avatars?userId=${request.users.id}`);
+                                if (avatarRes.ok) {
+                                    const avatarData = await avatarRes.json();
+                                    if (avatarData?.url) {
+                                        request.users.avatar_url = avatarData.url;
+                                    }
+                                }
+                            } catch (error) {
+                                console.warn(`Could not fetch avatar for user ${request.users.id}:`, error);
+                            }
+                        }
+                        return request;
+                    })
+                );
+                
+                console.log('Sample request with avatar:', requestsWithAvatars?.[0]);
+                setRequests(requestsWithAvatars);
             } else {
                 const errorData = await response.json().catch(() => ({}));
                 console.error('Failed to load withdraw requests:', response.status, errorData);
@@ -560,11 +582,14 @@ export default function AdminRequest() {
                                                 <td>#{request.id}</td>
                                                 <td>
                                                     <div className="user-info">
-                                                        {user.avatar_url ? (
+                                                        {user.avatar_url && !failedAvatars.has(user.id) ? (
                                                             <img 
                                                                 src={user.avatar_url} 
                                                                 alt={user.name}
                                                                 className="user-avatar-img"
+                                                                onError={() => {
+                                                                    setFailedAvatars(prev => new Set(prev).add(user.id));
+                                                                }}
                                                             />
                                                         ) : (
                                                             <div 
@@ -779,12 +804,15 @@ export default function AdminRequest() {
                                                 <span className="card-label">User:</span>
                                                 <div className="card-value-group">
                                                     <div className="user-info" style={{ margin: 0 }}>
-                                                        {user.avatar_url ? (
+                                                        {user.avatar_url && !failedAvatars.has(user.id) ? (
                                                             <img 
                                                                 src={user.avatar_url} 
                                                                 alt={user.name}
                                                                 className="user-avatar-img"
                                                                 style={{ width: '32px', height: '32px' }}
+                                                                onError={() => {
+                                                                    setFailedAvatars(prev => new Set(prev).add(user.id));
+                                                                }}
                                                             />
                                                         ) : (
                                                             <div 
@@ -852,11 +880,14 @@ export default function AdminRequest() {
                                     <div className="detail-grid">
                                         <div className="detail-item detail-item-full">
                                             <div className="user-info-modal">
-                                                {selectedRequest.users.avatar_url ? (
+                                                {selectedRequest.users.avatar_url && !failedAvatars.has(selectedRequest.users.id) ? (
                                                     <img 
                                                         src={selectedRequest.users.avatar_url} 
                                                         alt={selectedRequest.users.name}
                                                         className="user-avatar-img-modal"
+                                                        onError={() => {
+                                                            setFailedAvatars(prev => new Set(prev).add(selectedRequest.users.id));
+                                                        }}
                                                     />
                                                 ) : (
                                                     <div 
@@ -883,7 +914,7 @@ export default function AdminRequest() {
 
                                 <div className="detail-section">
                                     <h4>Bank Information</h4>
-                                    <div className="detail-grid">
+                                    <div className="detail-grid detail-grid-inline">
                                         <div className="detail-item">
                                             <span className="detail-label">Bank Name:</span>
                                             <span className="detail-value">{selectedRequest.bank_name}</span>
@@ -901,7 +932,11 @@ export default function AdminRequest() {
 
                                 <div className="detail-section">
                                     <h4>Request Information</h4>
-                                    <div className="detail-grid detail-grid-inline">
+                                    <div className="detail-grid detail-grid-4col">
+                                        <div className="detail-item">
+                                            <span className="detail-label">Request ID:</span>
+                                            <span className="detail-value">#{selectedRequest.id}</span>
+                                        </div>
                                         <div className="detail-item">
                                             <span className="detail-label">Points:</span>
                                             <span className="detail-value points-value-modal">{selectedRequest.point.toLocaleString()} pts</span>
@@ -921,7 +956,7 @@ export default function AdminRequest() {
                                             </span>
                                         </div>
                                     </div>
-                                    <div className="detail-grid">
+                                    <div className="detail-grid detail-grid-2col">
                                         <div className="detail-item">
                                             <span className="detail-label">Request Date:</span>
                                             <span className="detail-value">{formatDate(selectedRequest.request_date)}</span>

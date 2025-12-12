@@ -31,6 +31,7 @@ import createPaymentHandler from '../api/orders/[id]/create-payment.js';
 import paymentStatusHandler from '../api/orders/[id]/payment-status.js';
 import testPaymentHandler from '../api/orders/[id]/test-payment.js';
 import paymentConfigHandler from '../api/payment-config.js';
+import discountCodesHandler from '../api/discount-codes.js';
 
 const app = express();
 app.use(express.json({ limit: '50mb' })); // Increase limit for base64 image uploads
@@ -133,6 +134,23 @@ app.all('/api/withdraw-requests', toRoute(withdrawRequestsHandler));
 app.all('/api/admin-withdraw-requests', toRoute(adminWithdrawRequestsHandler));
 app.all('/api/sepay/webhook', toRoute(sepayWebhookHandler));
 app.all('/api/payment-config', toRoute(paymentConfigHandler));
+app.all('/api/discount-codes', toRoute(discountCodesHandler));
+app.get('/api/discount-codes/:id', (req, res) => {
+  req.query = { ...req.query, id: req.params.id };
+  return discountCodesHandler(req, res);
+});
+app.put('/api/discount-codes/:id', (req, res) => {
+  req.query = { ...req.query, id: req.params.id };
+  return discountCodesHandler(req, res);
+});
+app.patch('/api/discount-codes/:id', (req, res) => {
+  req.query = { ...req.query, id: req.params.id };
+  return discountCodesHandler(req, res);
+});
+app.delete('/api/discount-codes/:id', (req, res) => {
+  req.query = { ...req.query, id: req.params.id };
+  return discountCodesHandler(req, res);
+});
 app.all('/api/seed-admin', (req, res) => {
   req.query = { ...req.query, endpoint: 'seed-admin' };
   return usersHandler(req, res);

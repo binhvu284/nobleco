@@ -3836,14 +3836,20 @@ input:focus {
     transform: translate(-50%, -50%);
     background: var(--panel);
     border-radius: 16px;
-    width: 90%;
-    max-width: 700px;
+    width: 95%;
+    max-width: 1200px;
+    min-width: 900px;
     max-height: 90vh;
     overflow: hidden;
     z-index: 999999 !important;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
     display: flex;
     flex-direction: column;
+}
+
+.request-detail-modal .modal-body {
+    overflow-y: auto;
+    overflow-x: hidden;
 }
 
 .modal-header {
@@ -3935,7 +3941,50 @@ input:focus {
 }
 
 .detail-grid-inline {
-    grid-template-columns: repeat(3, 1fr);
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 24px;
+    align-items: flex-start;
+}
+
+.detail-grid-4col {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 24px;
+    align-items: flex-start;
+}
+
+.detail-grid-2col {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 24px;
+    align-items: flex-start;
+}
+
+.detail-grid-inline .detail-item,
+.detail-grid-4col .detail-item,
+.detail-grid-2col .detail-item {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    min-width: 0;
+}
+
+.detail-grid-inline .detail-label,
+.detail-grid-4col .detail-label,
+.detail-grid-2col .detail-label {
+    margin: 0;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.detail-grid-inline .detail-value,
+.detail-grid-4col .detail-value,
+.detail-grid-2col .detail-value {
+    margin: 0;
+    white-space: nowrap;
 }
 
 .user-info-modal {
@@ -3996,13 +4045,25 @@ input:focus {
 .points-value-modal {
     font-size: 18px;
     font-weight: 700;
-    color: #f59e0b;
+    color: #f59e0b !important;
 }
 
 .amount-value-modal {
     font-size: 18px;
     font-weight: 700;
-    color: #10b981;
+    color: #10b981 !important;
+}
+
+.detail-grid-inline .detail-value.points-value-modal,
+.detail-grid-4col .detail-value.points-value-modal,
+.detail-grid-2col .detail-value.points-value-modal {
+    color: #f59e0b !important;
+}
+
+.detail-grid-inline .detail-value.amount-value-modal,
+.detail-grid-4col .detail-value.amount-value-modal,
+.detail-grid-2col .detail-value.amount-value-modal {
+    color: #10b981 !important;
 }
 
 .modal-footer {
@@ -4135,6 +4196,7 @@ input:focus {
     /* Detail Modal */
     .request-detail-modal {
         width: 95%;
+        min-width: 95%;
         max-height: 95vh;
     }
 
@@ -4162,6 +4224,20 @@ input:focus {
     .detail-grid {
         grid-template-columns: 1fr;
         gap: 12px;
+    }
+    
+    .detail-grid-inline,
+    .detail-grid-4col,
+    .detail-grid-2col {
+        flex-wrap: wrap;
+        gap: 16px;
+    }
+    
+    .detail-grid-inline .detail-item,
+    .detail-grid-4col .detail-item,
+    .detail-grid-2col .detail-item {
+        flex: 1 1 calc(50% - 8px);
+        min-width: 150px;
     }
 
     .modal-footer {
@@ -8482,6 +8558,66 @@ input:focus {
     font-size: 14px;
     color: #92400E;
     line-height: 1.5;
+}
+
+.withdraw-error-alert {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px;
+    background: #FEE2E2;
+    border: 1px solid #FCA5A5;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    position: relative;
+    animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.withdraw-error-alert svg {
+    color: #DC2626;
+    flex-shrink: 0;
+}
+
+.withdraw-error-alert span {
+    flex: 1;
+    font-size: 14px;
+    color: #991B1B;
+    line-height: 1.5;
+    font-weight: 500;
+}
+
+.withdraw-error-alert .alert-close-btn {
+    background: none;
+    border: none;
+    padding: 4px;
+    cursor: pointer;
+    color: #991B1B;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+    flex-shrink: 0;
+}
+
+.withdraw-error-alert .alert-close-btn:hover {
+    background-color: rgba(153, 27, 27, 0.1);
+}
+
+.withdraw-error-alert .alert-close-btn svg {
+    width: 16px;
+    height: 16px;
 }
 
 /* Commission Card */
@@ -15074,6 +15210,16 @@ input:focus {
 
 .unified-dropdown-item.danger:hover {
     background: var(--danger-light);
+}
+
+.unified-dropdown-item.test-payment-item {
+    color: #8b5cf6;
+    font-weight: 500;
+}
+
+.unified-dropdown-item.test-payment-item:hover {
+    background: #f3e8ff;
+    color: #7c3aed;
 }
 
 .unified-dropdown-item:disabled {

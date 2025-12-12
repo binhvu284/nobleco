@@ -73,7 +73,8 @@ export async function createOrder(orderData) {
     total_amount,
     notes,
     shipping_address,
-    discount_code
+    discount_code,
+    discount_rate
   } = orderData;
 
   console.log('createOrder called with:', {
@@ -99,7 +100,9 @@ export async function createOrder(orderData) {
     status: 'processing',
     payment_status: 'pending',
     notes: notes || null,
-    shipping_address: shipping_address || null
+    shipping_address: shipping_address || null,
+    discount_code: discount_code || null,
+    discount_rate: discount_rate ? parseFloat(discount_rate) : null
   };
 
   console.log('Inserting order with payload:', orderPayload);

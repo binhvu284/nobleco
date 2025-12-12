@@ -110,7 +110,6 @@ export default function AdminOrderDetailModal({ open, orderId, onClose }: AdminO
     const [loading, setLoading] = useState(false);
     const [isFullscreen, setIsFullscreen] = useState(false);
     const [isMobile, setIsMobile] = useState(false);
-    const [testPaymentLoading, setTestPaymentLoading] = useState(false);
 
     useEffect(() => {
         const checkMobile = () => {
@@ -160,48 +159,6 @@ export default function AdminOrderDetailModal({ open, orderId, onClose }: AdminO
             alert('Failed to load order details');
         } finally {
             setLoading(false);
-        }
-    };
-
-    const handleTestPayment = async () => {
-        if (!orderId || !order) return;
-
-        const confirmMessage = `Are you sure you want to simulate payment for order ${order.order_number}?\n\nThis will mark the order as completed and process commissions. This is for testing only.`;
-        if (!window.confirm(confirmMessage)) {
-            return;
-        }
-
-        try {
-            setTestPaymentLoading(true);
-            const authToken = localStorage.getItem('nobleco_auth_token');
-            
-            if (!authToken) {
-                alert('Authentication required');
-                return;
-            }
-
-            const response = await fetch(`/api/orders/${orderId}/test-payment`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${authToken}`,
-                    'Content-Type': 'application/json'
-                }
-            });
-
-            const data = await response.json();
-
-            if (response.ok) {
-                alert(`✅ Test payment completed successfully!\n\nOrder ${order.order_number} has been marked as paid and completed.`);
-                // Reload order details to show updated status
-                await loadOrderDetail(orderId);
-            } else {
-                alert(`❌ Test payment failed: ${data.error || 'Unknown error'}`);
-            }
-        } catch (error) {
-            console.error('Error processing test payment:', error);
-            alert('Error processing test payment. Please try again.');
-        } finally {
-            setTestPaymentLoading(false);
         }
     };
 
@@ -512,44 +469,6 @@ export default function AdminOrderDetailModal({ open, orderId, onClose }: AdminO
                                                 <span className={`status-badge status-${order.payment_status}`}>
                                                     {order.payment_status.charAt(0).toUpperCase() + order.payment_status.slice(1)}
                                                 </span>
-                                            </div>
-                                        </>
-                                    )}
-                                    {/* Test Payment Button - Only show if order is not completed/paid */}
-                                    {order.status !== 'completed' && order.payment_status !== 'paid' && (
-                                        <>
-                                            <div className="order-summary-divider"></div>
-                                            <div className="order-summary-row" style={{ justifyContent: 'center', paddingTop: '12px' }}>
-                                                <button
-                                                    onClick={handleTestPayment}
-                                                    disabled={testPaymentLoading}
-                                                    style={{
-                                                        padding: '8px 16px',
-                                                        backgroundColor: 'var(--primary)',
-                                                        color: 'white',
-                                                        border: 'none',
-                                                        borderRadius: '6px',
-                                                        cursor: testPaymentLoading ? 'not-allowed' : 'pointer',
-                                                        fontSize: '14px',
-                                                        fontWeight: '500',
-                                                        display: 'flex',
-                                                        alignItems: 'center',
-                                                        gap: '8px',
-                                                        opacity: testPaymentLoading ? 0.6 : 1
-                                                    }}
-                                                    title="Simulate payment completion (Testing only - No real money)"
-                                                >
-                                                    {testPaymentLoading ? (
-                                                        <>
-                                                            <div className="loading-spinner" style={{ width: '14px', height: '14px', borderWidth: '2px' }}></div>
-                                                            Processing...
-                                                        </>
-                                                    ) : (
-                                                        <>
-                                                            🧪 Test Payment
-                                                        </>
-                                                    )}
-                                                </button>
                                             </div>
                                         </>
                                     )}

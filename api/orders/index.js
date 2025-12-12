@@ -101,7 +101,8 @@ export default async function handler(req, res) {
         total_amount,
         notes,
         shipping_address,
-        discount_code
+        discount_code,
+        discount_rate
       } = body;
 
       console.log('Extracted fields:', {
@@ -140,7 +141,8 @@ export default async function handler(req, res) {
           total_amount: parseFloat(total_amount || 0),
           notes,
           shipping_address,
-          discount_code
+          discount_code,
+          discount_rate
         });
 
         console.log('=== ORDER CREATED SUCCESSFULLY ===');

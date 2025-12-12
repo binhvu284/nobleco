@@ -202,7 +202,7 @@ async function handlePaymentSuccess({ paymentCode, transactionId, transferAmount
     // Try exact match first
     let { data, error: queryError } = await supabase
       .from('orders')
-      .select('id, order_number, total_amount, status, payment_status, created_by')
+      .select('id, order_number, total_amount, status, payment_status, created_by, discount_code')
       .eq('order_number', paymentCode)
       .limit(1);
     
@@ -223,7 +223,7 @@ async function handlePaymentSuccess({ paymentCode, transactionId, transferAmount
         console.log(`Trying normalized payment code: ${normalizedCode}`);
         const { data: normalizedData, error: normalizedError } = await supabase
           .from('orders')
-          .select('id, order_number, total_amount, status, payment_status, created_by')
+          .select('id, order_number, total_amount, status, payment_status, created_by, discount_code')
           .eq('order_number', normalizedCode)
           .limit(1);
         
@@ -240,7 +240,7 @@ async function handlePaymentSuccess({ paymentCode, transactionId, transferAmount
         console.log(`Trying payment code without dashes: ${noDashCode}`);
         const { data: noDashData, error: noDashError } = await supabase
           .from('orders')
-          .select('id, order_number, total_amount, status, payment_status, created_by')
+          .select('id, order_number, total_amount, status, payment_status, created_by, discount_code')
           .eq('order_number', noDashCode)
           .limit(1);
         
@@ -329,6 +329,18 @@ async function handlePaymentSuccess({ paymentCode, transactionId, transferAmount
     // Process commissions
     try {
       await processOrderCommissions(orderId, order.created_by, order.total_amount);
+      
+      // Increment discount code usage count if a discount code was applied
+      if (order.discount_code) {
+        try {
+          const { incrementDiscountCodeUsage } = await import('../_repo/discountCodes.js');
+          await incrementDiscountCodeUsage(order.discount_code);
+          console.log(`Incremented usage count for discount code: ${order.discount_code}`);
+        } catch (error) {
+          console.error(`Failed to increment discount code usage for ${order.discount_code}:`, error);
+          // Don't fail the webhook if discount code increment fails
+        }
+      }
       console.log(`Commissions processed for order ${orderId}`);
     } catch (commissionError) {
       console.error(`Error processing commissions for order ${orderId}:`, commissionError);

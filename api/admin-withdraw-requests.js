@@ -48,10 +48,7 @@ async function getAllWithdrawRequests() {
         id,
         name,
         email,
-        level,
-        user_avatars (
-          url
-        )
+        level
       )
     `)
     .order('request_date', { ascending: false });
@@ -60,20 +57,23 @@ async function getAllWithdrawRequests() {
     throw error;
   }
 
-  // Transform data to flatten avatar_url
-  const transformedData = (data || []).map(request => {
-    if (request.users) {
-      // Extract avatar URL from user_avatars array
-      if (request.users.user_avatars && request.users.user_avatars.length > 0) {
-        request.users.avatar_url = request.users.user_avatars[0].url;
-      } else {
-        request.users.avatar_url = null;
+  // Fetch avatars for all users
+  const { getUserAvatar } = await import('./_repo/userAvatars.js');
+  const transformedData = await Promise.all(
+    (data || []).map(async (request) => {
+      if (request.users) {
+        // Fetch avatar separately for better reliability
+        try {
+          const avatar = await getUserAvatar(request.users.id);
+          request.users.avatar_url = avatar?.url || null;
+        } catch (error) {
+          console.warn(`Could not fetch avatar for user ${request.users.id}:`, error);
+          request.users.avatar_url = null;
+        }
       }
-      // Remove the user_avatars array
-      delete request.users.user_avatars;
-    }
-    return request;
-  });
+      return request;
+    })
+  );
 
   return transformedData;
 }

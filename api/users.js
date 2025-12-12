@@ -184,22 +184,64 @@ export default async function handler(req, res) {
         try {
           const { getWalletLogsByUserId } = await import('./_repo/walletLog.js');
           const walletLogs = await getWalletLogsByUserId(userId);
-          transactions = walletLogs.map(log => ({
-            id: log.id,
-            type: log.log_type === 'Withdraw' ? 'withdrawal' : 'commission',
-            amount: parseFloat(log.point_amount),
-            description: log.description || log.log_type,
-            date: new Date(log.log_time).toLocaleString('en-US', {
-              year: 'numeric',
-              month: 'short',
-              day: 'numeric',
-              hour: '2-digit',
-              minute: '2-digit'
-            }),
-            status: log.log_type === 'Withdraw' ? 'completed' : undefined
-          }));
+          
+          transactions = walletLogs.map(log => {
+            // Map log_type to transaction type
+            let transactionType = 'commission';
+            if (log.log_type === 'Withdraw' || log.log_type === 'withdrawal') {
+              transactionType = 'withdrawal';
+            } else if (log.log_type === 'Commission' || log.log_type === 'commission') {
+              transactionType = 'commission';
+            }
+            
+            // Determine status - commissions are completed when added, withdrawals depend on request status
+            let transactionStatus = undefined;
+            if (log.log_type === 'Commission' || log.log_type === 'commission') {
+              transactionStatus = 'completed'; // Commissions are completed when added
+            } else if (log.log_type === 'Withdraw' || log.log_type === 'withdrawal') {
+              transactionStatus = 'completed'; // Withdrawals are completed when processed
+            }
+            
+            // Handle date field - try log_time first, then created_at, then fallback to now
+            let dateValue = log.log_time || log.created_at || new Date().toISOString();
+            let formattedDate;
+            try {
+              formattedDate = new Date(dateValue).toLocaleString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+              });
+            } catch (dateError) {
+              console.warn('Error formatting date for log:', log.id, dateError);
+              formattedDate = new Date().toLocaleString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+              });
+            }
+            
+            return {
+              id: log.id,
+              type: transactionType,
+              amount: parseFloat(log.point_amount) || 0,
+              description: log.description || log.log_type || 'Transaction',
+              date: formattedDate,
+              status: transactionStatus
+            };
+          });
+          
+          // Sort by date descending (newest first)
+          transactions.sort((a, b) => {
+            const dateA = new Date(a.date).getTime();
+            const dateB = new Date(b.date).getTime();
+            return dateB - dateA;
+          });
         } catch (error) {
-          console.warn('Error fetching wallet logs:', error);
+          console.error('Error fetching wallet logs:', error);
           // Fallback to empty array if wallet_log table doesn't exist yet
         }
 

@@ -75,6 +75,10 @@ export default function AdminOrders() {
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [orderToDelete, setOrderToDelete] = useState<Order | null>(null);
     const [deleteLoading, setDeleteLoading] = useState(false);
+    const [testPaymentLoading, setTestPaymentLoading] = useState<number | null>(null);
+    const [showTestPaymentConfirm, setShowTestPaymentConfirm] = useState(false);
+    const [orderToTestPayment, setOrderToTestPayment] = useState<Order | null>(null);
+    const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
     // Load orders
     useEffect(() => {
@@ -220,8 +224,71 @@ export default function AdminOrders() {
     };
 
     // Toggle dropdown
-    const toggleDropdown = (orderId: number) => {
+    const toggleDropdown = (orderId: number, e?: React.MouseEvent) => {
+        if (e) {
+            e.stopPropagation(); // Prevent row click when clicking dropdown
+        }
         setActiveDropdown(activeDropdown === orderId ? null : orderId);
+    };
+
+    // Handle test payment click - show confirmation modal
+    const handleTestPaymentClick = (order: Order, e?: React.MouseEvent) => {
+        if (e) {
+            e.stopPropagation(); // Prevent row click when clicking test payment
+        }
+        setOrderToTestPayment(order);
+        setShowTestPaymentConfirm(true);
+        setActiveDropdown(null);
+    };
+
+    // Handle test payment confirmation
+    const handleTestPaymentConfirm = async () => {
+        if (!orderToTestPayment) return;
+
+        try {
+            setTestPaymentLoading(orderToTestPayment.id);
+            const authToken = localStorage.getItem('nobleco_auth_token');
+            
+            if (!authToken) {
+                setNotification({ type: 'error', message: 'Authentication required' });
+                setTimeout(() => setNotification(null), 3000);
+                setShowTestPaymentConfirm(false);
+                setOrderToTestPayment(null);
+                return;
+            }
+
+            const response = await fetch(`/api/orders/${orderToTestPayment.id}/test-payment`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${authToken}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                setNotification({ 
+                    type: 'success', 
+                    message: `Test payment completed successfully! Order ${orderToTestPayment.order_number} has been marked as paid and completed.` 
+                });
+                setTimeout(() => setNotification(null), 5000);
+                loadOrders(); // Reload orders to show updated status
+            } else {
+                throw new Error(data.error || 'Failed to process test payment');
+            }
+        } catch (error) {
+            console.error('Error processing test payment:', error);
+            setNotification({ 
+                type: 'error', 
+                message: (error as Error).message || 'Failed to process test payment' 
+            });
+            setTimeout(() => setNotification(null), 5000);
+        } finally {
+            setTestPaymentLoading(null);
+            setShowTestPaymentConfirm(false);
+            setOrderToTestPayment(null);
+        }
     };
 
     // Close dropdown when clicking outside
@@ -395,7 +462,11 @@ export default function AdminOrders() {
                             </thead>
                             <tbody>
                                 {filteredOrders.map((order) => (
-                                    <tr key={order.id}>
+                                    <tr 
+                                        key={order.id}
+                                        onClick={() => handleViewDetail(order.id)}
+                                        style={{ cursor: 'pointer' }}
+                                    >
                                         <td>
                                             <span className="order-code">{order.order_number}</span>
                                         </td>
@@ -448,11 +519,11 @@ export default function AdminOrders() {
                                                 <span className="text-muted">N/A</span>
                                             )}
                                         </td>
-                                        <td>
+                                        <td onClick={(e) => e.stopPropagation()}>
                                             <div className={`unified-dropdown ${activeDropdown === order.id ? 'active' : ''}`}>
                                                 <button
                                                     className="unified-more-btn"
-                                                    onClick={() => toggleDropdown(order.id)}
+                                                    onClick={(e) => toggleDropdown(order.id, e)}
                                                 >
                                                     <IconMoreVertical />
                                                 </button>
@@ -460,14 +531,29 @@ export default function AdminOrders() {
                                                     <div className="unified-dropdown-menu">
                                                         <button
                                                             className="unified-dropdown-item"
-                                                            onClick={() => handleViewDetail(order.id)}
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                handleViewDetail(order.id);
+                                                            }}
                                                         >
                                                             <IconEye />
                                                             View Detail
                                                         </button>
+                                                        {order.status !== 'completed' && order.payment_status !== 'paid' && (
+                                                            <button
+                                                                className="unified-dropdown-item test-payment-item"
+                                                                onClick={(e) => handleTestPaymentClick(order, e)}
+                                                                disabled={testPaymentLoading === order.id}
+                                                            >
+                                                                {testPaymentLoading === order.id ? 'Processing...' : '🧪 Test Payment'}
+                                                            </button>
+                                                        )}
                                                         <button
                                                             className="unified-dropdown-item danger"
-                                                            onClick={() => handleDelete(order)}
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                handleDelete(order);
+                                                            }}
                                                         >
                                                             <IconTrash2 />
                                                             Delete
@@ -504,7 +590,12 @@ export default function AdminOrders() {
                         ) : (
                             <>
                                 {filteredOrders.map((order) => (
-                                    <div key={order.id} className="order-card">
+                                    <div 
+                                        key={order.id} 
+                                        className="order-card"
+                                        onClick={() => handleViewDetail(order.id)}
+                                        style={{ cursor: 'pointer' }}
+                                    >
                                         <div className="card-header">
                                             <div className="card-title">
                                                 <span className="order-code">{order.order_number}</span>
@@ -512,10 +603,10 @@ export default function AdminOrders() {
                                                     {getStatusDisplay(order.status).label}
                                                 </span>
                                             </div>
-                                            <div className={`unified-dropdown ${activeDropdown === order.id ? 'active' : ''}`}>
+                                            <div className={`unified-dropdown ${activeDropdown === order.id ? 'active' : ''}`} onClick={(e) => e.stopPropagation()}>
                                                 <button
                                                     className="unified-more-btn"
-                                                    onClick={() => toggleDropdown(order.id)}
+                                                    onClick={(e) => toggleDropdown(order.id, e)}
                                                 >
                                                     <IconMoreVertical />
                                                 </button>
@@ -523,14 +614,29 @@ export default function AdminOrders() {
                                                     <div className="unified-dropdown-menu">
                                                         <button
                                                             className="unified-dropdown-item"
-                                                            onClick={() => handleViewDetail(order.id)}
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                handleViewDetail(order.id);
+                                                            }}
                                                         >
                                                             <IconEye />
                                                             View Detail
                                                         </button>
+                                                        {order.status !== 'completed' && order.payment_status !== 'paid' && (
+                                                            <button
+                                                                className="unified-dropdown-item test-payment-item"
+                                                                onClick={(e) => handleTestPaymentClick(order, e)}
+                                                                disabled={testPaymentLoading === order.id}
+                                                            >
+                                                                {testPaymentLoading === order.id ? 'Processing...' : '🧪 Test Payment'}
+                                                            </button>
+                                                        )}
                                                         <button
                                                             className="unified-dropdown-item danger"
-                                                            onClick={() => handleDelete(order)}
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                handleDelete(order);
+                                                            }}
                                                         >
                                                             <IconTrash2 />
                                                             Delete
@@ -639,6 +745,52 @@ export default function AdminOrders() {
                     type="danger"
                     loading={deleteLoading}
                 />
+
+                {/* Test Payment Confirmation Modal */}
+                <ConfirmModal
+                    open={showTestPaymentConfirm}
+                    onClose={() => {
+                        setShowTestPaymentConfirm(false);
+                        setOrderToTestPayment(null);
+                    }}
+                    onConfirm={handleTestPaymentConfirm}
+                    title="Test Payment"
+                    message={orderToTestPayment ? `Are you sure you want to simulate payment for order "${orderToTestPayment.order_number}"?\n\nThis will mark the order as completed and process commissions. This is for testing only.` : 'Are you sure you want to simulate payment for this order?'}
+                    confirmText="Confirm Test Payment"
+                    cancelText="Cancel"
+                    type="success"
+                    loading={orderToTestPayment ? testPaymentLoading === orderToTestPayment.id : false}
+                />
+
+                {/* Notification Toast */}
+                {notification && (
+                    <div className={`notification-toast ${notification.type}`}>
+                        <div className="notification-content">
+                            {notification.type === 'success' ? (
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                                    <polyline points="22 4 12 14.01 9 11.01" />
+                                </svg>
+                            ) : (
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <circle cx="12" cy="12" r="10" />
+                                    <line x1="12" y1="8" x2="12" y2="12" />
+                                    <line x1="12" y1="16" x2="12.01" y2="16" />
+                                </svg>
+                            )}
+                            <span>{notification.message}</span>
+                        </div>
+                        <button 
+                            className="notification-close"
+                            onClick={() => setNotification(null)}
+                        >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <line x1="18" y1="6" x2="6" y2="18" />
+                                <line x1="6" y1="6" x2="18" y2="18" />
+                            </svg>
+                        </button>
+                    </div>
+                )}
             </div>
         </AdminLayout>
     );

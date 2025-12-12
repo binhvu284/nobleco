@@ -106,6 +106,8 @@ export default async function handler(req, res) {
         discount_amount,
         tax_amount,
         total_amount,
+        discount_code,
+        discount_rate,
         cartItems
       } = body;
 
@@ -131,6 +133,8 @@ export default async function handler(req, res) {
       if (discount_amount !== undefined) updates.discount_amount = parseFloat(discount_amount);
       if (tax_amount !== undefined) updates.tax_amount = parseFloat(tax_amount);
       if (total_amount !== undefined) updates.total_amount = parseFloat(total_amount);
+      if (discount_code !== undefined) updates.discount_code = discount_code || null;
+      if (discount_rate !== undefined) updates.discount_rate = discount_rate ? parseFloat(discount_rate) : null;
 
       const updatedOrder = await updateOrder(orderId, updates);
       

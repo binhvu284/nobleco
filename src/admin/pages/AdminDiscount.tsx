@@ -53,63 +53,54 @@ export default function AdminDiscount() {
     // Form state for creating/editing discount code
     const [formData, setFormData] = useState({
         code: '',
-        discount_rate: 0,
+        discount_rate: '',
         description: '',
         max_usage: '',
+        max_usage_type: 'unlimited' as 'unlimited' | 'limited',
         valid_from: '',
-        valid_until: ''
+        valid_until: '',
+        valid_until_type: 'custom' as 'unlimited' | 'custom'
     });
     const [editingDiscount, setEditingDiscount] = useState<DiscountCode | null>(null);
     
     const isEditMode = !!editingDiscount;
+    const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-    // Mock data for UI demonstration (will be replaced with API calls later)
+    // Fetch discount codes from API
     useEffect(() => {
-        // Simulate loading
-        setTimeout(() => {
-            setDiscountCodes([
-                {
-                    id: 1,
-                    code: 'WELCOME10',
-                    discount_rate: 10,
-                    status: 'active',
-                    description: 'Welcome discount for new customers',
-                    usage_count: 45,
-                    max_usage: 100,
-                    valid_from: '2025-01-01T00:00:00Z',
-                    valid_until: '2025-12-31T23:59:59Z',
-                    created_at: '2025-01-01T00:00:00Z',
-                    updated_at: '2025-01-15T10:30:00Z'
-                },
-                {
-                    id: 2,
-                    code: 'SUMMER25',
-                    discount_rate: 25,
-                    status: 'active',
-                    description: 'Summer sale discount',
-                    usage_count: 120,
-                    max_usage: 200,
-                    valid_from: '2025-06-01T00:00:00Z',
-                    valid_until: '2025-08-31T23:59:59Z',
-                    created_at: '2025-05-15T00:00:00Z',
-                    updated_at: '2025-05-15T00:00:00Z'
-                },
-                {
-                    id: 3,
-                    code: 'EXPIRED50',
-                    discount_rate: 50,
-                    status: 'inactive',
-                    description: 'Expired promotional code',
-                    usage_count: 5,
-                    max_usage: 10,
-                    valid_from: '2024-12-01T00:00:00Z',
-                    valid_until: '2024-12-31T23:59:59Z',
-                    created_at: '2024-11-20T00:00:00Z',
-                    updated_at: '2025-01-01T00:00:00Z'
+        const fetchDiscountCodes = async () => {
+            try {
+                setLoading(true);
+                setError(null);
+                
+                const authToken = localStorage.getItem('nobleco_auth_token');
+                if (!authToken) {
+                    throw new Error('Authentication token not found. Please log in again.');
                 }
-            ]);
-            setLoading(false);
-        }, 500);
+
+                const response = await fetch('/api/discount-codes', {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({ error: 'Failed to fetch discount codes' }));
+                    throw new Error(errorData.error || `Failed to fetch discount codes (${response.status})`);
+                }
+
+                const data = await response.json();
+                setDiscountCodes(Array.isArray(data) ? data : []);
+            } catch (err) {
+                console.error('Error fetching discount codes:', err);
+                setError(err instanceof Error ? err.message : 'Failed to load discount codes');
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchDiscountCodes();
     }, []);
 
     // Mobile detection and view mode management
@@ -152,11 +143,13 @@ export default function AdminDiscount() {
     const handleCreate = () => {
         setFormData({
             code: '',
-            discount_rate: 0,
+            discount_rate: '',
             description: '',
             max_usage: '',
+            max_usage_type: 'unlimited',
             valid_from: '',
-            valid_until: ''
+            valid_until: '',
+            valid_until_type: 'custom'
         });
         setEditingDiscount(null);
         setShowCreateModal(true);
@@ -166,11 +159,13 @@ export default function AdminDiscount() {
         setEditingDiscount(discount);
         setFormData({
             code: discount.code,
-            discount_rate: discount.discount_rate,
+            discount_rate: discount.discount_rate.toString(),
             description: discount.description || '',
             max_usage: discount.max_usage?.toString() || '',
+            max_usage_type: discount.max_usage === null ? 'unlimited' : 'limited',
             valid_from: discount.valid_from ? new Date(discount.valid_from).toISOString().slice(0, 16) : '',
-            valid_until: discount.valid_until ? new Date(discount.valid_until).toISOString().slice(0, 16) : ''
+            valid_until: discount.valid_until ? new Date(discount.valid_until).toISOString().slice(0, 16) : '',
+            valid_until_type: discount.valid_until === null ? 'unlimited' : 'custom'
         });
         setShowEditModal(true);
         setActiveDropdown(null);
@@ -193,15 +188,33 @@ export default function AdminDiscount() {
         
         setDeleteLoading(true);
         try {
-            // TODO: API call to delete discount code
-            // await fetch(`/api/discount-codes/${discountToDelete.id}`, { method: 'DELETE' });
-            
-            // Mock deletion for UI
+            const authToken = localStorage.getItem('nobleco_auth_token');
+            if (!authToken) {
+                throw new Error('Authentication token not found');
+            }
+
+            const response = await fetch(`/api/discount-codes?id=${discountToDelete.id}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${authToken}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || 'Failed to delete discount code');
+            }
+
             setDiscountCodes(discountCodes.filter(d => d.id !== discountToDelete.id));
             setShowDeleteConfirm(false);
             setDiscountToDelete(null);
+            setSuccessMessage('Discount code deleted successfully');
+            setTimeout(() => setSuccessMessage(null), 3000);
         } catch (err) {
             console.error('Error deleting discount code:', err);
+            setError(err instanceof Error ? err.message : 'Failed to delete discount code');
+            setTimeout(() => setError(null), 5000);
         } finally {
             setDeleteLoading(false);
         }
@@ -212,19 +225,37 @@ export default function AdminDiscount() {
         
         setStatusLoading(true);
         try {
-            // TODO: API call to toggle status
-            // await fetch(`/api/discount-codes/${discountToToggle.id}/toggle-status`, { method: 'PATCH' });
-            
-            // Mock status toggle for UI
+            const authToken = localStorage.getItem('nobleco_auth_token');
+            if (!authToken) {
+                throw new Error('Authentication token not found');
+            }
+
+            const response = await fetch(`/api/discount-codes?id=${discountToToggle.id}`, {
+                method: 'PATCH',
+                headers: {
+                    'Authorization': `Bearer ${authToken}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ action: 'toggle-status' })
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || 'Failed to toggle discount code status');
+            }
+
+            const updated = await response.json();
             setDiscountCodes(discountCodes.map(d => 
-                d.id === discountToToggle.id 
-                    ? { ...d, status: d.status === 'active' ? 'inactive' : 'active' as 'active' | 'inactive' }
-                    : d
+                d.id === discountToToggle.id ? updated : d
             ));
             setShowStatusConfirm(false);
             setDiscountToToggle(null);
+            setSuccessMessage(`Discount code ${updated.status === 'active' ? 'activated' : 'deactivated'} successfully`);
+            setTimeout(() => setSuccessMessage(null), 3000);
         } catch (err) {
             console.error('Error toggling discount code status:', err);
+            setError(err instanceof Error ? err.message : 'Failed to toggle status');
+            setTimeout(() => setError(null), 5000);
         } finally {
             setStatusLoading(false);
         }
@@ -232,70 +263,115 @@ export default function AdminDiscount() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        
+        // Prevent double submission
+        if (submitting) {
+            console.warn('Form submission already in progress');
+            return;
+        }
+        
+        // Validate form before submitting
+        if (!formData.code || formData.code.trim() === '') {
+            setError('Discount code is required');
+            setTimeout(() => setError(null), 5000);
+            return;
+        }
+        
+        if (!formData.discount_rate || formData.discount_rate.trim() === '' || isNaN(parseFloat(formData.discount_rate)) || parseFloat(formData.discount_rate) <= 0 || parseFloat(formData.discount_rate) > 100) {
+            setError('Please enter a valid discount rate between 0.01 and 100');
+            setTimeout(() => setError(null), 5000);
+            return;
+        }
+        
+        if (formData.max_usage_type === 'limited' && (!formData.max_usage || formData.max_usage.trim() === '' || isNaN(parseInt(formData.max_usage)) || parseInt(formData.max_usage) <= 0)) {
+            setError('Please enter a valid maximum usage limit');
+            setTimeout(() => setError(null), 5000);
+            return;
+        }
+        
+        if (formData.valid_from && formData.valid_until && formData.valid_until_type !== 'unlimited' && new Date(formData.valid_from) > new Date(formData.valid_until)) {
+            setError('Valid From date must be before Valid Until date');
+            setTimeout(() => setError(null), 5000);
+            return;
+        }
+        
         setSubmitting(true);
+        setError(null);
         
         try {
-            if (isEditMode && editingDiscount) {
-                // TODO: API call to update discount code
-                // await fetch(`/api/discount-codes/${editingDiscount.id}`, { 
-                //     method: 'PUT',
-                //     headers: { 'Content-Type': 'application/json' },
-                //     body: JSON.stringify(formData)
-                // });
-                
-                // Mock update for UI
-                setDiscountCodes(discountCodes.map(d => 
-                    d.id === editingDiscount.id 
-                        ? { 
-                            ...d, 
-                            code: formData.code,
-                            discount_rate: formData.discount_rate,
-                            description: formData.description || null,
-                            max_usage: formData.max_usage ? parseInt(formData.max_usage) : null,
-                            valid_from: formData.valid_from ? new Date(formData.valid_from).toISOString() : null,
-                            valid_until: formData.valid_until ? new Date(formData.valid_until).toISOString() : null,
-                            updated_at: new Date().toISOString()
-                        }
-                        : d
-                ));
-            } else {
-                // TODO: API call to create discount code
-                // await fetch('/api/discount-codes', { 
-                //     method: 'POST',
-                //     headers: { 'Content-Type': 'application/json' },
-                //     body: JSON.stringify(formData)
-                // });
-                
-                // Mock create for UI
-                const newDiscount: DiscountCode = {
-                    id: Math.max(...discountCodes.map(d => d.id), 0) + 1,
-                    code: formData.code,
-                    discount_rate: formData.discount_rate,
-                    status: 'active',
-                    description: formData.description || null,
-                    usage_count: 0,
-                    max_usage: formData.max_usage ? parseInt(formData.max_usage) : null,
-                    valid_from: formData.valid_from ? new Date(formData.valid_from).toISOString() : null,
-                    valid_until: formData.valid_until ? new Date(formData.valid_until).toISOString() : null,
-                    created_at: new Date().toISOString(),
-                    updated_at: new Date().toISOString()
-                };
-                setDiscountCodes([...discountCodes, newDiscount]);
+            const authToken = localStorage.getItem('nobleco_auth_token');
+            if (!authToken) {
+                throw new Error('Authentication token not found. Please log in again.');
             }
+
+            const url = isEditMode && editingDiscount 
+                ? `/api/discount-codes?id=${editingDiscount.id}`
+                : '/api/discount-codes';
+            
+            const method = isEditMode ? 'PUT' : 'POST';
+            
+            // Calculate valid_until based on type
+            let validUntil = null;
+            if (formData.valid_until_type === 'unlimited') {
+                validUntil = null;
+            } else {
+                validUntil = formData.valid_until || null;
+            }
+
+            const payload = {
+                code: formData.code,
+                discount_rate: parseFloat(formData.discount_rate),
+                description: formData.description || null,
+                max_usage: formData.max_usage_type === 'limited' && formData.max_usage ? parseInt(formData.max_usage) : null,
+                valid_from: formData.valid_from || null,
+                valid_until: validUntil
+            };
+
+            const response = await fetch(url, {
+                method,
+                headers: {
+                    'Authorization': `Bearer ${authToken}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({ error: `Failed to ${isEditMode ? 'update' : 'create'} discount code` }));
+                throw new Error(errorData.error || `Failed to ${isEditMode ? 'update' : 'create'} discount code (${response.status})`);
+            }
+
+            const savedDiscount = await response.json();
+            
+            if (isEditMode) {
+                setDiscountCodes(discountCodes.map(d => 
+                    d.id === editingDiscount.id ? savedDiscount : d
+                ));
+                setSuccessMessage('Discount code updated successfully');
+            } else {
+                setDiscountCodes([savedDiscount, ...discountCodes]);
+                setSuccessMessage('Discount code created successfully');
+            }
+            
+            setTimeout(() => setSuccessMessage(null), 3000);
             
             setShowCreateModal(false);
             setShowEditModal(false);
             setEditingDiscount(null);
             setFormData({
                 code: '',
-                discount_rate: 0,
+                discount_rate: '',
                 description: '',
                 max_usage: '',
+                max_usage_type: 'unlimited',
                 valid_from: '',
-                valid_until: ''
+                valid_until: '',
+                valid_until_type: 'custom'
             });
         } catch (err) {
             console.error('Error saving discount code:', err);
+            setError(err instanceof Error ? err.message : `Failed to ${isEditMode ? 'update' : 'create'} discount code`);
+            setTimeout(() => setError(null), 5000);
         } finally {
             setSubmitting(false);
         }
@@ -364,10 +440,39 @@ export default function AdminDiscount() {
                     </div>
                 )}
 
+                {/* Success Message */}
+                {successMessage && (
+                    <div className="success-message" style={{
+                        padding: '12px 16px',
+                        marginBottom: '16px',
+                        backgroundColor: '#d4edda',
+                        color: '#155724',
+                        borderRadius: '6px',
+                        border: '1px solid #c3e6cb',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px'
+                    }}>
+                        <IconCheck style={{ width: '16px', height: '16px' }} />
+                        <span>{successMessage}</span>
+                    </div>
+                )}
+
                 {/* Error State */}
                 {error && (
-                    <div className="error-state">
-                        <p>{error}</p>
+                    <div className="error-state" style={{
+                        padding: '12px 16px',
+                        marginBottom: '16px',
+                        backgroundColor: '#f8d7da',
+                        color: '#721c24',
+                        borderRadius: '6px',
+                        border: '1px solid #f5c6cb',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px'
+                    }}>
+                        <IconX style={{ width: '16px', height: '16px' }} />
+                        <span>{error}</span>
                     </div>
                 )}
 
@@ -424,10 +529,33 @@ export default function AdminDiscount() {
                                                 </span>
                                             </td>
                                             <td>
-                                                <span className="usage-count">
-                                                    {discount.usage_count}
-                                                    {discount.max_usage && ` / ${discount.max_usage}`}
-                                                </span>
+                                                <div className="usage-cell">
+                                                    <span className="usage-count">
+                                                        {discount.usage_count}
+                                                        {discount.max_usage && ` / ${discount.max_usage}`}
+                                                    </span>
+                                                    {discount.max_usage && (
+                                                        <div className="usage-progress" style={{
+                                                            width: '100%',
+                                                            height: '4px',
+                                                            backgroundColor: '#e9ecef',
+                                                            borderRadius: '2px',
+                                                            marginTop: '4px',
+                                                            overflow: 'hidden'
+                                                        }}>
+                                                            <div style={{
+                                                                width: `${Math.min((discount.usage_count / discount.max_usage) * 100, 100)}%`,
+                                                                height: '100%',
+                                                                backgroundColor: discount.usage_count >= discount.max_usage 
+                                                                    ? '#dc3545' 
+                                                                    : discount.usage_count / discount.max_usage > 0.8 
+                                                                    ? '#ffc107' 
+                                                                    : '#28a745',
+                                                                transition: 'width 0.3s ease'
+                                                            }} />
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </td>
                                             <td>
                                                 <div className="date-range">
@@ -561,10 +689,33 @@ export default function AdminDiscount() {
                                         </div>
                                         <div className="card-row">
                                             <span className="label">Usage:</span>
-                                            <span className="value">
-                                                {discount.usage_count}
-                                                {discount.max_usage && ` / ${discount.max_usage}`}
-                                            </span>
+                                            <div style={{ flex: 1 }}>
+                                                <span className="value">
+                                                    {discount.usage_count}
+                                                    {discount.max_usage && ` / ${discount.max_usage}`}
+                                                </span>
+                                                {discount.max_usage && (
+                                                    <div className="usage-progress" style={{
+                                                        width: '100%',
+                                                        height: '6px',
+                                                        backgroundColor: '#e9ecef',
+                                                        borderRadius: '3px',
+                                                        marginTop: '6px',
+                                                        overflow: 'hidden'
+                                                    }}>
+                                                        <div style={{
+                                                            width: `${Math.min((discount.usage_count / discount.max_usage) * 100, 100)}%`,
+                                                            height: '100%',
+                                                            backgroundColor: discount.usage_count >= discount.max_usage 
+                                                                ? '#dc3545' 
+                                                                : discount.usage_count / discount.max_usage > 0.8 
+                                                                ? '#ffc107' 
+                                                                : '#28a745',
+                                                            transition: 'width 0.3s ease'
+                                                        }} />
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
                                         {discount.description && (
                                             <div className="card-row">
@@ -597,16 +748,37 @@ export default function AdminDiscount() {
                         setEditingDiscount(null);
                         setFormData({
                             code: '',
-                            discount_rate: 0,
+                            discount_rate: '',
                             description: '',
                             max_usage: '',
+                            max_usage_type: 'unlimited',
                             valid_from: '',
-                            valid_until: ''
+                            valid_until: '',
+                            valid_until_type: 'custom'
                         });
                     }}>
-                        <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-                            <div className="modal-header">
-                                <h2>{isEditMode ? 'Edit Discount Code' : 'Create Discount Code'}</h2>
+                        <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{
+                            maxWidth: '800px',
+                            width: '90%',
+                            maxHeight: '90vh',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            backgroundColor: '#fff',
+                            borderRadius: '8px',
+                            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+                            position: 'relative'
+                        }}>
+                            <div className="modal-header" style={{
+                                padding: '20px 24px',
+                                borderBottom: '1px solid #e5e7eb',
+                                flexShrink: 0,
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center'
+                            }}>
+                                <h2 style={{ margin: 0, fontSize: '20px', fontWeight: '600', color: '#111827' }}>
+                                    {isEditMode ? 'Edit Discount Code' : 'Create Discount Code'}
+                                </h2>
                                 <button
                                     className="modal-close"
                                     onClick={() => {
@@ -615,18 +787,36 @@ export default function AdminDiscount() {
                                         setEditingDiscount(null);
                                         setFormData({
                                             code: '',
-                                            discount_rate: 0,
+                                            discount_rate: '',
                                             description: '',
                                             max_usage: '',
+                                            max_usage_type: 'unlimited',
                                             valid_from: '',
-                                            valid_until: ''
+                                            valid_until: '',
+                                            valid_until_type: 'custom'
                                         });
+                                    }}
+                                    style={{
+                                        background: 'none',
+                                        border: 'none',
+                                        cursor: 'pointer',
+                                        padding: '4px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        borderRadius: '4px',
+                                        color: '#6b7280'
                                     }}
                                 >
                                     <IconX />
                                 </button>
                             </div>
-                            <form onSubmit={handleSubmit} className="modal-body">
+                            <form onSubmit={handleSubmit} className="modal-body" style={{
+                                padding: '24px',
+                                overflowY: 'auto',
+                                flex: 1,
+                                minHeight: 0
+                            }}>
                                 <div className="form-group">
                                     <label>
                                         Discount Code <span className="required">*</span>
@@ -644,16 +834,35 @@ export default function AdminDiscount() {
                                     <label>
                                         Discount Rate (%) <span className="required">*</span>
                                     </label>
-                                    <input
-                                        type="number"
-                                        value={formData.discount_rate}
-                                        onChange={(e) => setFormData({ ...formData, discount_rate: parseFloat(e.target.value) || 0 })}
-                                        placeholder="0"
-                                        required
-                                        min="0"
-                                        max="100"
-                                        step="0.01"
-                                    />
+                                    <div style={{ position: 'relative' }}>
+                                        <input
+                                            type="number"
+                                            value={formData.discount_rate}
+                                            onChange={(e) => setFormData({ ...formData, discount_rate: e.target.value })}
+                                            placeholder="Enter discount rate"
+                                            required
+                                            min="0.01"
+                                            max="100"
+                                            step="0.01"
+                                            style={{ paddingRight: formData.discount_rate ? '50px' : '12px' }}
+                                        />
+                                        {formData.discount_rate && parseFloat(formData.discount_rate) > 0 && (
+                                            <span style={{
+                                                position: 'absolute',
+                                                right: '12px',
+                                                top: '50%',
+                                                transform: 'translateY(-50%)',
+                                                color: '#28a745',
+                                                fontWeight: '600',
+                                                fontSize: '14px'
+                                            }}>
+                                                {parseFloat(formData.discount_rate)}%
+                                            </span>
+                                        )}
+                                    </div>
+                                    <small style={{ color: '#6c757d', marginTop: '4px', display: 'block' }}>
+                                        Enter a value between 0.01 and 100
+                                    </small>
                                 </div>
                                 <div className="form-group">
                                     <label>Description</label>
@@ -664,61 +873,484 @@ export default function AdminDiscount() {
                                         rows={3}
                                     />
                                 </div>
-                                <div className="form-row">
-                                    <div className="form-group">
-                                        <label>Max Usage</label>
+                                <div className="form-group">
+                                    <label>Max Usage</label>
+                                    <div style={{ display: 'flex', gap: '12px', marginBottom: '8px' }}>
+                                        <button
+                                            type="button"
+                                            onClick={() => setFormData({ ...formData, max_usage_type: 'unlimited', max_usage: '' })}
+                                            style={{
+                                                padding: '8px 16px',
+                                                borderRadius: '6px',
+                                                border: '1px solid #d1d5db',
+                                                backgroundColor: formData.max_usage_type === 'unlimited' ? '#2563eb' : '#fff',
+                                                color: formData.max_usage_type === 'unlimited' ? '#fff' : '#374151',
+                                                cursor: 'pointer',
+                                                fontWeight: formData.max_usage_type === 'unlimited' ? '600' : '400',
+                                                transition: 'all 0.2s'
+                                            }}
+                                        >
+                                            Unlimited
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setFormData({ ...formData, max_usage_type: 'limited' })}
+                                            style={{
+                                                padding: '8px 16px',
+                                                borderRadius: '6px',
+                                                border: '1px solid #d1d5db',
+                                                backgroundColor: formData.max_usage_type === 'limited' ? '#2563eb' : '#fff',
+                                                color: formData.max_usage_type === 'limited' ? '#fff' : '#374151',
+                                                cursor: 'pointer',
+                                                fontWeight: formData.max_usage_type === 'limited' ? '600' : '400',
+                                                transition: 'all 0.2s'
+                                            }}
+                                        >
+                                            Limited
+                                        </button>
+                                    </div>
+                                    {formData.max_usage_type === 'limited' && (
                                         <input
                                             type="number"
                                             value={formData.max_usage}
                                             onChange={(e) => setFormData({ ...formData, max_usage: e.target.value })}
-                                            placeholder="Unlimited"
+                                            placeholder="Enter maximum usage count"
                                             min="1"
+                                            required={formData.max_usage_type === 'limited'}
                                         />
-                                    </div>
+                                    )}
+                                    <small style={{ color: '#6c757d', marginTop: '4px', display: 'block' }}>
+                                        {formData.max_usage_type === 'unlimited' 
+                                            ? 'No limit on how many times this code can be used'
+                                            : 'Enter the maximum number of times this code can be used'}
+                                    </small>
                                 </div>
                                 <div className="form-row">
                                     <div className="form-group">
                                         <label>Valid From</label>
-                                        <input
-                                            type="datetime-local"
-                                            value={formData.valid_from}
-                                            onChange={(e) => setFormData({ ...formData, valid_from: e.target.value })}
-                                        />
+                                        <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+                                            <input
+                                                type="datetime-local"
+                                                value={formData.valid_from}
+                                                onChange={(e) => setFormData({ ...formData, valid_from: e.target.value })}
+                                                style={{ flex: 1 }}
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    const now = new Date();
+                                                    const year = now.getFullYear();
+                                                    const month = String(now.getMonth() + 1).padStart(2, '0');
+                                                    const day = String(now.getDate()).padStart(2, '0');
+                                                    const hours = String(now.getHours()).padStart(2, '0');
+                                                    const minutes = String(now.getMinutes()).padStart(2, '0');
+                                                    setFormData({ ...formData, valid_from: `${year}-${month}-${day}T${hours}:${minutes}` });
+                                                }}
+                                                style={{
+                                                    padding: '8px 16px',
+                                                    borderRadius: '6px',
+                                                    border: '1px solid #2563eb',
+                                                    backgroundColor: '#fff',
+                                                    color: '#2563eb',
+                                                    cursor: 'pointer',
+                                                    fontWeight: '500',
+                                                    whiteSpace: 'nowrap',
+                                                    transition: 'all 0.2s'
+                                                }}
+                                                onMouseEnter={(e) => {
+                                                    e.currentTarget.style.backgroundColor = '#eff6ff';
+                                                }}
+                                                onMouseLeave={(e) => {
+                                                    e.currentTarget.style.backgroundColor = '#fff';
+                                                }}
+                                            >
+                                                Today
+                                            </button>
+                                        </div>
+                                        <small style={{ color: '#6c757d', marginTop: '4px', display: 'block' }}>
+                                            When the code becomes active
+                                        </small>
                                     </div>
                                     <div className="form-group">
                                         <label>Valid Until</label>
-                                        <input
-                                            type="datetime-local"
-                                            value={formData.valid_until}
-                                            onChange={(e) => setFormData({ ...formData, valid_until: e.target.value })}
-                                        />
+                                        <div style={{ marginBottom: '8px' }}>
+                                            <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setFormData({ ...formData, valid_until_type: 'unlimited', valid_until: '' })}
+                                                    style={{
+                                                        padding: '8px 16px',
+                                                        borderRadius: '6px',
+                                                        border: '1px solid #d1d5db',
+                                                        backgroundColor: formData.valid_until_type === 'unlimited' ? '#2563eb' : '#fff',
+                                                        color: formData.valid_until_type === 'unlimited' ? '#fff' : '#374151',
+                                                        cursor: 'pointer',
+                                                        fontSize: '14px',
+                                                        fontWeight: formData.valid_until_type === 'unlimited' ? '600' : '400',
+                                                        transition: 'all 0.2s'
+                                                    }}
+                                                >
+                                                    Unlimited
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setFormData({ ...formData, valid_until_type: 'custom' })}
+                                                    style={{
+                                                        padding: '8px 16px',
+                                                        borderRadius: '6px',
+                                                        border: '1px solid #d1d5db',
+                                                        backgroundColor: formData.valid_until_type === 'custom' ? '#2563eb' : '#fff',
+                                                        color: formData.valid_until_type === 'custom' ? '#fff' : '#374151',
+                                                        cursor: 'pointer',
+                                                        fontSize: '14px',
+                                                        fontWeight: formData.valid_until_type === 'custom' ? '600' : '400',
+                                                        transition: 'all 0.2s'
+                                                    }}
+                                                >
+                                                    Custom Date
+                                                </button>
+                                            </div>
+                                            {formData.valid_until_type === 'custom' && (
+                                                <>
+                                                    <input
+                                                        type="datetime-local"
+                                                        value={formData.valid_until}
+                                                        onChange={(e) => setFormData({ ...formData, valid_until: e.target.value })}
+                                                        min={formData.valid_from || undefined}
+                                                        style={{ width: '100%', marginBottom: '12px' }}
+                                                    />
+                                                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                if (formData.valid_from) {
+                                                                    const fromDate = new Date(formData.valid_from);
+                                                                    fromDate.setDate(fromDate.getDate() + 7);
+                                                                    setFormData({ 
+                                                                        ...formData, 
+                                                                        valid_until: fromDate.toISOString().slice(0, 16)
+                                                                    });
+                                                                }
+                                                            }}
+                                                            style={{
+                                                                padding: '6px 12px',
+                                                                borderRadius: '6px',
+                                                                border: '1px solid #d1d5db',
+                                                                backgroundColor: '#fff',
+                                                                color: '#374151',
+                                                                cursor: 'pointer',
+                                                                fontSize: '13px',
+                                                                fontWeight: '400',
+                                                                transition: 'all 0.2s'
+                                                            }}
+                                                            onMouseEnter={(e) => {
+                                                                e.currentTarget.style.backgroundColor = '#f3f4f6';
+                                                            }}
+                                                            onMouseLeave={(e) => {
+                                                                e.currentTarget.style.backgroundColor = '#fff';
+                                                            }}
+                                                        >
+                                                            A Week Later
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                if (formData.valid_from) {
+                                                                    const fromDate = new Date(formData.valid_from);
+                                                                    fromDate.setMonth(fromDate.getMonth() + 1);
+                                                                    setFormData({ 
+                                                                        ...formData, 
+                                                                        valid_until: fromDate.toISOString().slice(0, 16)
+                                                                    });
+                                                                }
+                                                            }}
+                                                            style={{
+                                                                padding: '6px 12px',
+                                                                borderRadius: '6px',
+                                                                border: '1px solid #d1d5db',
+                                                                backgroundColor: '#fff',
+                                                                color: '#374151',
+                                                                cursor: 'pointer',
+                                                                fontSize: '13px',
+                                                                fontWeight: '400',
+                                                                transition: 'all 0.2s'
+                                                            }}
+                                                            onMouseEnter={(e) => {
+                                                                e.currentTarget.style.backgroundColor = '#f3f4f6';
+                                                            }}
+                                                            onMouseLeave={(e) => {
+                                                                e.currentTarget.style.backgroundColor = '#fff';
+                                                            }}
+                                                        >
+                                                            A Month Later
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                if (formData.valid_from) {
+                                                                    const fromDate = new Date(formData.valid_from);
+                                                                    fromDate.setMonth(fromDate.getMonth() + 3);
+                                                                    setFormData({ 
+                                                                        ...formData, 
+                                                                        valid_until: fromDate.toISOString().slice(0, 16)
+                                                                    });
+                                                                }
+                                                            }}
+                                                            style={{
+                                                                padding: '6px 12px',
+                                                                borderRadius: '6px',
+                                                                border: '1px solid #d1d5db',
+                                                                backgroundColor: '#fff',
+                                                                color: '#374151',
+                                                                cursor: 'pointer',
+                                                                fontSize: '13px',
+                                                                fontWeight: '400',
+                                                                transition: 'all 0.2s'
+                                                            }}
+                                                            onMouseEnter={(e) => {
+                                                                e.currentTarget.style.backgroundColor = '#f3f4f6';
+                                                            }}
+                                                            onMouseLeave={(e) => {
+                                                                e.currentTarget.style.backgroundColor = '#fff';
+                                                            }}
+                                                        >
+                                                            3 Months Later
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                if (formData.valid_from) {
+                                                                    const fromDate = new Date(formData.valid_from);
+                                                                    fromDate.setFullYear(fromDate.getFullYear() + 1);
+                                                                    setFormData({ 
+                                                                        ...formData, 
+                                                                        valid_until: fromDate.toISOString().slice(0, 16)
+                                                                    });
+                                                                }
+                                                            }}
+                                                            style={{
+                                                                padding: '6px 12px',
+                                                                borderRadius: '6px',
+                                                                border: '1px solid #d1d5db',
+                                                                backgroundColor: '#fff',
+                                                                color: '#374151',
+                                                                cursor: 'pointer',
+                                                                fontSize: '13px',
+                                                                fontWeight: '400',
+                                                                transition: 'all 0.2s'
+                                                            }}
+                                                            onMouseEnter={(e) => {
+                                                                e.currentTarget.style.backgroundColor = '#f3f4f6';
+                                                            }}
+                                                            onMouseLeave={(e) => {
+                                                                e.currentTarget.style.backgroundColor = '#fff';
+                                                            }}
+                                                        >
+                                                            A Year Later
+                                                        </button>
+                                                    </div>
+                                                </>
+                                            )}
+                                        </div>
+                                        <small style={{ color: '#6c757d', marginTop: '4px', display: 'block' }}>
+                                            {formData.valid_until_type === 'unlimited' 
+                                                ? 'Code will never expire'
+                                                : 'When the code expires'}
+                                        </small>
                                     </div>
                                 </div>
-                                <div className="modal-footer">
+                                {formData.valid_from && formData.valid_until && formData.valid_until_type !== 'unlimited' && new Date(formData.valid_from) > new Date(formData.valid_until) && (
+                                    <div style={{
+                                        padding: '8px 12px',
+                                        backgroundColor: '#fff3cd',
+                                        color: '#856404',
+                                        borderRadius: '4px',
+                                        fontSize: '14px',
+                                        marginTop: '8px',
+                                        border: '1px solid #ffeaa7'
+                                    }}>
+                                        ⚠️ Valid From date must be before Valid Until date
+                                    </div>
+                                )}
+                                <div className="modal-footer" style={{
+                                    display: 'flex',
+                                    justifyContent: 'flex-end',
+                                    gap: '12px',
+                                    paddingTop: '24px',
+                                    marginTop: '24px',
+                                    borderTop: '1px solid #e5e7eb',
+                                    flexShrink: 0
+                                }}>
                                     <button
                                         type="button"
-                                        className="secondary-btn"
                                         onClick={() => {
                                             setShowCreateModal(false);
                                             setShowEditModal(false);
                                             setEditingDiscount(null);
                                             setFormData({
                                                 code: '',
-                                                discount_rate: 0,
+                                                discount_rate: '',
                                                 description: '',
                                                 max_usage: '',
+                                                max_usage_type: 'unlimited',
                                                 valid_from: '',
-                                                valid_until: ''
+                                                valid_until: '',
+                                                valid_until_type: 'custom'
                                             });
+                                        }}
+                                        disabled={submitting}
+                                        style={{
+                                            padding: '12px 24px',
+                                            borderRadius: '8px',
+                                            border: '1px solid #d1d5db',
+                                            backgroundColor: submitting ? '#f3f4f6' : '#fff',
+                                            color: submitting ? '#9ca3af' : '#374151',
+                                            cursor: submitting ? 'not-allowed' : 'pointer',
+                                            fontWeight: '500',
+                                            fontSize: '15px',
+                                            transition: 'all 0.2s',
+                                            minWidth: '120px'
+                                        }}
+                                        onMouseEnter={(e) => {
+                                            if (!submitting) {
+                                                e.currentTarget.style.backgroundColor = '#f9fafb';
+                                                e.currentTarget.style.borderColor = '#9ca3af';
+                                            }
+                                        }}
+                                        onMouseLeave={(e) => {
+                                            if (!submitting) {
+                                                e.currentTarget.style.backgroundColor = '#fff';
+                                                e.currentTarget.style.borderColor = '#d1d5db';
+                                            }
                                         }}
                                     >
                                         Cancel
                                     </button>
-                                    <button type="submit" className="primary-btn" disabled={submitting}>
-                                        {submitting ? 'Saving...' : isEditMode ? 'Update' : 'Create'}
+                                    <button 
+                                        type="submit"
+                                        onClick={(e) => {
+                                            // Prevent double submission
+                                            if (submitting) {
+                                                e.preventDefault();
+                                                return false;
+                                            }
+                                            console.log('Submit button clicked', {
+                                                submitting,
+                                                formData,
+                                                isValid: formData.code && formData.code.trim() !== '' && formData.discount_rate && formData.discount_rate.trim() !== '' && !isNaN(parseFloat(formData.discount_rate)) && parseFloat(formData.discount_rate) > 0 && parseFloat(formData.discount_rate) <= 100
+                                            });
+                                        }}
+                                        disabled={submitting || !formData.code || formData.code.trim() === '' || !formData.discount_rate || formData.discount_rate.trim() === '' || isNaN(parseFloat(formData.discount_rate)) || parseFloat(formData.discount_rate) <= 0 || parseFloat(formData.discount_rate) > 100 || (formData.valid_from && formData.valid_until && formData.valid_until_type !== 'unlimited' && new Date(formData.valid_from) > new Date(formData.valid_until)) || (formData.max_usage_type === 'limited' && (!formData.max_usage || formData.max_usage.trim() === '' || isNaN(parseInt(formData.max_usage)) || parseInt(formData.max_usage) <= 0))}
+                                        style={{
+                                            padding: '12px 24px',
+                                            borderRadius: '8px',
+                                            border: 'none',
+                                            backgroundColor: submitting || !formData.code || formData.code.trim() === '' || !formData.discount_rate || formData.discount_rate.trim() === '' || isNaN(parseFloat(formData.discount_rate)) || parseFloat(formData.discount_rate) <= 0 || parseFloat(formData.discount_rate) > 100 || (formData.valid_from && formData.valid_until && formData.valid_until_type !== 'unlimited' && new Date(formData.valid_from) > new Date(formData.valid_until)) || (formData.max_usage_type === 'limited' && (!formData.max_usage || formData.max_usage.trim() === '' || isNaN(parseInt(formData.max_usage)) || parseInt(formData.max_usage) <= 0)) ? '#9ca3af' : '#2563eb',
+                                            color: '#fff',
+                                            cursor: submitting || !formData.code || formData.code.trim() === '' || !formData.discount_rate || formData.discount_rate.trim() === '' || isNaN(parseFloat(formData.discount_rate)) || parseFloat(formData.discount_rate) <= 0 || parseFloat(formData.discount_rate) > 100 || (formData.valid_from && formData.valid_until && formData.valid_until_type !== 'unlimited' && new Date(formData.valid_from) > new Date(formData.valid_until)) || (formData.max_usage_type === 'limited' && (!formData.max_usage || formData.max_usage.trim() === '' || isNaN(parseInt(formData.max_usage)) || parseInt(formData.max_usage) <= 0)) ? 'not-allowed' : 'pointer',
+                                            fontWeight: '600',
+                                            fontSize: '15px',
+                                            transition: 'all 0.2s',
+                                            minWidth: '180px',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            gap: '8px',
+                                            position: 'relative',
+                                            pointerEvents: submitting ? 'none' : 'auto'
+                                        }}
+                                        onMouseEnter={(e) => {
+                                            if (!e.currentTarget.disabled) {
+                                                e.currentTarget.style.backgroundColor = '#1d4ed8';
+                                            }
+                                        }}
+                                        onMouseLeave={(e) => {
+                                            if (!e.currentTarget.disabled) {
+                                                e.currentTarget.style.backgroundColor = '#2563eb';
+                                            }
+                                        }}
+                                    >
+                                        {submitting ? (
+                                            <>
+                                                <div style={{
+                                                    width: '16px',
+                                                    height: '16px',
+                                                    border: '2px solid #fff',
+                                                    borderTopColor: 'transparent',
+                                                    borderRadius: '50%',
+                                                    animation: 'spin 0.6s linear infinite',
+                                                    display: 'inline-block'
+                                                }} />
+                                                <span>{isEditMode ? 'Updating...' : 'Creating...'}</span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <IconCheck style={{ width: '18px', height: '18px' }} />
+                                                <span>{isEditMode ? 'Update Discount Code' : 'Create Discount Code'}</span>
+                                            </>
+                                        )}
                                     </button>
                                 </div>
                             </form>
+                            {submitting && (
+                                <div 
+                                    style={{
+                                        position: 'absolute',
+                                        top: 0,
+                                        left: 0,
+                                        right: 0,
+                                        bottom: 0,
+                                        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        zIndex: 1000,
+                                        borderRadius: '8px',
+                                        backdropFilter: 'blur(2px)',
+                                        pointerEvents: 'auto'
+                                    }}
+                                    onClick={(e) => e.stopPropagation()}
+                                >
+                                    <div style={{
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        alignItems: 'center',
+                                        gap: '16px',
+                                        padding: '24px'
+                                    }}>
+                                        <div style={{
+                                            width: '56px',
+                                            height: '56px',
+                                            border: '5px solid #e5e7eb',
+                                            borderTopColor: '#2563eb',
+                                            borderRadius: '50%',
+                                            animation: 'spin 0.8s linear infinite'
+                                        }} />
+                                        <div style={{
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            alignItems: 'center',
+                                            gap: '8px'
+                                        }}>
+                                            <span style={{
+                                                color: '#111827',
+                                                fontSize: '18px',
+                                                fontWeight: '600'
+                                            }}>
+                                                {isEditMode ? 'Updating Discount Code...' : 'Creating Discount Code...'}
+                                            </span>
+                                            <span style={{
+                                                color: '#6b7280',
+                                                fontSize: '14px',
+                                                textAlign: 'center',
+                                                maxWidth: '300px'
+                                            }}>
+                                                Please wait, this may take a moment on slower connections
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
                 )}
@@ -759,7 +1391,15 @@ export default function AdminDiscount() {
                     />
                 )}
             </div>
+            <style dangerouslySetInnerHTML={{
+                __html: `
+                    @keyframes spin {
+                        to { transform: rotate(360deg); }
+                    }
+                `
+            }} />
         </AdminLayout>
     );
 }
+
 

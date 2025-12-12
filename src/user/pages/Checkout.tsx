@@ -88,6 +88,9 @@ export default function Checkout() {
     const [orderState, setOrderState] = useState('');
     const [discountCode, setDiscountCode] = useState('');
     const [appliedDiscountCode, setAppliedDiscountCode] = useState('');
+    const [appliedDiscountRate, setAppliedDiscountRate] = useState<number | null>(null);
+    const [discountError, setDiscountError] = useState<string | null>(null);
+    const [applyingDiscount, setApplyingDiscount] = useState(false);
     const [notes, setNotes] = useState('');
     
     // Client dropdown
@@ -122,6 +125,8 @@ export default function Checkout() {
         discount_amount: number;
         tax_amount: number;
         total_amount: number;
+        discount_code?: string | null;
+        discount_rate?: number | null;
         cartItems?: CartItem[];
     }>) => {
         if (!orderId) return;
@@ -522,16 +527,71 @@ export default function Checkout() {
 
     // Calculate totals
     const subtotal = cartItems.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
-    const discountAmount = appliedDiscountCode ? (subtotal * 0.1) : 0; // TODO: Calculate actual discount from discount code API
+    const discountAmount = appliedDiscountCode && appliedDiscountRate ? (subtotal * appliedDiscountRate / 100) : 0;
     const taxAmount = 0; // TODO: Calculate tax if applicable
     const total = subtotal - discountAmount + taxAmount;
 
-    const handleApplyDiscount = () => {
-        if (discountCode.trim()) {
-            setAppliedDiscountCode(discountCode.trim());
-            // TODO: Validate discount code with API and get actual discount amount
-        } else {
+    const handleApplyDiscount = async () => {
+        const codeToApply = discountCode.trim().toUpperCase();
+        
+        if (!codeToApply) {
             setAppliedDiscountCode('');
+            setAppliedDiscountRate(null);
+            setDiscountError(null);
+            // Update order to remove discount
+            if (orderId) {
+                updateOrderInDatabase({
+                    discount_code: null,
+                    discount_rate: null,
+                    discount_amount: 0,
+                    subtotal_amount: subtotal,
+                    total_amount: subtotal
+                });
+            }
+            return;
+        }
+
+        // Check if code is already applied to this order
+        if (appliedDiscountCode === codeToApply) {
+            setDiscountError('This discount code is already applied to this order');
+            return;
+        }
+
+        try {
+            setApplyingDiscount(true);
+            setDiscountError(null);
+
+            const response = await fetch(`/api/discount-codes?action=validate&code=${encodeURIComponent(codeToApply)}`);
+            const data = await response.json();
+
+            if (!response.ok || !data.valid) {
+                setDiscountError(data.error || 'Invalid discount code');
+                return;
+            }
+
+            // Apply the discount code
+            setAppliedDiscountCode(codeToApply);
+            setAppliedDiscountRate(data.discount.discount_rate);
+            
+            // Calculate new totals with discount
+            const newDiscountAmount = subtotal * data.discount.discount_rate / 100;
+            const newTotal = subtotal - newDiscountAmount;
+
+            // Update order with discount code and rate (locked in at this moment)
+            if (orderId) {
+                await updateOrderInDatabase({
+                    discount_code: codeToApply,
+                    discount_rate: data.discount.discount_rate,
+                    discount_amount: newDiscountAmount,
+                    subtotal_amount: subtotal,
+                    total_amount: newTotal
+                });
+            }
+        } catch (error) {
+            console.error('Error validating discount code:', error);
+            setDiscountError('Failed to validate discount code. Please try again.');
+        } finally {
+            setApplyingDiscount(false);
         }
     };
 
@@ -616,6 +676,8 @@ export default function Checkout() {
                 discount_amount: discountAmount,
                 tax_amount: taxAmount,
                 total_amount: total,
+                discount_code: appliedDiscountCode || null,
+                discount_rate: appliedDiscountRate || null,
                 notes: notes || null,
                 shipping_address: locationString || null
             };
@@ -973,7 +1035,7 @@ export default function Checkout() {
                                                                     // Auto-update order items and totals
                                                                     if (orderId) {
                                                                         const newSubtotal = updatedItems.reduce((sum, cartItem) => sum + (cartItem.product.price * cartItem.quantity), 0);
-                                                                        const newDiscountAmount = appliedDiscountCode ? (newSubtotal * 0.1) : 0;
+                                                                        const newDiscountAmount = appliedDiscountCode && appliedDiscountRate ? (newSubtotal * appliedDiscountRate / 100) : 0;
                                                                         const newTotal = newSubtotal - newDiscountAmount;
                                                                         updateOrderInDatabase({
                                                                             cartItems: updatedItems,
@@ -1008,7 +1070,7 @@ export default function Checkout() {
                                                                 // Auto-update order items and totals
                                                                 if (orderId) {
                                                                     const newSubtotal = updatedItems.reduce((sum, cartItem) => sum + (cartItem.product.price * cartItem.quantity), 0);
-                                                                    const newDiscountAmount = appliedDiscountCode ? (newSubtotal * 0.1) : 0;
+                                                                    const newDiscountAmount = appliedDiscountCode && appliedDiscountRate ? (newSubtotal * appliedDiscountRate / 100) : 0;
                                                                     const newTotal = newSubtotal - newDiscountAmount;
                                                                     updateOrderInDatabase({
                                                                         cartItems: updatedItems,
@@ -1057,22 +1119,66 @@ export default function Checkout() {
                                         type="button"
                                         className="apply-discount-btn"
                                         onClick={handleApplyDiscount}
+                                        disabled={applyingDiscount}
                                     >
-                                        Apply
+                                        {applyingDiscount ? 'Applying...' : 'Apply'}
                                     </button>
                                 </div>
+                                {discountError && (
+                                    <div className="discount-error" style={{ 
+                                        color: '#ef4444', 
+                                        fontSize: '14px', 
+                                        marginTop: '8px',
+                                        padding: '8px',
+                                        backgroundColor: '#fee2e2',
+                                        borderRadius: '4px'
+                                    }}>
+                                        {discountError}
+                                    </div>
+                                )}
                                 {appliedDiscountCode && (
-                                    <div className="discount-applied">
-                                        <span>Applied: {appliedDiscountCode}</span>
+                                    <div className="discount-applied" style={{ 
+                                        marginTop: '8px',
+                                        padding: '8px',
+                                        backgroundColor: '#dcfce7',
+                                        borderRadius: '4px',
+                                        display: 'flex',
+                                        justifyContent: 'space-between',
+                                        alignItems: 'center'
+                                    }}>
+                                        <span style={{ color: '#166534', fontWeight: '500' }}>
+                                            Applied: {appliedDiscountCode} ({appliedDiscountRate}% off)
+                                        </span>
                                         <button
                                             type="button"
                                             className="remove-discount-btn"
-                                            onClick={() => {
+                                            onClick={async () => {
                                                 setAppliedDiscountCode('');
+                                                setAppliedDiscountRate(null);
                                                 setDiscountCode('');
+                                                setDiscountError(null);
+                                                // Update order to remove discount
+                                                if (orderId) {
+                                                    const newSubtotal = cartItems.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
+                                                    await updateOrderInDatabase({
+                                                        discount_code: null,
+                                                        discount_rate: null,
+                                                        discount_amount: 0,
+                                                        subtotal_amount: newSubtotal,
+                                                        total_amount: newSubtotal
+                                                    });
+                                                }
+                                            }}
+                                            style={{
+                                                background: 'none',
+                                                border: 'none',
+                                                cursor: 'pointer',
+                                                padding: '4px',
+                                                display: 'flex',
+                                                alignItems: 'center'
                                             }}
                                         >
-                                            <IconX width={14} height={14} />
+                                            <IconX width={14} height={14} style={{ color: '#166534' }} />
                                         </button>
                                     </div>
                                 )}

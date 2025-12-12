@@ -125,6 +125,7 @@ export default function UserWallet() {
     const [showPendingRequestsPopup, setShowPendingRequestsPopup] = useState(false);
     const [requestToDelete, setRequestToDelete] = useState<number | null>(null);
     const [deletingRequest, setDeletingRequest] = useState(false);
+    const [withdrawError, setWithdrawError] = useState<string | null>(null);
     const bankDropdownRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -324,6 +325,7 @@ export default function UserWallet() {
 
     const handlePointsChange = (value: string) => {
         setWithdrawAmount(value);
+        setWithdrawError(null); // Clear error when user types
         if (value && !isNaN(Number(value))) {
             const points = Number(value);
             const money = points * CONVERSION_RATE;
@@ -335,6 +337,7 @@ export default function UserWallet() {
 
     const handleMoneyChange = (value: string) => {
         setWithdrawMoneyAmount(value);
+        setWithdrawError(null); // Clear error when user types
         if (value && !isNaN(Number(value))) {
             const money = Number(value);
             const points = Math.floor(money / CONVERSION_RATE);
@@ -346,6 +349,7 @@ export default function UserWallet() {
 
     const handleSwapInputMode = () => {
         setIsMoneyInputMode(!isMoneyInputMode);
+        setWithdrawError(null); // Clear error when swapping
         // Clear both fields when swapping
         setWithdrawAmount('');
         setWithdrawMoneyAmount('');
@@ -356,8 +360,11 @@ export default function UserWallet() {
             e.preventDefault();
         }
         
+        // Clear previous errors
+        setWithdrawError(null);
+        
         if (!bankInfo) {
-            alert('Please add your bank account information first');
+            setWithdrawError('Please add your bank account information first');
             setShowWithdrawModal(false);
             setShowBankEditModal(true);
             return;
@@ -366,13 +373,18 @@ export default function UserWallet() {
         const pointAmount = parseInt(withdrawAmount);
         const vndAmount = parseFloat(withdrawMoneyAmount);
 
-        if (!withdrawAmount || pointAmount <= 0 || pointAmount > currentBalance) {
-            alert('Invalid withdrawal amount');
+        if (!withdrawAmount || pointAmount <= 0) {
+            setWithdrawError('Please enter a valid withdrawal amount');
+            return;
+        }
+
+        if (pointAmount > currentBalance) {
+            setWithdrawError(`Invalid withdrawal amount. You only have ${currentBalance.toLocaleString()} points available.`);
             return;
         }
 
         if (isNaN(vndAmount) || vndAmount <= 0) {
-            alert('Invalid money amount');
+            setWithdrawError('Invalid money amount');
             return;
         }
 
@@ -403,11 +415,13 @@ export default function UserWallet() {
             setWithdrawAmount('');
             setWithdrawMoneyAmount('');
             setIsMoneyInputMode(false);
+            setWithdrawError(null);
             loadWalletData(); // Reload wallet data to show new pending request
             setNotification({ type: 'success', message: 'Withdrawal request submitted successfully' });
             setTimeout(() => setNotification(null), 3000);
         } catch (err: any) {
             console.error('Error submitting withdrawal request:', err);
+            setWithdrawError(err.message || 'Failed to submit withdrawal request');
             setNotification({ type: 'error', message: err.message || 'Failed to submit withdrawal request' });
             setTimeout(() => setNotification(null), 3000);
         }
@@ -934,11 +948,17 @@ export default function UserWallet() {
 
                 {/* Withdraw Modal */}
                 {showWithdrawModal && (
-                    <div className="modal-overlay" onClick={() => setShowWithdrawModal(false)}>
+                    <div className="modal-overlay" onClick={() => {
+                        setShowWithdrawModal(false);
+                        setWithdrawError(null);
+                    }}>
                         <div className="modal-card wallet-modal" onClick={(e) => e.stopPropagation()}>
                             <div className="modal-header">
                                 <h2>Withdraw Funds</h2>
-                                <button className="modal-close" onClick={() => setShowWithdrawModal(false)}>
+                                <button className="modal-close" onClick={() => {
+                                    setShowWithdrawModal(false);
+                                    setWithdrawError(null);
+                                }}>
                                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                         <line x1="18" y1="6" x2="6" y2="18"/>
                                         <line x1="6" y1="6" x2="18" y2="18"/>
@@ -961,6 +981,28 @@ export default function UserWallet() {
                                         </div>
                                     </div>
                                 </div>
+
+                                {withdrawError && (
+                                    <div className="withdraw-error-alert">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <circle cx="12" cy="12" r="10"/>
+                                            <line x1="12" y1="8" x2="12" y2="12"/>
+                                            <line x1="12" y1="16" x2="12.01" y2="16"/>
+                                        </svg>
+                                        <span>{withdrawError}</span>
+                                        <button 
+                                            type="button"
+                                            className="alert-close-btn"
+                                            onClick={() => setWithdrawError(null)}
+                                            aria-label="Close alert"
+                                        >
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                <line x1="18" y1="6" x2="6" y2="18"/>
+                                                <line x1="6" y1="6" x2="18" y2="18"/>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                )}
 
                                 {!isMoneyInputMode ? (
                                     <>
@@ -1106,7 +1148,10 @@ export default function UserWallet() {
                                 <button 
                                     type="button" 
                                     className="btn-secondary" 
-                                    onClick={() => setShowWithdrawModal(false)}
+                                    onClick={() => {
+                                        setShowWithdrawModal(false);
+                                        setWithdrawError(null);
+                                    }}
                                 >
                                     Cancel
                                 </button>
