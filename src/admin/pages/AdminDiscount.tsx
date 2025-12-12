@@ -1327,7 +1327,6 @@ export default function AdminDiscount() {
                                         justifyContent: 'center',
                                         gap: '8px',
                                         position: 'relative',
-                                        pointerEvents: submitting ? 'none' : 'auto',
                                         zIndex: 101
                                     }}
                                     onMouseEnter={(e) => {

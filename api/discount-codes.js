@@ -131,8 +131,12 @@ export default async function handler(req, res) {
 
     // POST - Create new discount code or increment usage
     if (req.method === 'POST') {
-      const body = req.body || await readBody(req);
+      let body = req.body;
+      if (!body || Object.keys(body).length === 0) {
+        body = await readBody(req);
+      }
       const { action, code: bodyCode } = body;
+      console.log('POST /api/discount-codes - Body:', JSON.stringify(body));
       
       // Handle increment action (allowed for authenticated users)
       if (action === 'increment' && bodyCode) {
