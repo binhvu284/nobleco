@@ -129,11 +129,29 @@ export default async function handler(req, res) {
       }
     }
 
-    // POST - Create new discount code
+    // POST - Create new discount code or increment usage
     if (req.method === 'POST') {
       const body = req.body || await readBody(req);
+      const { action, code: bodyCode } = body;
+      
+      // Handle increment action (allowed for authenticated users)
+      if (action === 'increment' && bodyCode) {
+        if (!currentUser) {
+          return res.status(401).json({ error: 'Unauthorized' });
+        }
+        try {
+          const updatedDiscount = await incrementDiscountCodeUsage(bodyCode.toUpperCase().trim());
+          return res.status(200).json({
+            success: true,
+            discount: updatedDiscount
+          });
+        } catch (error) {
+          return res.status(400).json({ error: error.message });
+        }
+      }
+      
+      // Handle create discount code (admin only)
       const { code, discount_rate, description, max_usage, valid_from, valid_until, status } = body;
-
       if (!code || discount_rate === undefined) {
         return res.status(400).json({ error: 'Code and discount_rate are required' });
       }
