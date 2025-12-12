@@ -479,6 +479,23 @@ export default function Checkout() {
                 if (orderData.discount_code) {
                     setAppliedDiscountCode(orderData.discount_code);
                     setDiscountCode(orderData.discount_code);
+                    // Load the discount rate if available
+                    if (orderData.discount_rate) {
+                        setAppliedDiscountRate(orderData.discount_rate);
+                    } else {
+                        // If discount_rate is not in order, fetch it from the discount code
+                        try {
+                            const codeResponse = await fetch(`/api/discount-codes?action=validate&code=${encodeURIComponent(orderData.discount_code)}`);
+                            if (codeResponse.ok) {
+                                const codeData = await codeResponse.json();
+                                if (codeData.valid && codeData.discount) {
+                                    setAppliedDiscountRate(codeData.discount.discount_rate);
+                                }
+                            }
+                        } catch (err) {
+                            console.warn('Failed to fetch discount rate:', err);
+                        }
+                    }
                 }
 
                 // Order items are already included in the order response

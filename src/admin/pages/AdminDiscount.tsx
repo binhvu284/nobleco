@@ -36,6 +36,7 @@ export default function AdminDiscount() {
     const [discountCodes, setDiscountCodes] = useState<DiscountCode[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [codeDuplicateError, setCodeDuplicateError] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [viewMode, setViewMode] = useState<'table' | 'card'>('table');
     const [activeDropdown, setActiveDropdown] = useState<number | null>(null);
@@ -157,6 +158,7 @@ export default function AdminDiscount() {
 
     const handleEdit = (discount: DiscountCode) => {
         setEditingDiscount(discount);
+        setCodeDuplicateError(null);
         setFormData({
             code: discount.code,
             discount_rate: discount.discount_rate.toString(),
@@ -295,8 +297,28 @@ export default function AdminDiscount() {
             return;
         }
         
+        // Check for duplicate code before submitting
+        if (codeDuplicateError) {
+            setError('Please fix the duplicate code error before submitting');
+            setTimeout(() => setError(null), 5000);
+            return;
+        }
+        
+        // Additional duplicate check on submit (in case user bypassed the onChange check)
+        const duplicate = discountCodes.find(d => d.code === formData.code.trim() && (!isEditMode || d.id !== editingDiscount?.id));
+        if (duplicate) {
+            setError('This discount code already exists. Please choose a different code.');
+            setCodeDuplicateError('This discount code already exists');
+            setTimeout(() => {
+                setError(null);
+                setCodeDuplicateError(null);
+            }, 5000);
+            return;
+        }
+        
         setSubmitting(true);
         setError(null);
+        setCodeDuplicateError(null);
         
         try {
             const authToken = localStorage.getItem('nobleco_auth_token');
@@ -358,6 +380,7 @@ export default function AdminDiscount() {
             setShowCreateModal(false);
             setShowEditModal(false);
             setEditingDiscount(null);
+            setCodeDuplicateError(null);
             setFormData({
                 code: '',
                 discount_rate: '',
@@ -813,9 +836,12 @@ export default function AdminDiscount() {
                             </div>
                             <form onSubmit={handleSubmit} className="modal-body" style={{
                                 padding: '24px',
+                                paddingBottom: '0',
                                 overflowY: 'auto',
                                 flex: 1,
-                                minHeight: 0
+                                minHeight: 0,
+                                display: 'flex',
+                                flexDirection: 'column'
                             }}>
                                 <div className="form-group">
                                     <label>
@@ -824,11 +850,36 @@ export default function AdminDiscount() {
                                     <input
                                         type="text"
                                         value={formData.code}
-                                        onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
+                                        onChange={async (e) => {
+                                            const newCode = e.target.value.toUpperCase();
+                                            setFormData({ ...formData, code: newCode });
+                                            setCodeDuplicateError(null);
+                                            
+                                            // Check for duplicate code (only if code is not empty and not the same as current editing code)
+                                            if (newCode.trim() && (!isEditMode || newCode !== editingDiscount?.code)) {
+                                                const duplicate = discountCodes.find(d => d.code === newCode.trim());
+                                                if (duplicate) {
+                                                    setCodeDuplicateError('This discount code already exists');
+                                                }
+                                            }
+                                        }}
                                         placeholder="e.g., WELCOME10"
                                         required
                                         maxLength={50}
+                                        style={{
+                                            borderColor: codeDuplicateError ? '#ef4444' : undefined
+                                        }}
                                     />
+                                    {codeDuplicateError && (
+                                        <small style={{ 
+                                            color: '#ef4444', 
+                                            marginTop: '4px', 
+                                            display: 'block',
+                                            fontSize: '13px'
+                                        }}>
+                                            ⚠️ {codeDuplicateError}
+                                        </small>
+                                    )}
                                 </div>
                                 <div className="form-group">
                                     <label>
@@ -1176,10 +1227,14 @@ export default function AdminDiscount() {
                                     display: 'flex',
                                     justifyContent: 'flex-end',
                                     gap: '12px',
-                                    paddingTop: '24px',
-                                    marginTop: '24px',
+                                    padding: '20px 24px',
                                     borderTop: '1px solid #e5e7eb',
-                                    flexShrink: 0
+                                    flexShrink: 0,
+                                    backgroundColor: '#fff',
+                                    position: 'sticky',
+                                    bottom: 0,
+                                    zIndex: 10,
+                                    marginTop: 'auto'
                                 }}>
                                     <button
                                         type="button"
@@ -1240,14 +1295,14 @@ export default function AdminDiscount() {
                                                 isValid: formData.code && formData.code.trim() !== '' && formData.discount_rate && formData.discount_rate.trim() !== '' && !isNaN(parseFloat(formData.discount_rate)) && parseFloat(formData.discount_rate) > 0 && parseFloat(formData.discount_rate) <= 100
                                             });
                                         }}
-                                        disabled={submitting || !formData.code || formData.code.trim() === '' || !formData.discount_rate || formData.discount_rate.trim() === '' || isNaN(parseFloat(formData.discount_rate)) || parseFloat(formData.discount_rate) <= 0 || parseFloat(formData.discount_rate) > 100 || (formData.valid_from && formData.valid_until && formData.valid_until_type !== 'unlimited' && new Date(formData.valid_from) > new Date(formData.valid_until)) || (formData.max_usage_type === 'limited' && (!formData.max_usage || formData.max_usage.trim() === '' || isNaN(parseInt(formData.max_usage)) || parseInt(formData.max_usage) <= 0))}
+                                        disabled={submitting || !formData.code || formData.code.trim() === '' || !!codeDuplicateError || !formData.discount_rate || formData.discount_rate.trim() === '' || isNaN(parseFloat(formData.discount_rate)) || parseFloat(formData.discount_rate) <= 0 || parseFloat(formData.discount_rate) > 100 || (formData.valid_from && formData.valid_until && formData.valid_until_type !== 'unlimited' && new Date(formData.valid_from) > new Date(formData.valid_until)) || (formData.max_usage_type === 'limited' && (!formData.max_usage || formData.max_usage.trim() === '' || isNaN(parseInt(formData.max_usage)) || parseInt(formData.max_usage) <= 0))}
                                         style={{
                                             padding: '12px 24px',
                                             borderRadius: '8px',
                                             border: 'none',
-                                            backgroundColor: submitting || !formData.code || formData.code.trim() === '' || !formData.discount_rate || formData.discount_rate.trim() === '' || isNaN(parseFloat(formData.discount_rate)) || parseFloat(formData.discount_rate) <= 0 || parseFloat(formData.discount_rate) > 100 || (formData.valid_from && formData.valid_until && formData.valid_until_type !== 'unlimited' && new Date(formData.valid_from) > new Date(formData.valid_until)) || (formData.max_usage_type === 'limited' && (!formData.max_usage || formData.max_usage.trim() === '' || isNaN(parseInt(formData.max_usage)) || parseInt(formData.max_usage) <= 0)) ? '#9ca3af' : '#2563eb',
+                                            backgroundColor: submitting || !formData.code || formData.code.trim() === '' || !!codeDuplicateError || !formData.discount_rate || formData.discount_rate.trim() === '' || isNaN(parseFloat(formData.discount_rate)) || parseFloat(formData.discount_rate) <= 0 || parseFloat(formData.discount_rate) > 100 || (formData.valid_from && formData.valid_until && formData.valid_until_type !== 'unlimited' && new Date(formData.valid_from) > new Date(formData.valid_until)) || (formData.max_usage_type === 'limited' && (!formData.max_usage || formData.max_usage.trim() === '' || isNaN(parseInt(formData.max_usage)) || parseInt(formData.max_usage) <= 0)) ? '#9ca3af' : '#2563eb',
                                             color: '#fff',
-                                            cursor: submitting || !formData.code || formData.code.trim() === '' || !formData.discount_rate || formData.discount_rate.trim() === '' || isNaN(parseFloat(formData.discount_rate)) || parseFloat(formData.discount_rate) <= 0 || parseFloat(formData.discount_rate) > 100 || (formData.valid_from && formData.valid_until && formData.valid_until_type !== 'unlimited' && new Date(formData.valid_from) > new Date(formData.valid_until)) || (formData.max_usage_type === 'limited' && (!formData.max_usage || formData.max_usage.trim() === '' || isNaN(parseInt(formData.max_usage)) || parseInt(formData.max_usage) <= 0)) ? 'not-allowed' : 'pointer',
+                                            cursor: submitting || !formData.code || formData.code.trim() === '' || !!codeDuplicateError || !formData.discount_rate || formData.discount_rate.trim() === '' || isNaN(parseFloat(formData.discount_rate)) || parseFloat(formData.discount_rate) <= 0 || parseFloat(formData.discount_rate) > 100 || (formData.valid_from && formData.valid_until && formData.valid_until_type !== 'unlimited' && new Date(formData.valid_from) > new Date(formData.valid_until)) || (formData.max_usage_type === 'limited' && (!formData.max_usage || formData.max_usage.trim() === '' || isNaN(parseInt(formData.max_usage)) || parseInt(formData.max_usage) <= 0)) ? 'not-allowed' : 'pointer',
                                             fontWeight: '600',
                                             fontSize: '15px',
                                             transition: 'all 0.2s',
