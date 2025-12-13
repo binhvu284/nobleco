@@ -158,11 +158,7 @@ export default async function handler(req, res) {
         return res.status(403).json({ error: 'Forbidden' });
       }
 
-      // Only allow deleting processing orders
-      if (order.status !== 'processing') {
-        return res.status(400).json({ error: 'Can only delete orders with processing status' });
-      }
-
+      // Allow deleting orders regardless of status (admin can delete any order)
       await deleteOrder(orderId);
       return res.status(200).json({ success: true });
     }
