@@ -468,7 +468,12 @@ export async function deleteOrder(orderId) {
 
   if (itemsError) throw new Error(itemsError.message);
 
+  // Note: commission_transactions.order_id will be set to NULL automatically
+  // due to ON DELETE SET NULL constraint, preserving commission history
+
   // Delete order
+  // The foreign key constraints on commission_transactions.order_id and wallet_log.related_order_id
+  // are set to ON DELETE SET NULL, so those records will have their order_id set to NULL automatically.
   const { error } = await supabase
     .from('orders')
     .delete()
