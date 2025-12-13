@@ -3,15 +3,16 @@ import { login } from '../../auth';
 import AuthFooter from '../../components/AuthFooter';
 
 interface OTPVerificationProps {
-  phone: string;
+  phone?: string;
   userId?: number; // Optional - only for legacy flow
   email: string;
   password: string;
+  otpMethod?: 'phone' | 'email';
   onSuccess: () => void;
   onBack: () => void;
 }
 
-export default function OTPVerification({ phone, userId, email, password, onSuccess, onBack }: OTPVerificationProps) {
+export default function OTPVerification({ phone, userId, email, password, otpMethod = 'phone', onSuccess, onBack }: OTPVerificationProps) {
   const [otp, setOtp] = useState(['', '', '', '']);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -41,6 +42,15 @@ export default function OTPVerification({ phone, userId, email, password, onSucc
     const start = phoneNumber.slice(0, 2);
     const end = phoneNumber.slice(-2);
     return `${start}****${end}`;
+  };
+
+  // Format email for display (mask middle part)
+  const formatEmail = (emailAddress: string) => {
+    const [localPart, domain] = emailAddress.split('@');
+    if (localPart.length <= 2) return emailAddress;
+    const start = localPart.slice(0, 2);
+    const end = localPart.slice(-1);
+    return `${start}***${end}@${domain}`;
   };
 
   // Countdown timer for resend
@@ -96,15 +106,22 @@ export default function OTPVerification({ phone, userId, email, password, onSucc
 
     try {
       // Verify OTP
+      const verifyBody: any = {
+        action: 'verify',
+        code: otpCode,
+        purpose: 'signup'
+      };
+
+      if (otpMethod === 'phone' && phone) {
+        verifyBody.phone = phone;
+      } else if (otpMethod === 'email' && email) {
+        verifyBody.email = email;
+      }
+
       const verifyResponse = await fetch('/api/otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'verify',
-          phone,
-          code: otpCode,
-          purpose: 'signup'
-        }),
+        body: JSON.stringify(verifyBody),
       });
 
       const verifyData = await verifyResponse.json();
@@ -139,14 +156,21 @@ export default function OTPVerification({ phone, userId, email, password, onSucc
     setError('');
 
     try {
+      const resendBody: any = {
+        action: 'resend',
+        purpose: 'signup'
+      };
+
+      if (otpMethod === 'phone' && phone) {
+        resendBody.phone = phone;
+      } else if (otpMethod === 'email' && email) {
+        resendBody.email = email;
+      }
+
       const response = await fetch('/api/otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'resend',
-          phone,
-          purpose: 'signup'
-        }),
+        body: JSON.stringify(resendBody),
       });
 
       const data = await response.json();
@@ -172,10 +196,10 @@ export default function OTPVerification({ phone, userId, email, password, onSucc
     <div className="auth-root">
       <div className="auth-gradient" aria-hidden="true" />
       <div className="auth-card">
-        <h1 className="brand">Verify Phone Number</h1>
+        <h1 className="brand">{otpMethod === 'phone' ? 'Verify Phone Number' : 'Verify Email Address'}</h1>
         <p className="subtitle">
           We've sent a 4-digit verification code to<br />
-          <strong>{formatPhone(phone)}</strong>
+          <strong>{otpMethod === 'phone' && phone ? formatPhone(phone) : formatEmail(email)}</strong>
         </p>
         
         <form onSubmit={handleVerify} className="form">

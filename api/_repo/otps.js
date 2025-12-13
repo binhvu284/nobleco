@@ -10,20 +10,29 @@ export function generateOTP() {
 /**
  * Create a new OTP record
  * @param {Object} params
- * @param {string} params.phone - Phone number
+ * @param {string} [params.phone] - Phone number (required if email not provided)
+ * @param {string} [params.email] - Email address (required if phone not provided)
  * @param {string} params.code - OTP code
  * @param {string} params.purpose - 'signup' or 'password_reset'
  * @param {number} [params.userId] - User ID (for password reset)
  * @param {number} [params.expiresInMinutes] - Expiration time in minutes (default: 10)
  * @param {Object} [params.signupData] - Signup data to store (for signup purpose)
  */
-export async function createOTP({ phone, code, purpose, userId = null, expiresInMinutes = 10, signupData = null }) {
+export async function createOTP({ phone, email, code, purpose, userId = null, expiresInMinutes = 10, signupData = null }) {
+  if (!phone && !email) {
+    throw new Error('Either phone or email must be provided');
+  }
+  if (phone && email) {
+    throw new Error('Cannot provide both phone and email. Use one or the other.');
+  }
+
   const supabase = getSupabase();
   const expiresAt = new Date();
   expiresAt.setMinutes(expiresAt.getMinutes() + expiresInMinutes);
 
   const insertData = {
-    phone,
+    phone: phone || null,
+    email: email || null,
     code,
     purpose,
     user_id: userId,
@@ -48,22 +57,33 @@ export async function createOTP({ phone, code, purpose, userId = null, expiresIn
 }
 
 /**
- * Find a valid OTP by phone and purpose
- * @param {string} phone - Phone number
+ * Find a valid OTP by phone/email and purpose
+ * @param {string} phone - Phone number (if using phone)
+ * @param {string} email - Email address (if using email)
  * @param {string} purpose - 'signup' or 'password_reset'
  * @param {boolean} verified - Whether to include verified OTPs
  */
-export async function findOTP(phone, purpose, verified = false) {
+export async function findOTP(phone, purpose, verified = false, email = null) {
   const supabase = getSupabase();
   const now = new Date().toISOString();
 
-  const { data, error } = await supabase
+  let query = supabase
     .from('otps')
     .select('*')
-    .eq('phone', phone)
     .eq('purpose', purpose)
     .eq('verified', verified)
-    .gt('expires_at', now)
+    .gt('expires_at', now);
+
+  // Use phone if provided, otherwise use email
+  if (phone) {
+    query = query.eq('phone', phone);
+  } else if (email) {
+    query = query.eq('email', email);
+  } else {
+    throw new Error('Either phone or email must be provided');
+  }
+
+  const { data, error } = await query
     .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -74,22 +94,33 @@ export async function findOTP(phone, purpose, verified = false) {
 
 /**
  * Verify an OTP code
- * @param {string} phone - Phone number
+ * @param {string} phone - Phone number (if using phone)
  * @param {string} code - OTP code to verify
  * @param {string} purpose - 'signup' or 'password_reset'
+ * @param {string} email - Email address (if using email)
  */
-export async function verifyOTP(phone, code, purpose) {
+export async function verifyOTP(phone, code, purpose, email = null) {
   const supabase = getSupabase();
   const now = new Date().toISOString();
 
-  // Find the most recent unverified OTP
-  const { data: otp, error: findError } = await supabase
+  // Build query based on phone or email
+  let query = supabase
     .from('otps')
     .select('*')
-    .eq('phone', phone)
     .eq('purpose', purpose)
     .eq('verified', false)
-    .gt('expires_at', now)
+    .gt('expires_at', now);
+
+  if (phone) {
+    query = query.eq('phone', phone);
+  } else if (email) {
+    query = query.eq('email', email);
+  } else {
+    throw new Error('Either phone or email must be provided');
+  }
+
+  // Find the most recent unverified OTP
+  const { data: otp, error: findError } = await query
     .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -130,16 +161,29 @@ export async function verifyOTP(phone, code, purpose) {
 }
 
 /**
- * Mark all OTPs for a phone/purpose as verified (cleanup)
+ * Mark all OTPs for a phone/email/purpose as verified (cleanup)
+ * @param {string} phone - Phone number (if using phone)
+ * @param {string} purpose - Purpose
+ * @param {string} email - Email address (if using email)
  */
-export async function markAllOTPsAsVerified(phone, purpose) {
+export async function markAllOTPsAsVerified(phone, purpose, email = null) {
   const supabase = getSupabase();
-  const { error } = await supabase
+  
+  let query = supabase
     .from('otps')
     .update({ verified: true })
-    .eq('phone', phone)
     .eq('purpose', purpose)
     .eq('verified', false);
+
+  if (phone) {
+    query = query.eq('phone', phone);
+  } else if (email) {
+    query = query.eq('email', email);
+  } else {
+    throw new Error('Either phone or email must be provided');
+  }
+
+  const { error } = await query;
 
   if (error) throw new Error(error.message);
   return true;

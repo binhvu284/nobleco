@@ -2,6 +2,7 @@ import { createUser, findUserByEmail } from '../_repo/users.js';
 import { getSupabase } from '../_db.js';
 import { createOTP, generateOTP } from '../_repo/otps.js';
 import { sendSMS, validatePhone } from '../_utils/sms.js';
+import { sendEmail, validateEmail } from '../_utils/email.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -11,20 +12,37 @@ export default async function handler(req, res) {
 
   try {
     const body = req.body || await readBody(req);
-    const { email, name, phone, password, referCode } = body;
+    const { email, name, phone, password, referCode, otpMethod = 'phone' } = body;
 
-    // Validate required fields
-    if (!email || !name || !phone || !password) {
-      return res.status(400).json({ error: 'Email, name, phone number, and password are required' });
+    // Validate required fields based on OTP method
+    if (!email || !name || !password) {
+      return res.status(400).json({ error: 'Email, name, and password are required' });
     }
 
-    // Validate phone number
-    const phoneValidation = validatePhone(phone);
-    if (!phoneValidation.valid) {
-      return res.status(400).json({ error: phoneValidation.error });
+    // Validate OTP method
+    if (!['phone', 'email'].includes(otpMethod)) {
+      return res.status(400).json({ error: 'Invalid OTP method. Use: phone or email' });
     }
 
-    const cleanedPhone = phoneValidation.cleaned;
+    // Validate phone number if using phone OTP
+    let cleanedPhone = null;
+    if (otpMethod === 'phone') {
+      if (!phone) {
+        return res.status(400).json({ error: 'Phone number is required when using phone OTP' });
+      }
+      const phoneValidation = validatePhone(phone);
+      if (!phoneValidation.valid) {
+        return res.status(400).json({ error: phoneValidation.error });
+      }
+      cleanedPhone = phoneValidation.cleaned;
+    }
+
+    // Validate email format
+    const emailValidation = validateEmail(email);
+    if (!emailValidation.valid) {
+      return res.status(400).json({ error: emailValidation.error });
+    }
+    const cleanedEmail = emailValidation.cleaned;
 
     // Check if email already exists
     const existingUser = await findUserByEmail(email);
@@ -32,16 +50,18 @@ export default async function handler(req, res) {
       return res.status(409).json({ error: 'Email already registered' });
     }
 
-    // Check if phone already exists
+    // Check if phone already exists (only if using phone OTP)
     const supabase = getSupabase();
-    const { data: existingPhoneUser } = await supabase
-      .from('users')
-      .select('id')
-      .eq('phone', cleanedPhone)
-      .maybeSingle();
-    
-    if (existingPhoneUser) {
-      return res.status(409).json({ error: 'Phone number already registered' });
+    if (cleanedPhone) {
+      const { data: existingPhoneUser } = await supabase
+        .from('users')
+        .select('id')
+        .eq('phone', cleanedPhone)
+        .maybeSingle();
+      
+      if (existingPhoneUser) {
+        return res.status(409).json({ error: 'Phone number already registered' });
+      }
     }
 
     // Note: We don't check for duplicate names because multiple users can have the same name
@@ -71,7 +91,7 @@ export default async function handler(req, res) {
 
     // Check for recent OTP (rate limiting)
     const { findOTP } = await import('../_repo/otps.js');
-    const recentOTP = await findOTP(cleanedPhone, 'signup', false);
+    const recentOTP = await findOTP(cleanedPhone || null, 'signup', false, cleanedEmail || null);
     if (recentOTP) {
       const now = new Date();
       const createdAt = new Date(recentOTP.created_at);
@@ -87,7 +107,7 @@ export default async function handler(req, res) {
 
     // Store signup data in OTP record (account will be created after OTP verification)
     const signupData = {
-      email,
+      email: cleanedEmail,
       name,
       phone: cleanedPhone,
       password, // Will be hashed when account is created
@@ -98,6 +118,7 @@ export default async function handler(req, res) {
     const otpCode = generateOTP();
     await createOTP({
       phone: cleanedPhone,
+      email: cleanedEmail,
       code: otpCode,
       purpose: 'signup',
       userId: null, // No user ID yet - account not created
@@ -105,19 +126,29 @@ export default async function handler(req, res) {
       signupData: signupData // Store signup data in OTP record
     });
 
-    // Send SMS
+    // Send OTP via SMS or Email based on method
     try {
-      await sendSMS(cleanedPhone, otpCode, 'signup');
-    } catch (smsError) {
-      console.error('SMS sending error:', smsError);
-      // Continue even if SMS fails - user can request resend
+      if (otpMethod === 'phone' && cleanedPhone) {
+        await sendSMS(cleanedPhone, otpCode, 'signup');
+      } else if (otpMethod === 'email' && cleanedEmail) {
+        await sendEmail(cleanedEmail, otpCode, 'signup');
+      }
+    } catch (sendError) {
+      console.error(`${otpMethod === 'phone' ? 'SMS' : 'Email'} sending error:`, sendError);
+      // Continue even if sending fails - user can request resend
     }
+
+    const verificationMessage = otpMethod === 'phone'
+      ? 'Please verify your phone number with the OTP code sent to your phone.'
+      : 'Please verify your email address with the OTP code sent to your email.';
 
     return res.status(200).json({
       success: true,
       requiresVerification: true,
       phone: cleanedPhone,
-      message: 'Please verify your phone number with the OTP code sent to your phone.'
+      email: cleanedEmail,
+      otpMethod: otpMethod,
+      message: verificationMessage
     });
   } catch (error) {
     console.error('Signup error:', error);

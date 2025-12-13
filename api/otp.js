@@ -1,22 +1,28 @@
 import { createOTP, findOTP, verifyOTP, generateOTP, markAllOTPsAsVerified } from './_repo/otps.js';
 import { sendSMS, validatePhone } from './_utils/sms.js';
-import { findUserByPhone, createUser } from './_repo/users.js';
+import { sendEmail, validateEmail } from './_utils/email.js';
+import { findUserByPhone, findUserByEmail, createUser } from './_repo/users.js';
 import { getSupabase } from './_db.js';
 
 export default async function handler(req, res) {
   try {
     const body = req.body || await readBody(req);
-    const { action, phone, code, purpose } = body;
+    const { action, phone, email, code, purpose } = body;
 
     if (!action) {
       return res.status(400).json({ error: 'Action is required (send, verify, resend)' });
     }
 
-    // Validate phone number
+    // Validate phone or email (at least one must be provided)
     if (phone) {
       const phoneValidation = validatePhone(phone);
       if (!phoneValidation.valid) {
         return res.status(400).json({ error: phoneValidation.error });
+      }
+    } else if (email) {
+      const emailValidation = validateEmail(email);
+      if (!emailValidation.valid) {
+        return res.status(400).json({ error: emailValidation.error });
       }
     }
 
@@ -37,35 +43,53 @@ export default async function handler(req, res) {
 }
 
 /**
- * Send OTP to phone number
+ * Send OTP to phone number or email
  */
 async function handleSendOTP(req, res, body) {
-  const { phone, purpose, signupData } = body;
+  const { phone, email, purpose, signupData } = body;
 
-  if (!phone || !purpose) {
-    return res.status(400).json({ error: 'Phone number and purpose are required' });
+  if ((!phone && !email) || !purpose) {
+    return res.status(400).json({ error: 'Phone number or email, and purpose are required' });
   }
 
   if (!['signup', 'password_reset'].includes(purpose)) {
     return res.status(400).json({ error: 'Invalid purpose. Use: signup or password_reset' });
   }
 
-  // Validate phone number format first
-  const phoneValidation = validatePhone(phone);
-  if (!phoneValidation.valid) {
-    return res.status(400).json({ error: phoneValidation.error });
-  }
-  const cleanedPhone = phoneValidation.cleaned;
+  let cleanedPhone = null;
+  let cleanedEmail = null;
+  let identifier = null; // For finding existing OTPs
 
-  // For password reset, verify phone number exists
+  // Validate and clean phone or email
+  if (phone) {
+    const phoneValidation = validatePhone(phone);
+    if (!phoneValidation.valid) {
+      return res.status(400).json({ error: phoneValidation.error });
+    }
+    cleanedPhone = phoneValidation.cleaned;
+    identifier = cleanedPhone;
+  } else if (email) {
+    const emailValidation = validateEmail(email);
+    if (!emailValidation.valid) {
+      return res.status(400).json({ error: emailValidation.error });
+    }
+    cleanedEmail = emailValidation.cleaned;
+    identifier = cleanedEmail;
+  }
+
+  // For password reset, verify phone/email exists
   let userId = null;
   if (purpose === 'password_reset') {
-    const user = await findUserByPhone(cleanedPhone);
+    const user = cleanedPhone 
+      ? await findUserByPhone(cleanedPhone)
+      : await findUserByEmail(cleanedEmail);
+    
     if (!user) {
-      // Return error if phone number doesn't exist
-      return res.status(404).json({ 
-        error: 'Phone number not found in our system. Please check your phone number and try again.' 
-      });
+      // Return error if phone/email doesn't exist
+      const notFoundMessage = cleanedPhone
+        ? 'Phone number not found in our system. Please check your phone number and try again.'
+        : 'Email address not found in our system. Please check your email and try again.';
+      return res.status(404).json({ error: notFoundMessage });
     }
 
     userId = user.id;
@@ -75,14 +99,14 @@ async function handleSendOTP(req, res, body) {
   let finalSignupData = signupData;
   if (purpose === 'signup' && !finalSignupData) {
     // Try to get signup_data from existing OTP (for resend)
-    const existingOTP = await findOTP(phone, purpose, false);
+    const existingOTP = await findOTP(cleanedPhone || null, purpose, false, cleanedEmail || null);
     if (existingOTP && existingOTP.signup_data) {
       finalSignupData = existingOTP.signup_data;
     }
   }
 
   // Check for recent OTP (rate limiting)
-  const recentOTP = await findOTP(phone, purpose, false);
+  const recentOTP = await findOTP(cleanedPhone || null, purpose, false, cleanedEmail || null);
   if (recentOTP) {
     const now = new Date();
     const createdAt = new Date(recentOTP.created_at);
@@ -102,6 +126,7 @@ async function handleSendOTP(req, res, body) {
   // Create OTP record
   await createOTP({
     phone: cleanedPhone,
+    email: cleanedEmail,
     code,
     purpose,
     userId,
@@ -109,18 +134,26 @@ async function handleSendOTP(req, res, body) {
     signupData: finalSignupData || null
   });
 
-  // Send SMS
+  // Send SMS or Email
   try {
-    await sendSMS(cleanedPhone, code, purpose);
-  } catch (smsError) {
-    console.error('SMS sending error:', smsError);
-    // Still return success to prevent phone number enumeration
+    if (cleanedPhone) {
+      await sendSMS(cleanedPhone, code, purpose);
+    } else if (cleanedEmail) {
+      await sendEmail(cleanedEmail, code, purpose);
+    }
+  } catch (sendError) {
+    console.error(`${cleanedPhone ? 'SMS' : 'Email'} sending error:`, sendError);
+    // Still return success to prevent enumeration
     // Log error for admin review
   }
 
+  const successMessage = cleanedPhone
+    ? 'OTP code has been sent to your phone number.'
+    : 'OTP code has been sent to your email address.';
+
   return res.status(200).json({
     success: true,
-    message: 'OTP code has been sent to your phone number.'
+    message: successMessage
   });
 }
 
@@ -128,32 +161,43 @@ async function handleSendOTP(req, res, body) {
  * Verify OTP code
  */
 async function handleVerifyOTP(req, res, body) {
-  const { phone, code, purpose } = body;
+  const { phone, email, code, purpose } = body;
 
-  if (!phone || !code || !purpose) {
-    return res.status(400).json({ error: 'Phone number, code, and purpose are required' });
+  if ((!phone && !email) || !code || !purpose) {
+    return res.status(400).json({ error: 'Phone number or email, code, and purpose are required' });
   }
 
   if (!['signup', 'password_reset'].includes(purpose)) {
     return res.status(400).json({ error: 'Invalid purpose. Use: signup or password_reset' });
   }
 
-  // Validate and clean phone number
-  const phoneValidation = validatePhone(phone);
-  if (!phoneValidation.valid) {
-    return res.status(400).json({ error: phoneValidation.error });
+  let cleanedPhone = null;
+  let cleanedEmail = null;
+
+  // Validate and clean phone or email
+  if (phone) {
+    const phoneValidation = validatePhone(phone);
+    if (!phoneValidation.valid) {
+      return res.status(400).json({ error: phoneValidation.error });
+    }
+    cleanedPhone = phoneValidation.cleaned;
+  } else if (email) {
+    const emailValidation = validateEmail(email);
+    if (!emailValidation.valid) {
+      return res.status(400).json({ error: emailValidation.error });
+    }
+    cleanedEmail = emailValidation.cleaned;
   }
-  const cleanedPhone = phoneValidation.cleaned;
 
   // Verify OTP
-  const result = await verifyOTP(cleanedPhone, code, purpose);
+  const result = await verifyOTP(cleanedPhone, code, purpose, cleanedEmail);
 
   if (!result.valid) {
     return res.status(400).json({ error: result.error });
   }
 
-  // Mark all other OTPs for this phone/purpose as verified (cleanup)
-  await markAllOTPsAsVerified(cleanedPhone, purpose);
+  // Mark all other OTPs for this phone/email/purpose as verified (cleanup)
+  await markAllOTPsAsVerified(cleanedPhone, purpose, cleanedEmail);
 
   // For signup, create user account after OTP verification
   if (purpose === 'signup') {
@@ -243,22 +287,40 @@ async function handleVerifyOTP(req, res, body) {
  */
 async function handleResendOTP(req, res, body) {
   // Same as send, but with different rate limiting
-  const { phone, purpose } = body;
+  const { phone, email, purpose } = body;
 
-  if (!phone || !purpose) {
-    return res.status(400).json({ error: 'Phone number and purpose are required' });
+  if ((!phone && !email) || !purpose) {
+    return res.status(400).json({ error: 'Phone number or email, and purpose are required' });
+  }
+
+  let cleanedPhone = null;
+  let cleanedEmail = null;
+
+  // Validate and clean phone or email
+  if (phone) {
+    const phoneValidation = validatePhone(phone);
+    if (!phoneValidation.valid) {
+      return res.status(400).json({ error: phoneValidation.error });
+    }
+    cleanedPhone = phoneValidation.cleaned;
+  } else if (email) {
+    const emailValidation = validateEmail(email);
+    if (!emailValidation.valid) {
+      return res.status(400).json({ error: emailValidation.error });
+    }
+    cleanedEmail = emailValidation.cleaned;
   }
 
   // For signup, preserve signup_data from existing OTP before resending
   if (purpose === 'signup') {
-    const existingOTP = await findOTP(phone, purpose, false);
+    const existingOTP = await findOTP(cleanedPhone || null, purpose, false, cleanedEmail || null);
     if (existingOTP && existingOTP.signup_data) {
       body.signupData = existingOTP.signup_data;
     }
   }
 
   // Check for recent OTP (more lenient for resend)
-  const recentOTP = await findOTP(phone, purpose, false);
+  const recentOTP = await findOTP(cleanedPhone || null, purpose, false, cleanedEmail || null);
   if (recentOTP) {
     const now = new Date();
     const createdAt = new Date(recentOTP.created_at);
@@ -272,8 +334,12 @@ async function handleResendOTP(req, res, body) {
     }
   }
 
-  // Update body with cleaned phone for send handler
-  body.phone = cleanedPhone;
+  // Update body with cleaned phone/email for send handler
+  if (cleanedPhone) {
+    body.phone = cleanedPhone;
+  } else if (cleanedEmail) {
+    body.email = cleanedEmail;
+  }
   
   // Call send handler (which will use signupData from body if provided)
   return await handleSendOTP(req, res, body);

@@ -23,7 +23,6 @@ export default function SignUp() {
     }, []);
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
-    const [phone, setPhone] = useState('');
     const [password, setPassword] = useState('');
     const [confirm, setConfirm] = useState('');
     const [referCode, setReferCode] = useState('');
@@ -32,9 +31,15 @@ export default function SignUp() {
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirm, setShowConfirm] = useState(false);
     
+    // OTP method selection state (shown after clicking Sign Up)
+    const [showOTPMethodSelection, setShowOTPMethodSelection] = useState(false);
+    const [otpMethod, setOtpMethod] = useState<'phone' | 'email' | null>(null);
+    const [phone, setPhone] = useState('');
+    const [isSendingOTP, setIsSendingOTP] = useState(false);
+    
     // OTP verification state
     const [showOTPVerification, setShowOTPVerification] = useState(false);
-    const [signupData, setSignupData] = useState<{ phone: string; email: string; password: string } | null>(null);
+    const [signupData, setSignupData] = useState<{ phone?: string; email: string; password: string; otpMethod: 'phone' | 'email' } | null>(null);
 
     // Auto-fill refer code from URL parameter
     useEffect(() => {
@@ -47,7 +52,7 @@ export default function SignUp() {
     const onSubmit = async (e: FormEvent) => {
         e.preventDefault();
         setError('');
-        
+
         if (password !== confirm) {
             setError('Passwords do not match');
             return;
@@ -58,7 +63,40 @@ export default function SignUp() {
             return;
         }
 
-        setIsLoading(true);
+        // Show OTP method selection screen
+        setShowOTPMethodSelection(true);
+    };
+
+    const handleOTPMethodSelect = async (method: 'phone' | 'email') => {
+        setError('');
+        setOtpMethod(method);
+        
+        // If phone method is selected, we need phone number input
+        // If email method is selected, proceed directly to send OTP
+        if (method === 'email') {
+            setIsSendingOTP(true);
+            try {
+                await sendOTP(method);
+            } catch (err) {
+                // Error handling is done in sendOTP
+            } finally {
+                setIsSendingOTP(false);
+            }
+        }
+        // If phone, wait for phone input
+    };
+
+    const handlePhoneSubmit = async () => {
+        if (!phone.trim()) {
+            setError('Phone number is required');
+            return;
+        }
+        await sendOTP('phone');
+    };
+
+    const sendOTP = async (method: 'phone' | 'email') => {
+        setIsSendingOTP(true);
+        setError('');
 
         try {
             const response = await fetch('/api/auth/signup', {
@@ -67,39 +105,34 @@ export default function SignUp() {
                 body: JSON.stringify({
                     name,
                     email,
-                    phone,
+                    phone: method === 'phone' ? phone : undefined,
                     password,
                     referCode: referCode.trim() || undefined,
+                    otpMethod: method,
                 }),
             });
 
             const data = await response.json();
 
             if (!response.ok) {
-                setError(data.error || 'Failed to create account');
-                setIsLoading(false);
+                setError(data.error || 'Failed to send verification code');
+                setIsSendingOTP(false);
                 return;
             }
 
-            // Check if OTP verification is required
-            if (data.requiresVerification && data.phone) {
-                setSignupData({
-                    phone: data.phone,
-                    email: email,
-                    password: password
-                });
-                setShowOTPVerification(true);
-                setIsLoading(false);
-            } else {
-                // If no verification needed (shouldn't happen), redirect to login
-                navigate('/login', { 
-                    replace: true, 
-                    state: { message: 'Account created successfully! Please log in.' }
-                });
-            }
+            // OTP sent successfully, show verification screen
+            setSignupData({
+                phone: method === 'phone' ? (data.phone || phone) : undefined,
+                email: email,
+                password: password,
+                otpMethod: method
+            });
+            setShowOTPMethodSelection(false);
+            setShowOTPVerification(true);
+            setIsSendingOTP(false);
         } catch (err) {
             setError('Failed to connect to server. Please try again.');
-            setIsLoading(false);
+            setIsSendingOTP(false);
         }
     };
 
@@ -111,18 +144,149 @@ export default function SignUp() {
     const handleOTPBack = () => {
         setShowOTPVerification(false);
         setSignupData(null);
+        setShowOTPMethodSelection(false);
+        setOtpMethod(null);
+        setPhone('');
+    };
+
+    const handleMethodSelectionBack = () => {
+        setShowOTPMethodSelection(false);
+        setOtpMethod(null);
+        setPhone('');
     };
 
     // Show OTP verification screen if needed
     if (showOTPVerification && signupData) {
         return (
             <OTPVerification
-                phone={signupData.phone}
+                phone={signupData.otpMethod === 'phone' ? signupData.phone : undefined}
                 email={signupData.email}
                 password={signupData.password}
+                otpMethod={signupData.otpMethod}
                 onSuccess={handleOTPSuccess}
                 onBack={handleOTPBack}
             />
+        );
+    }
+
+    // Show OTP method selection screen
+    if (showOTPMethodSelection) {
+        return (
+            <div className="auth-root">
+                <div className="auth-gradient" aria-hidden="true" />
+                <div className="auth-card">
+                    <h1 className="brand">Choose Verification Method</h1>
+                    <p className="subtitle">How would you like to receive your verification code?</p>
+                    
+                    {!otpMethod ? (
+                        <div className="form">
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '24px' }}>
+                                <button
+                                    type="button"
+                                    onClick={() => handleOTPMethodSelect('phone')}
+                                    disabled={isSendingOTP}
+                                    style={{
+                                        padding: '16px',
+                                        border: '2px solid #007bff',
+                                        borderRadius: '8px',
+                                        background: '#f0f8ff',
+                                        cursor: isSendingOTP ? 'not-allowed' : 'pointer',
+                                        fontSize: '16px',
+                                        fontWeight: '600',
+                                        color: '#007bff',
+                                        transition: 'all 0.2s',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        gap: '8px',
+                                        opacity: isSendingOTP ? 0.6 : 1
+                                    }}
+                                >
+                                    📱 Phone Number
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => handleOTPMethodSelect('email')}
+                                    disabled={isSendingOTP}
+                                    style={{
+                                        padding: '16px',
+                                        border: '2px solid #007bff',
+                                        borderRadius: '8px',
+                                        background: '#f0f8ff',
+                                        cursor: isSendingOTP ? 'not-allowed' : 'pointer',
+                                        fontSize: '16px',
+                                        fontWeight: '600',
+                                        color: '#007bff',
+                                        transition: 'all 0.2s',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        gap: '8px',
+                                        opacity: isSendingOTP ? 0.6 : 1
+                                    }}
+                                >
+                                    {isSendingOTP ? (
+                                        <>
+                                            <div style={{ width: '16px', height: '16px', border: '2px solid #007bff', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }}></div>
+                                            Sending code...
+                                        </>
+                                    ) : (
+                                        <>✉️ Email Address</>
+                                    )}
+                                </button>
+                            </div>
+                            {error && <div className="error" style={{ marginTop: '16px' }}>{error}</div>}
+                            {isSendingOTP && !error && (
+                                <div style={{ marginTop: '16px', textAlign: 'center', color: '#666', fontSize: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                                    <div style={{ width: '14px', height: '14px', border: '2px solid #666', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }}></div>
+                                    Sending verification code to your email...
+                                </div>
+                            )}
+                            <button
+                                type="button"
+                                onClick={handleMethodSelectionBack}
+                                className="secondary"
+                                style={{ marginTop: '16px', width: '100%' }}
+                                disabled={isSendingOTP}
+                            >
+                                Back
+                            </button>
+                        </div>
+                    ) : otpMethod === 'phone' ? (
+                        <form onSubmit={(e) => { e.preventDefault(); handlePhoneSubmit(); }} className="form">
+                            <label>
+                                Phone Number
+                                <input 
+                                    type="tel"
+                                    value={phone} 
+                                    onChange={(e) => setPhone(e.target.value)} 
+                                    placeholder="Enter your phone number" 
+                                    required 
+                                    disabled={isSendingOTP}
+                                />
+                            </label>
+                            {error && <div className="error">{error}</div>}
+                            <button 
+                                type="submit" 
+                                className="primary" 
+                                disabled={isSendingOTP || !phone.trim()}
+                            >
+                                {isSendingOTP ? 'Sending code...' : 'Send Verification Code'}
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleMethodSelectionBack}
+                                className="secondary"
+                                style={{ marginTop: '12px', width: '100%' }}
+                                disabled={isSendingOTP}
+                            >
+                                Back
+                            </button>
+                        </form>
+                    ) : null}
+                </div>
+                <AuthFooter />
+            </div>
         );
     }
 
@@ -160,16 +324,6 @@ export default function SignUp() {
                             value={email} 
                             onChange={(e) => setEmail(e.target.value)} 
                             placeholder="you@example.com" 
-                            required 
-                        />
-                    </label>
-                    <label>
-                        Phone Number
-                        <input 
-                            type="tel"
-                            value={phone} 
-                            onChange={(e) => setPhone(e.target.value)} 
-                            placeholder="Enter your phone number" 
                             required 
                         />
                     </label>
@@ -244,7 +398,7 @@ export default function SignUp() {
                     </label>
                     {error && <div className="error">{error}</div>}
                     <button type="submit" className="primary" disabled={isLoading}>
-                        {isLoading ? 'Creating account...' : 'Sign Up'}
+                        {isLoading ? 'Processing...' : 'Sign Up'}
                     </button>
                 </form>
                 <div className="auth-footer">
