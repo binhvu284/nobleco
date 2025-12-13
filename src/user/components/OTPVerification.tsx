@@ -198,8 +198,9 @@ export default function OTPVerification({ phone, userId, email, password, otpMet
       <div className="auth-card">
         <h1 className="brand">{otpMethod === 'phone' ? 'Verify Phone Number' : 'Verify Email Address'}</h1>
         <p className="subtitle">
-          We've sent a 4-digit verification code to<br />
-          <strong>{otpMethod === 'phone' && phone ? formatPhone(phone) : formatEmail(email)}</strong>
+          We've sent a 4-digit verification code to
+          <br className="mobile-break" />
+          <strong className="otp-target">{otpMethod === 'phone' && phone ? formatPhone(phone) : formatEmail(email)}</strong>
         </p>
         
         <form onSubmit={handleVerify} className="form">

@@ -432,6 +432,8 @@ input:focus {
     border-radius: 12px;
     background: var(--panel);
     transition: all 0.2s ease;
+    -webkit-appearance: none;
+    appearance: none;
 }
 
 .otp-input:focus {
@@ -462,19 +464,420 @@ input:focus {
     color: var(--primary);
     font-weight: 600;
     cursor: pointer;
-    padding: 0;
+    padding: 8px 12px;
     font-size: 14px;
     text-decoration: underline;
+    border-radius: 6px;
+    transition: background-color 0.2s;
+    -webkit-tap-highlight-color: transparent;
 }
 
 .resend-link:hover:not(:disabled) {
     color: var(--primary-dark);
+    background: rgba(37, 99, 235, 0.05);
 }
 
 .resend-link:disabled {
     opacity: 0.5;
     cursor: not-allowed;
     text-decoration: none;
+}
+
+/* Mobile Responsive Styles for Auth Pages */
+@media (max-width: 768px) {
+    .auth-root {
+        padding: 24px 16px;
+        min-height: 100vh;
+        min-height: -webkit-fill-available; /* iOS Safari fix */
+    }
+
+    .auth-card {
+        padding: 24px 20px;
+        max-width: 100%;
+        border-radius: 16px;
+    }
+
+    .brand {
+        font-size: 24px;
+        letter-spacing: 0.2px;
+    }
+
+    .subtitle {
+        font-size: 14px;
+        margin: 8px 0 16px;
+        line-height: 1.5;
+    }
+
+    .form {
+        gap: 14px;
+    }
+
+    label {
+        font-size: 14px;
+        gap: 6px;
+    }
+
+    input {
+        padding: 14px 12px;
+        font-size: 16px; /* Prevents zoom on iOS */
+        border-radius: 10px;
+    }
+
+    .primary,
+    .secondary {
+        padding: 14px 16px;
+        font-size: 16px;
+        font-weight: 600;
+        min-height: 48px; /* Touch target size */
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    .password-toggle {
+        width: 40px;
+        height: 40px;
+        right: 6px;
+        bottom: 6px;
+    }
+
+    .otp-container {
+        gap: 10px;
+        margin: 20px 0;
+    }
+
+    .otp-input {
+        width: 52px;
+        height: 52px;
+        font-size: 22px;
+        border-radius: 10px;
+    }
+
+    .otp-resend {
+        margin-top: 16px;
+    }
+
+    .otp-resend p {
+        font-size: 13px;
+    }
+
+    .resend-link {
+        font-size: 14px;
+        padding: 10px 14px;
+        min-height: 44px; /* Touch target */
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .auth-footer {
+        font-size: 13px;
+        margin-top: 16px;
+        flex-wrap: wrap;
+        gap: 4px;
+    }
+
+    .error {
+        font-size: 13px;
+        padding: 10px 12px;
+        line-height: 1.4;
+    }
+}
+
+@media (max-width: 480px) {
+    .auth-root {
+        padding: 20px 12px;
+        min-height: 100vh;
+        min-height: -webkit-fill-available; /* iOS Safari fix */
+    }
+
+    .auth-card {
+        padding: 20px 16px;
+        border-radius: 14px;
+    }
+
+    .brand {
+        font-size: 22px;
+        letter-spacing: 0.1px;
+    }
+
+    .subtitle {
+        font-size: 13px;
+        margin: 6px 0 14px;
+        line-height: 1.5;
+    }
+
+    .form {
+        gap: 12px;
+    }
+
+    label {
+        font-size: 13px;
+        gap: 5px;
+    }
+
+    input {
+        padding: 12px;
+        font-size: 16px; /* Prevents zoom on iOS */
+        border-radius: 8px;
+    }
+
+    .primary,
+    .secondary {
+        padding: 12px 14px;
+        font-size: 15px;
+        min-height: 44px; /* Touch target size */
+    }
+
+    .otp-container {
+        gap: 8px;
+        margin: 18px 0;
+    }
+
+    .otp-input {
+        width: 48px;
+        height: 48px;
+        font-size: 20px;
+        border-radius: 8px;
+    }
+
+    .otp-resend {
+        margin-top: 14px;
+    }
+
+    .otp-resend p {
+        font-size: 12px;
+        margin-bottom: 6px;
+    }
+
+    .resend-link {
+        font-size: 13px;
+        padding: 8px 12px;
+        min-height: 40px;
+    }
+
+    .auth-footer {
+        font-size: 12px;
+        margin-top: 14px;
+    }
+
+    .error {
+        font-size: 12px;
+        padding: 8px 10px;
+    }
+}
+
+/* iOS Safari specific fixes */
+@supports (-webkit-touch-callout: none) {
+    .auth-root {
+        min-height: -webkit-fill-available;
+    }
+
+    input {
+        font-size: 16px !important; /* Prevents zoom on focus */
+    }
+
+    input[type="tel"],
+    input[type="email"],
+    input[type="password"],
+    input[type="text"] {
+        font-size: 16px !important;
+    }
+}
+
+/* Android Chrome specific fixes */
+@media screen and (-webkit-min-device-pixel-ratio: 0) {
+    .auth-root {
+        min-height: 100vh;
+    }
+}
+
+/* Prevent text size adjustment on orientation change */
+@media screen and (max-width: 768px) {
+    html {
+        -webkit-text-size-adjust: 100%;
+        text-size-adjust: 100%;
+    }
+}
+
+/* OTP Method Selection Buttons */
+.otp-method-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 24px;
+}
+
+.otp-method-btn {
+    padding: 16px;
+    border: 2px solid #007bff;
+    border-radius: 10px;
+    background: #f0f8ff;
+    font-size: 16px;
+    font-weight: 600;
+    color: #007bff;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    min-height: 56px; /* Touch target size */
+    -webkit-tap-highlight-color: transparent;
+    width: 100%;
+}
+
+.otp-method-btn:active:not(:disabled) {
+    background: #e0f0ff;
+    transform: scale(0.98);
+}
+
+.otp-method-icon {
+    font-size: 20px;
+    line-height: 1;
+}
+
+.otp-method-text {
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.otp-loading-spinner {
+    width: 18px;
+    height: 18px;
+    border: 2px solid #007bff;
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    flex-shrink: 0;
+}
+
+.otp-loading-spinner-small {
+    width: 14px;
+    height: 14px;
+    border: 2px solid currentColor;
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    display: inline-block;
+    flex-shrink: 0;
+}
+
+.otp-sending-message {
+    margin-top: 16px;
+    text-align: center;
+    color: #666;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px;
+    background: rgba(0, 123, 255, 0.05);
+    border-radius: 8px;
+}
+
+.otp-sending-message .otp-loading-spinner-small {
+    border-color: #666;
+}
+
+/* Mobile optimizations for OTP method buttons */
+@media (max-width: 768px) {
+    .otp-method-buttons {
+        gap: 10px;
+        margin-top: 20px;
+    }
+
+    .otp-method-btn {
+        padding: 14px 16px;
+        min-height: 52px;
+        font-size: 15px;
+        border-radius: 8px;
+    }
+
+    .otp-method-icon {
+        font-size: 18px;
+    }
+
+    .otp-method-text {
+        font-size: 15px;
+    }
+
+    .otp-sending-message {
+        font-size: 13px;
+        padding: 10px;
+        gap: 6px;
+    }
+}
+
+@media (max-width: 480px) {
+    .otp-method-buttons {
+        gap: 8px;
+        margin-top: 16px;
+    }
+
+    .otp-method-btn {
+        padding: 12px 14px;
+        min-height: 48px;
+        font-size: 14px;
+        border-radius: 8px;
+    }
+
+    .otp-method-icon {
+        font-size: 16px;
+    }
+
+    .otp-method-text {
+        font-size: 14px;
+    }
+
+    .otp-sending-message {
+        font-size: 12px;
+        padding: 8px;
+    }
+
+    .subtitle {
+        word-break: break-word;
+        line-height: 1.5;
+    }
+
+    .otp-target {
+        display: inline-block;
+        word-break: break-all;
+        margin-top: 4px;
+        font-weight: 600;
+    }
+
+    .mobile-break {
+        display: block;
+    }
+
+    /* Hide mobile-break on larger screens */
+    @media (min-width: 481px) {
+        .mobile-break {
+            display: none;
+        }
+    }
+}
+
+/* Ensure OTP inputs are touch-friendly on mobile */
+@media (max-width: 480px) {
+    .otp-input {
+        width: 44px;
+        height: 44px;
+        font-size: 18px;
+    }
+
+    .otp-container {
+        gap: 6px;
+    }
+}
+
+/* Fix for iOS input zoom */
+@media screen and (max-width: 768px) {
+    input[type="tel"],
+    input[type="email"],
+    input[type="password"],
+    input[type="text"] {
+        font-size: 16px !important;
+    }
 }
 
 .alert {

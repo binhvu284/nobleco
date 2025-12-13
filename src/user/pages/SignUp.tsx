@@ -180,66 +180,48 @@ export default function SignUp() {
                     
                     {!otpMethod ? (
                         <div className="form">
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '24px' }}>
+                            <div className="otp-method-buttons">
                                 <button
                                     type="button"
                                     onClick={() => handleOTPMethodSelect('phone')}
                                     disabled={isSendingOTP}
+                                    className="otp-method-btn"
                                     style={{
-                                        padding: '16px',
-                                        border: '2px solid #007bff',
-                                        borderRadius: '8px',
-                                        background: '#f0f8ff',
-                                        cursor: isSendingOTP ? 'not-allowed' : 'pointer',
-                                        fontSize: '16px',
-                                        fontWeight: '600',
-                                        color: '#007bff',
-                                        transition: 'all 0.2s',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        gap: '8px',
-                                        opacity: isSendingOTP ? 0.6 : 1
+                                        opacity: isSendingOTP ? 0.6 : 1,
+                                        cursor: isSendingOTP ? 'not-allowed' : 'pointer'
                                     }}
                                 >
-                                    📱 Phone Number
+                                    <span className="otp-method-icon">📱</span>
+                                    <span className="otp-method-text">Phone Number</span>
                                 </button>
                                 <button
                                     type="button"
                                     onClick={() => handleOTPMethodSelect('email')}
                                     disabled={isSendingOTP}
+                                    className="otp-method-btn"
                                     style={{
-                                        padding: '16px',
-                                        border: '2px solid #007bff',
-                                        borderRadius: '8px',
-                                        background: '#f0f8ff',
-                                        cursor: isSendingOTP ? 'not-allowed' : 'pointer',
-                                        fontSize: '16px',
-                                        fontWeight: '600',
-                                        color: '#007bff',
-                                        transition: 'all 0.2s',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        gap: '8px',
-                                        opacity: isSendingOTP ? 0.6 : 1
+                                        opacity: isSendingOTP ? 0.6 : 1,
+                                        cursor: isSendingOTP ? 'not-allowed' : 'pointer'
                                     }}
                                 >
                                     {isSendingOTP ? (
                                         <>
-                                            <div style={{ width: '16px', height: '16px', border: '2px solid #007bff', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }}></div>
-                                            Sending code...
+                                            <div className="otp-loading-spinner"></div>
+                                            <span className="otp-method-text">Sending code...</span>
                                         </>
                                     ) : (
-                                        <>✉️ Email Address</>
+                                        <>
+                                            <span className="otp-method-icon">✉️</span>
+                                            <span className="otp-method-text">Email Address</span>
+                                        </>
                                     )}
                                 </button>
                             </div>
                             {error && <div className="error" style={{ marginTop: '16px' }}>{error}</div>}
                             {isSendingOTP && !error && (
-                                <div style={{ marginTop: '16px', textAlign: 'center', color: '#666', fontSize: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-                                    <div style={{ width: '14px', height: '14px', border: '2px solid #666', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }}></div>
-                                    Sending verification code to your email...
+                                <div className="otp-sending-message">
+                                    <div className="otp-loading-spinner-small"></div>
+                                    <span>Sending verification code to your email...</span>
                                 </div>
                             )}
                             <button
@@ -263,6 +245,8 @@ export default function SignUp() {
                                     placeholder="Enter your phone number" 
                                     required 
                                     disabled={isSendingOTP}
+                                    inputMode="tel"
+                                    autoComplete="tel"
                                 />
                             </label>
                             {error && <div className="error">{error}</div>}
@@ -271,7 +255,14 @@ export default function SignUp() {
                                 className="primary" 
                                 disabled={isSendingOTP || !phone.trim()}
                             >
-                                {isSendingOTP ? 'Sending code...' : 'Send Verification Code'}
+                                {isSendingOTP ? (
+                                    <>
+                                        <div className="otp-loading-spinner-small" style={{ marginRight: '8px' }}></div>
+                                        Sending code...
+                                    </>
+                                ) : (
+                                    'Send Verification Code'
+                                )}
                             </button>
                             <button
                                 type="button"
