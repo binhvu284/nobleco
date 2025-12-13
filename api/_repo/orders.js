@@ -230,8 +230,7 @@ export async function getAllOrders() {
     .select(`
       *,
       client:clients(id, name, phone, email, gender, location),
-      creator:users!orders_created_by_fkey(id, name, email),
-      creator_avatar:users!orders_created_by_fkey(user_avatars(url, viewport_x, viewport_y, viewport_size, width, height))
+      creator:users!orders_created_by_fkey(id, name, email)
     `)
     .order('created_at', { ascending: false });
 
@@ -241,8 +240,28 @@ export async function getAllOrders() {
     return [];
   }
 
+  // Fetch avatars for all creators
+  const { getUserAvatar } = await import('./userAvatars.js');
+  const ordersWithAvatars = await Promise.all(
+    data.map(async (order) => {
+      if (order.creator && order.creator.id) {
+        try {
+          const avatar = await getUserAvatar(order.creator.id);
+          if (avatar) {
+            // Add avatar to creator object
+            order.creator_avatar = avatar;
+          }
+        } catch (error) {
+          console.warn(`Could not fetch avatar for user ${order.creator.id}:`, error);
+          // Continue without avatar - not critical
+        }
+      }
+      return order;
+    })
+  );
+
   // Optimize: Get all order items in a single query instead of N queries
-  const orderIds = data.map(order => order.id);
+  const orderIds = ordersWithAvatars.map(order => order.id);
   const { data: allItems, error: itemsError } = await supabase
     .from('order_items')
     .select('order_id')
@@ -251,7 +270,7 @@ export async function getAllOrders() {
   if (itemsError) {
     console.error('Error fetching order items:', itemsError);
     // Fallback: return orders with item_count 0
-    return (data || []).map(order => ({ ...normalizeOrder(order), item_count: 0 }));
+    return ordersWithAvatars.map(order => ({ ...normalizeOrder(order), item_count: 0 }));
   }
 
   // Count items per order
@@ -261,7 +280,7 @@ export async function getAllOrders() {
   });
 
   // Map orders with item counts
-  return (data || []).map(order => ({
+  return ordersWithAvatars.map(order => ({
     ...normalizeOrder(order),
     item_count: itemCounts[order.id] || 0
   }));
@@ -276,13 +295,27 @@ export async function getOrderById(orderId) {
     .select(`
       *,
       client:clients(id, name, phone, email, gender, location),
-      creator:users!orders_created_by_fkey(id, name, email),
-      creator_avatar:users!orders_created_by_fkey(user_avatars(url, viewport_x, viewport_y, viewport_size, width, height))
+      creator:users!orders_created_by_fkey(id, name, email)
     `)
     .eq('id', orderId)
     .single();
 
   if (error) throw new Error(error.message);
+  
+  // Fetch avatar for creator if exists
+  if (data.creator && data.creator.id) {
+    try {
+      const { getUserAvatar } = await import('./userAvatars.js');
+      const avatar = await getUserAvatar(data.creator.id);
+      if (avatar) {
+        data.creator_avatar = avatar;
+      }
+    } catch (error) {
+      console.warn(`Could not fetch avatar for user ${data.creator.id}:`, error);
+      // Continue without avatar - not critical
+    }
+  }
+  
   return normalizeOrder(data);
 }
 

@@ -441,30 +441,10 @@ export async function updateProduct(productId, productData, userId) {
 export async function deleteProduct(productId) {
   const supabase = getSupabase();
 
-  // Check if product is referenced in any order_items
-  const { data: orderItems, error: checkError } = await supabase
-    .from('order_items')
-    .select('id, order_id')
-    .eq('product_id', productId)
-    .limit(1);
-
-  if (checkError) {
-    throw new Error(`Error checking product references: ${checkError.message}`);
-  }
-
-  if (orderItems && orderItems.length > 0) {
-    // Get count of order items for better error message
-    const { count } = await supabase
-      .from('order_items')
-      .select('*', { count: 'exact', head: true })
-      .eq('product_id', productId);
-
-    const itemCount = count || orderItems.length;
-    throw new Error(
-      `Cannot delete product: This product is referenced in ${itemCount} order item${itemCount > 1 ? 's' : ''} from existing orders. ` +
-      `To delete this product, you must first remove it from all orders or deactivate it instead.`
-    );
-  }
+  // Note: We no longer check for order_items references because the foreign key constraint
+  // is set to ON DELETE SET NULL, which automatically handles product deletion gracefully.
+  // Order items will have their product_id set to NULL, but all order data (name, SKU, price)
+  // is preserved in the order_items table, so order history remains intact.
 
   // First, delete all product images (database records and storage files)
   const { deleteAllProductImages } = await import('./productImages.js');
@@ -488,7 +468,10 @@ export async function deleteProduct(productId) {
     // Continue with product deletion even if image deletion fails
   }
 
-  // Delete product (cascade should handle product_categories and product_images, but we already deleted images)
+  // Delete product
+  // The foreign key constraint on order_items.product_id is set to ON DELETE SET NULL,
+  // so order items referencing this product will have their product_id set to NULL automatically.
+  // This preserves order history while allowing product deletion.
   const { error } = await supabase
     .from('products')
     .delete()
