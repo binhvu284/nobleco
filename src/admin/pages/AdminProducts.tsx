@@ -6,6 +6,7 @@ import ConfirmModal from '../components/ConfirmModal';
 import ExcelImportModal from '../components/ExcelImportModal';
 import AddProductModal from '../components/AddProductModal';
 import ActivityLogModal from '../components/ActivityLogModal';
+import { useTranslation } from '../../shared/contexts/TranslationContext';
 
 interface Category {
     id: number;
@@ -65,6 +66,7 @@ const formatVND = (amount: number): string => {
 };
 
 export default function AdminProducts() {
+    const { t } = useTranslation();
     const [products, setProducts] = useState<Product[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -577,7 +579,7 @@ export default function AdminProducts() {
     }, []);
 
     return (
-        <AdminLayout title="Products Management">
+        <AdminLayout title={t('products.management')}>
             <div className="admin-products-page">
 
                 {/* Toolbar */}
@@ -587,7 +589,7 @@ export default function AdminProducts() {
                             <IconSearch className="search-icon" />
                             <input
                                 type="text"
-                                placeholder="Search products..."
+                                placeholder={t('products.searchPlaceholder')}
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                                 className="search-input"
@@ -606,28 +608,28 @@ export default function AdminProducts() {
                             onClick={() => setShowActivityLog(true)}
                         >
                             <IconHistory />
-                            <span className="btn-text">Activity Log</span>
+                            <span className="btn-text">{t('products.activityLog')}</span>
                         </button>
                         <button 
                             className="btn-import" 
-                            title="Import Products from Excel"
+                            title={t('products.import')}
                             onClick={() => setShowExcelImportModal(true)}
                         >
                             <IconUpload />
-                            <span className="btn-text">Import</span>
+                            <span className="btn-text">{t('products.import')}</span>
                         </button>
                     </div>
                     <div className="toolbar-right">
                         <button 
                             className="btn-add" 
-                            title="Add Product"
+                            title={t('products.addProduct')}
                             onClick={() => {
                                 setEditingProduct(null);
                                 setShowAddProductModal(true);
                             }}
                         >
                             <IconPlus />
-                            <span className="btn-text">Add Product</span>
+                            <span className="btn-text">{t('products.addProduct')}</span>
                         </button>
                         {/* Desktop view toggle */}
                         <div className="view-toggle desktop-only">
@@ -707,13 +709,13 @@ export default function AdminProducts() {
                         <table className="products-table">
                             <thead>
                                 <tr>
-                                    <th>Product</th>
-                                    <th>Category</th>
-                                    <th>SKU</th>
-                                    <th>Stock</th>
-                                    <th>Price</th>
-                                    <th>Status</th>
-                                    <th>Actions</th>
+                                    <th>{t('products.product')}</th>
+                                    <th>{t('products.category')}</th>
+                                    <th>{t('products.sku')}</th>
+                                    <th>{t('products.stock')}</th>
+                                    <th>{t('products.price')}</th>
+                                    <th>{t('products.status')}</th>
+                                    <th>{t('products.actions')}</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -787,13 +789,13 @@ export default function AdminProducts() {
                     <div className="products-count-bar">
                         <div className="products-status-counts">
                             <span className="products-count-text">
-                                Total Products: <strong>{filteredProducts.length}</strong>
+                                {t('products.totalProducts')}: <strong>{filteredProducts.length}</strong>
                             </span>
                             <span className="status-count active">
-                                Active: <strong>{activeCount}</strong>
+                                {t('products.active')}: <strong>{activeCount}</strong>
                             </span>
                             <span className="status-count inactive">
-                                Inactive: <strong>{inactiveCount}</strong>
+                                {t('products.inactive')}: <strong>{inactiveCount}</strong>
                             </span>
                         </div>
                     </div>
@@ -807,7 +809,7 @@ export default function AdminProducts() {
                                 <tr>
                                     <th className="sortable-header">
                                         <div className="th-content">
-                                            <span>Product</span>
+                                            <span>{t('products.product')}</span>
                                             <button 
                                                 className="sort-btn"
                                                 onClick={(e) => {
@@ -823,10 +825,10 @@ export default function AdminProducts() {
                                             </button>
                                         </div>
                                     </th>
-                                    <th>Category</th>
+                                    <th>{t('products.category')}</th>
                                     <th className="sortable-header">
                                         <div className="th-content">
-                                            <span>SKU</span>
+                                            <span>{t('products.sku')}</span>
                                             <button 
                                                 className="sort-btn"
                                                 onClick={(e) => {
@@ -844,7 +846,7 @@ export default function AdminProducts() {
                                     </th>
                                     <th className="sortable-header">
                                         <div className="th-content">
-                                            <span>Stock</span>
+                                            <span>{t('products.stock')}</span>
                                             <button 
                                                 className="sort-btn"
                                                 onClick={(e) => {
@@ -862,7 +864,7 @@ export default function AdminProducts() {
                                     </th>
                                     <th className="sortable-header">
                                         <div className="th-content">
-                                            <span>Price</span>
+                                            <span>{t('products.price')}</span>
                                             <button 
                                                 className="sort-btn"
                                                 onClick={(e) => {
@@ -878,8 +880,8 @@ export default function AdminProducts() {
                                             </button>
                                         </div>
                                     </th>
-                                    <th>Status</th>
-                                    <th>Actions</th>
+                                    <th>{t('products.status')}</th>
+                                    <th>{t('products.actions')}</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -1329,7 +1331,7 @@ export default function AdminProducts() {
                                         />
                                         <span className="filter-status-label">
                                             <span className="filter-status-indicator active"></span>
-                                            Active
+                                            {t('products.active')}
                                         </span>
                                     </label>
                                     <label className={`filter-status-item ${filterStatus === 'inactive' ? 'active' : ''}`}>
@@ -1342,7 +1344,7 @@ export default function AdminProducts() {
                                         />
                                         <span className="filter-status-label">
                                             <span className="filter-status-indicator inactive"></span>
-                                            Inactive
+                                            {t('products.inactive')}
                                         </span>
                                     </label>
                                 </div>

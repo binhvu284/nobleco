@@ -2,8 +2,10 @@ import { FormEvent, useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import OTPVerification from '../components/OTPVerification';
 import AuthFooter from '../../components/AuthFooter';
+import { useTranslation } from '../../shared/contexts/TranslationContext';
 
 export default function SignUp() {
+    const { t } = useTranslation();
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
 
@@ -54,12 +56,12 @@ export default function SignUp() {
         setError('');
 
         if (password !== confirm) {
-            setError('Passwords do not match');
+            setError(t('auth.passwordsDoNotMatch'));
             return;
         }
 
         if (password.length < 6) {
-            setError('Password must be at least 6 characters');
+            setError(t('auth.passwordTooShort'));
             return;
         }
 
@@ -88,7 +90,7 @@ export default function SignUp() {
 
     const handlePhoneSubmit = async () => {
         if (!phone.trim()) {
-            setError('Phone number is required');
+            setError(t('auth.phoneRequired'));
             return;
         }
         await sendOTP('phone');
@@ -192,7 +194,7 @@ export default function SignUp() {
                                     }}
                                 >
                                     <span className="otp-method-icon">📱</span>
-                                    <span className="otp-method-text">Phone Number</span>
+                                    <span className="otp-method-text">{t('auth.viaPhone')}</span>
                                 </button>
                                 <button
                                     type="button"
@@ -207,12 +209,12 @@ export default function SignUp() {
                                     {isSendingOTP ? (
                                         <>
                                             <div className="otp-loading-spinner"></div>
-                                            <span className="otp-method-text">Sending code...</span>
+                                            <span className="otp-method-text">{t('common.loading')}</span>
                                         </>
                                     ) : (
                                         <>
                                             <span className="otp-method-icon">✉️</span>
-                                            <span className="otp-method-text">Email Address</span>
+                                            <span className="otp-method-text">{t('auth.viaEmail')}</span>
                                         </>
                                     )}
                                 </button>
@@ -221,7 +223,7 @@ export default function SignUp() {
                             {isSendingOTP && !error && (
                                 <div className="otp-sending-message">
                                     <div className="otp-loading-spinner-small"></div>
-                                    <span>Sending verification code to your email...</span>
+                                    <span>{t('common.loading')}</span>
                                 </div>
                             )}
                             <button
@@ -237,12 +239,12 @@ export default function SignUp() {
                     ) : otpMethod === 'phone' ? (
                         <form onSubmit={(e) => { e.preventDefault(); handlePhoneSubmit(); }} className="form">
                             <label>
-                                Phone Number
+                                {t('auth.phone')}
                                 <input 
                                     type="tel"
                                     value={phone} 
                                     onChange={(e) => setPhone(e.target.value)} 
-                                    placeholder="Enter your phone number" 
+                                    placeholder={t('auth.enterPhoneNumber')} 
                                     required 
                                     disabled={isSendingOTP}
                                     inputMode="tel"
@@ -258,10 +260,10 @@ export default function SignUp() {
                                 {isSendingOTP ? (
                                     <>
                                         <div className="otp-loading-spinner-small" style={{ marginRight: '8px' }}></div>
-                                        Sending code...
+                                        {t('common.loading')}
                                     </>
                                 ) : (
-                                    'Send Verification Code'
+                                    t('auth.sendOTP')
                                 )}
                             </button>
                             <button
@@ -271,7 +273,7 @@ export default function SignUp() {
                                 style={{ marginTop: '12px', width: '100%' }}
                                 disabled={isSendingOTP}
                             >
-                                Back
+                                {t('common.back')}
                             </button>
                         </form>
                     ) : null}
@@ -309,22 +311,22 @@ export default function SignUp() {
                         />
                     </label>
                     <label>
-                        Email
+                        {t('auth.email')}
                         <input 
                             type="email"
                             value={email} 
                             onChange={(e) => setEmail(e.target.value)} 
-                            placeholder="you@example.com" 
+                            placeholder={t('auth.email')} 
                             required 
                         />
                     </label>
                     <label style={{ position: 'relative' }}>
-                        Password
+                        {t('auth.password')}
                         <input
                             type={showPassword ? 'text' : 'password'}
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
-                            placeholder="your password"
+                            placeholder={t('auth.password')}
                             required
                             style={{ paddingRight: '40px' }}
                         />
@@ -332,7 +334,7 @@ export default function SignUp() {
                             type="button"
                             onClick={() => setShowPassword(!showPassword)}
                             className="password-toggle"
-                            aria-label={showPassword ? 'Hide password' : 'Show password'}
+                            aria-label={showPassword ? t('common.close') : t('common.add')}
                         >
                             {showPassword ? (
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -348,12 +350,12 @@ export default function SignUp() {
                         </button>
                     </label>
                     <label style={{ position: 'relative' }}>
-                        Confirm Password
+                        {t('auth.confirmPassword')}
                         <input
                             type={showConfirm ? 'text' : 'password'}
                             value={confirm}
                             onChange={(e) => setConfirm(e.target.value)}
-                            placeholder="your password"
+                            placeholder={t('auth.password')}
                             required
                             style={{ paddingRight: '40px' }}
                         />
@@ -361,7 +363,7 @@ export default function SignUp() {
                             type="button"
                             onClick={() => setShowConfirm(!showConfirm)}
                             className="password-toggle"
-                            aria-label={showConfirm ? 'Hide password' : 'Show password'}
+                            aria-label={showConfirm ? t('common.close') : t('common.add')}
                         >
                             {showConfirm ? (
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -377,24 +379,24 @@ export default function SignUp() {
                         </button>
                     </label>
                     <label>
-                        Refer Code (Optional)
+                        {t('auth.referCode')} ({t('common.optional')})
                         <input 
                             type="text"
                             value={referCode} 
                             onChange={(e) => setReferCode(e.target.value.toUpperCase())} 
-                            placeholder="Enter referral code if you have one" 
+                            placeholder={t('auth.referCode')} 
                             maxLength={6}
                             style={{ textTransform: 'uppercase' }}
                         />
                     </label>
                     {error && <div className="error">{error}</div>}
                     <button type="submit" className="primary" disabled={isLoading}>
-                        {isLoading ? 'Processing...' : 'Sign Up'}
+                        {isLoading ? t('common.loading') : t('auth.signup')}
                     </button>
                 </form>
                 <div className="auth-footer">
-                    <span>Already have an account?</span>
-                    <Link to="/login" className="auth-link">Sign in</Link>
+                    <span>{t('auth.alreadyHaveAccount')}</span>
+                    <Link to="/login" className="auth-link">{t('auth.login')}</Link>
                 </div>
             </div>
             <AuthFooter />

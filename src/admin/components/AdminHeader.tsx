@@ -6,6 +6,7 @@ import { logout, getCurrentUser } from '../../auth';
 import AdminProfileModal from './AdminProfileModal';
 import AdminSettingModal from './AdminSettingModal';
 import { getAvatarInitial, getAvatarColor } from '../../utils/avatarUtils';
+import { useTranslation } from '../../shared/contexts/TranslationContext';
 
 interface AdminHeaderProps {
     title: string;
@@ -14,6 +15,7 @@ interface AdminHeaderProps {
 }
 
 export default function AdminHeader({ title, mobileMenuOpen, onMobileMenuToggle }: AdminHeaderProps) {
+    const { t } = useTranslation();
     const [open, setOpen] = useState(false);
     const [profileOpen, setProfileOpen] = useModalState(false);
     const [settingOpen, setSettingOpen] = useModalState(false);
@@ -136,7 +138,7 @@ export default function AdminHeader({ title, mobileMenuOpen, onMobileMenuToggle 
             {onMobileMenuToggle && (
                 <button 
                     className="admin-mobile-toggle" 
-                    aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'} 
+                    aria-label={mobileMenuOpen ? t('common.closeMenu') : t('common.openMenu')} 
                     onClick={onMobileMenuToggle}
                 >
                     <IconMenu />
@@ -206,13 +208,13 @@ export default function AdminHeader({ title, mobileMenuOpen, onMobileMenuToggle 
                 {open && (
                     <div className="dropdown">
                         <a href="#profile" onClick={(e) => { e.preventDefault(); setOpen(false); setProfileOpen(true); }}>
-                            <IconUser style={{ marginRight: 8 }} /> Profile
+                            <IconUser style={{ marginRight: 8 }} /> {t('header.profile')}
                         </a>
                         <a href="#settings" onClick={(e) => { e.preventDefault(); setOpen(false); setSettingOpen(true); }}>
-                            <IconSettings style={{ marginRight: 8 }} /> Settings
+                            <IconSettings style={{ marginRight: 8 }} /> {t('header.settings')}
                         </a>
                         <a href="/login" onClick={(e) => { e.preventDefault(); setOpen(false); logout(); navigate('/login', { replace: true }); }}>
-                            <IconLogout style={{ marginRight: 8 }} /> Logout
+                            <IconLogout style={{ marginRight: 8 }} /> {t('header.logout')}
                         </a>
                     </div>
                 )}

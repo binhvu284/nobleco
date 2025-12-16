@@ -2,8 +2,10 @@ import { FormEvent, useEffect, useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { login, isAuthenticated, getUserRole, getCurrentUser } from '../../auth';
 import AuthFooter from '../../components/AuthFooter';
+import { useTranslation } from '../../shared/contexts/TranslationContext';
 
 export default function Login() {
+    const { t } = useTranslation();
     const navigate = useNavigate();
     const location = useLocation();
 
@@ -156,7 +158,7 @@ export default function Login() {
                 navigate('/dashboard', { replace: true });
             }
         } else {
-            setError(result.error || 'Invalid credentials');
+            setError(result.error || t('auth.invalidCredentials'));
         }
     };
 
@@ -168,25 +170,25 @@ export default function Login() {
                     <img src="/images/logo.png" width={64} height={64} alt="Nobleco" />
                 </div>
                 <h1 className="brand">Nobleco</h1>
-                <p className="subtitle">Sign in to continue</p>
+                <p className="subtitle">{t('auth.login')}</p>
                 <form onSubmit={onSubmit} className="form">
                     <label>
-                        Email or Phone Number
+                        {t('auth.email')} {t('common.or')} {t('auth.phone')}
                         <input
                             type="text"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
-                            placeholder="email@example.com or phone number"
+                            placeholder={`${t('auth.email')} ${t('common.or')} ${t('auth.phone')}`}
                             required
                         />
                     </label>
                     <label style={{ position: 'relative' }}>
-                        Password
+                        {t('auth.password')}
                         <input
                             type={showPassword ? 'text' : 'password'}
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
-                            placeholder="your password"
+                            placeholder={t('auth.password')}
                             required
                             style={{ paddingRight: '40px' }}
                         />
@@ -194,7 +196,7 @@ export default function Login() {
                             type="button"
                             onClick={() => setShowPassword(!showPassword)}
                             className="password-toggle"
-                            aria-label={showPassword ? 'Hide password' : 'Show password'}
+                            aria-label={showPassword ? t('common.close') : t('common.add')}
                         >
                             {showPassword ? (
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -212,19 +214,19 @@ export default function Login() {
                     <div className="auth-row">
                         <label className="remember">
                             <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} />
-                            <span>Remember me</span>
+                            <span>{t('auth.rememberMe')}</span>
                         </label>
-                        <Link to="/forgot-password" className="auth-link">Forgot password?</Link>
+                        <Link to="/forgot-password" className="auth-link">{t('auth.forgotPassword')}</Link>
                     </div>
                     {success && <div className="success">{success}</div>}
                     {error && <div className="error">{error}</div>}
                     <button type="submit" className="primary" disabled={isLoading}>
-                        {isLoading ? 'Signing in...' : 'Sign In'}
+                        {isLoading ? t('common.loading') : t('auth.login')}
                     </button>
                 </form>
                 <div className="auth-footer">
-                    <span>Don't have account?</span>
-                    <Link to="/signup" className="auth-link">Sign up</Link>
+                    <span>{t('auth.dontHaveAccount')}</span>
+                    <Link to="/signup" className="auth-link">{t('auth.signup')}</Link>
                 </div>
             </div>
             <AuthFooter />

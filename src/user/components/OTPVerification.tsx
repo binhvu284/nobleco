@@ -1,6 +1,7 @@
 import { FormEvent, useState, useEffect, useRef } from 'react';
 import { login } from '../../auth';
 import AuthFooter from '../../components/AuthFooter';
+import { useTranslation } from '../../shared/contexts/TranslationContext';
 
 interface OTPVerificationProps {
   phone?: string;
@@ -13,6 +14,7 @@ interface OTPVerificationProps {
 }
 
 export default function OTPVerification({ phone, userId, email, password, otpMethod = 'phone', onSuccess, onBack }: OTPVerificationProps) {
+  const { t } = useTranslation();
   const [otp, setOtp] = useState(['', '', '', '']);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -98,7 +100,7 @@ export default function OTPVerification({ phone, userId, email, password, otpMet
     
     const otpCode = otp.join('');
     if (otpCode.length !== 4) {
-      setError('Please enter the complete 4-digit code');
+      setError(t('auth.enterCompleteCode'));
       return;
     }
 
@@ -127,7 +129,7 @@ export default function OTPVerification({ phone, userId, email, password, otpMet
       const verifyData = await verifyResponse.json();
 
       if (!verifyResponse.ok) {
-        setError(verifyData.error || 'Invalid verification code');
+        setError(verifyData.error || t('auth.invalidCode'));
         setIsVerifying(false);
         return;
       }
@@ -140,11 +142,11 @@ export default function OTPVerification({ phone, userId, email, password, otpMet
         // Success - redirect to dashboard
         onSuccess();
       } else {
-        setError('Account created successfully, but login failed. Please try logging in manually.');
+        setError(t('auth.loginAfterSignupFailed'));
         setIsVerifying(false);
       }
     } catch (err) {
-      setError('Failed to verify code. Please try again.');
+      setError(t('auth.verifyFailed'));
       setIsVerifying(false);
     }
   };
@@ -176,7 +178,7 @@ export default function OTPVerification({ phone, userId, email, password, otpMet
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data.error || 'Failed to resend code');
+        setError(data.error || t('auth.resendFailed'));
         setIsResending(false);
         return;
       }
@@ -187,7 +189,7 @@ export default function OTPVerification({ phone, userId, email, password, otpMet
       setIsResending(false);
       inputRefs.current[0]?.focus();
     } catch (err) {
-      setError('Failed to resend code. Please try again.');
+      setError(t('auth.resendFailed'));
       setIsResending(false);
     }
   };
@@ -196,9 +198,9 @@ export default function OTPVerification({ phone, userId, email, password, otpMet
     <div className="auth-root">
       <div className="auth-gradient" aria-hidden="true" />
       <div className="auth-card">
-        <h1 className="brand">{otpMethod === 'phone' ? 'Verify Phone Number' : 'Verify Email Address'}</h1>
+        <h1 className="brand">{otpMethod === 'phone' ? t('auth.verifyPhoneNumber') : t('auth.verifyEmailAddress')}</h1>
         <p className="subtitle">
-          We've sent a 4-digit verification code to
+          {t('auth.codeSentTo')}
           <br className="mobile-break" />
           <strong className="otp-target">{otpMethod === 'phone' && phone ? formatPhone(phone) : formatEmail(email)}</strong>
         </p>
@@ -230,11 +232,11 @@ export default function OTPVerification({ phone, userId, email, password, otpMet
             className="primary" 
             disabled={isVerifying || isLoading || otp.join('').length !== 4}
           >
-            {isVerifying ? 'Verifying...' : 'Verify Code'}
+            {isVerifying ? t('common.loading') : t('auth.verifyOTP')}
           </button>
 
           <div className="otp-resend">
-            <p>Didn't receive the code?</p>
+            <p>{t('auth.didntReceiveCode')}</p>
             <button
               type="button"
               onClick={handleResend}
@@ -242,10 +244,10 @@ export default function OTPVerification({ phone, userId, email, password, otpMet
               className="resend-link"
             >
               {resendCooldown > 0 
-                ? `Resend code in ${resendCooldown}s` 
+                ? `${t('auth.resendIn')} ${resendCooldown}s` 
                 : isResending 
-                  ? 'Sending...' 
-                  : 'Resend Code'}
+                  ? t('common.loading') 
+                  : t('auth.resendOTP')}
             </button>
           </div>
           <button
@@ -254,7 +256,7 @@ export default function OTPVerification({ phone, userId, email, password, otpMet
             className="secondary"
             style={{ marginTop: '12px', width: '100%' }}
           >
-            Back to Sign Up
+            {t('common.back')}
           </button>
         </form>
       </div>

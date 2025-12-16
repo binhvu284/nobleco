@@ -19,8 +19,10 @@ import {
     IconTicket
 } from './icons';
 import { getCurrentUser } from '../../auth';
+import { useTranslation } from '../../shared/contexts/TranslationContext';
 
 export default function AdminSidebar({ collapsed, onToggle, onNavigate, onMobileClose }: { collapsed: boolean; onToggle: () => void; onNavigate?: () => void; onMobileClose?: () => void }) {
+    const { t } = useTranslation();
     const [coworkerPermissions, setCoworkerPermissions] = useState<string[]>([]);
     const currentUser = getCurrentUser();
     const isCoworker = currentUser?.role === 'coworker';
@@ -116,7 +118,7 @@ export default function AdminSidebar({ collapsed, onToggle, onNavigate, onMobile
         <aside className={`admin-sidebar ${collapsed ? 'collapsed' : ''}`}>
             <div className="admin-logo">
                 {!collapsed && <span>Nobleco Admin</span>}
-                <button className="icon-btn" aria-label={collapsed ? 'Expand' : 'Collapse'} onClick={handleToggleClick}>
+                <button className="icon-btn" aria-label={collapsed ? t('common.expand') : t('common.collapse')} onClick={handleToggleClick}>
                     {collapsed ? <IconChevronRight /> : <IconChevronLeft />}
                 </button>
             </div>
@@ -125,7 +127,7 @@ export default function AdminSidebar({ collapsed, onToggle, onNavigate, onMobile
                 {hasAccess('/admin-dashboard') && (
                     <NavLink to="/admin-dashboard" onClick={onNavigate} className={({ isActive }) => isActive ? 'active' : ''}>
                         <IconDashboard />
-                        {!collapsed && <span>Dashboard</span>}
+                        {!collapsed && <span>{t('sidebar.dashboard')}</span>}
                     </NavLink>
                 )}
 
@@ -139,7 +141,7 @@ export default function AdminSidebar({ collapsed, onToggle, onNavigate, onMobile
                                 onClick={() => toggleSection('users')}
                                 type="button"
                             >
-                                <span className="section-title">USERS</span>
+                                <span className="section-title">{t('sidebar.users').toUpperCase()}</span>
                                 <span className="section-toggle">
                                     {openSections.users ? <IconChevronUp /> : <IconChevronDown />}
                                 </span>
@@ -149,19 +151,19 @@ export default function AdminSidebar({ collapsed, onToggle, onNavigate, onMobile
                                     {hasAccess('/admin-users') && (
                                         <NavLink to="/admin-users" onClick={onNavigate} className={({ isActive }) => isActive ? 'active' : ''}>
                                             <IconUsers />
-                                            <span>Users</span>
+                                            <span>{t('sidebar.users')}</span>
                                         </NavLink>
                                     )}
                                     {hasAccess('/admin-admin-users') && (
                                         <NavLink to="/admin-admin-users" onClick={onNavigate} className={({ isActive }) => isActive ? 'active' : ''}>
                                             <IconAdmin />
-                                            <span>Admin Users</span>
+                                            <span>{t('sidebar.adminUsers')}</span>
                                         </NavLink>
                                     )}
                                     {hasAccess('/admin-clients') && (
                                         <NavLink to="/admin-clients" onClick={onNavigate} className={({ isActive }) => isActive ? 'active' : ''}>
                                             <IconAddressBook />
-                                            <span>Clients</span>
+                                            <span>{t('sidebar.clients')}</span>
                                         </NavLink>
                                     )}
                                 </nav>
@@ -171,17 +173,17 @@ export default function AdminSidebar({ collapsed, onToggle, onNavigate, onMobile
                         /* Collapsed state - show all user page icons */
                         <div className="collapsed-section">
                             {hasAccess('/admin-users') && (
-                                <NavLink to="/admin-users" onClick={onNavigate} className={({ isActive }) => isActive ? 'active' : ''} title="Users">
+                                <NavLink to="/admin-users" onClick={onNavigate} className={({ isActive }) => isActive ? 'active' : ''} title={t('sidebar.users')}>
                                     <IconUsers />
                                 </NavLink>
                             )}
                             {hasAccess('/admin-admin-users') && (
-                                <NavLink to="/admin-admin-users" onClick={onNavigate} className={({ isActive }) => isActive ? 'active' : ''} title="Admin Users">
+                                <NavLink to="/admin-admin-users" onClick={onNavigate} className={({ isActive }) => isActive ? 'active' : ''} title={t('sidebar.adminUsers')}>
                                     <IconAdmin />
                                 </NavLink>
                             )}
                             {hasAccess('/admin-clients') && (
-                                <NavLink to="/admin-clients" onClick={onNavigate} className={({ isActive }) => isActive ? 'active' : ''} title="Clients">
+                                <NavLink to="/admin-clients" onClick={onNavigate} className={({ isActive }) => isActive ? 'active' : ''} title={t('sidebar.clients')}>
                                     <IconAddressBook />
                                 </NavLink>
                             )}
@@ -200,7 +202,7 @@ export default function AdminSidebar({ collapsed, onToggle, onNavigate, onMobile
                                     onClick={() => toggleSection('products')}
                                     type="button"
                                 >
-                                    <span className="section-title">PRODUCTS</span>
+                                    <span className="section-title">{t('sidebar.products').toUpperCase()}</span>
                                     <span className="section-toggle">
                                         {openSections.products ? <IconChevronUp /> : <IconChevronDown />}
                                     </span>
@@ -210,19 +212,19 @@ export default function AdminSidebar({ collapsed, onToggle, onNavigate, onMobile
                                         {hasAccess('/admin-products') && (
                                             <NavLink to="/admin-products" onClick={onNavigate} className={({ isActive }) => isActive ? 'active' : ''}>
                                                 <IconBox />
-                                                <span>Products</span>
+                                                <span>{t('sidebar.products')}</span>
                                             </NavLink>
                                         )}
                                         {hasAccess('/admin-categories') && (
                                             <NavLink to="/admin-categories" onClick={onNavigate} className={({ isActive }) => isActive ? 'active' : ''}>
                                                 <IconTag />
-                                                <span>Categories</span>
+                                                <span>{t('sidebar.categories')}</span>
                                             </NavLink>
                                         )}
                                         {hasAccess('/admin-orders') && (
                                             <NavLink to="/admin-orders" onClick={onNavigate} className={({ isActive }) => isActive ? 'active' : ''}>
                                                 <IconShoppingBag />
-                                                <span>Orders</span>
+                                                <span>{t('sidebar.orders')}</span>
                                             </NavLink>
                                         )}
                                     </nav>
@@ -232,17 +234,17 @@ export default function AdminSidebar({ collapsed, onToggle, onNavigate, onMobile
                             /* Collapsed state - show all product page icons */
                             <div className="collapsed-section">
                                 {hasAccess('/admin-products') && (
-                                    <NavLink to="/admin-products" onClick={onNavigate} className={({ isActive }) => isActive ? 'active' : ''} title="Products">
+                                    <NavLink to="/admin-products" onClick={onNavigate} className={({ isActive }) => isActive ? 'active' : ''} title={t('sidebar.products')}>
                                         <IconBox />
                                     </NavLink>
                                 )}
                                 {hasAccess('/admin-categories') && (
-                                    <NavLink to="/admin-categories" onClick={onNavigate} className={({ isActive }) => isActive ? 'active' : ''} title="Categories">
+                                    <NavLink to="/admin-categories" onClick={onNavigate} className={({ isActive }) => isActive ? 'active' : ''} title={t('sidebar.categories')}>
                                         <IconTag />
                                     </NavLink>
                                 )}
                                 {hasAccess('/admin-orders') && (
-                                    <NavLink to="/admin-orders" onClick={onNavigate} className={({ isActive }) => isActive ? 'active' : ''} title="Orders">
+                                    <NavLink to="/admin-orders" onClick={onNavigate} className={({ isActive }) => isActive ? 'active' : ''} title={t('sidebar.orders')}>
                                         <IconShoppingBag />
                                     </NavLink>
                                 )}
@@ -261,7 +263,7 @@ export default function AdminSidebar({ collapsed, onToggle, onNavigate, onMobile
                                     onClick={() => toggleSection('payment')}
                                     type="button"
                                 >
-                                    <span className="section-title">PAYMENT</span>
+                                    <span className="section-title">{t('sidebar.payment')}</span>
                                     <span className="section-toggle">
                                         {openSections.payment ? <IconChevronUp /> : <IconChevronDown />}
                                     </span>
@@ -271,19 +273,19 @@ export default function AdminSidebar({ collapsed, onToggle, onNavigate, onMobile
                                         {hasAccess('/admin-commission') && (
                                             <NavLink to="/admin-commission" onClick={onNavigate} className={({ isActive }) => isActive ? 'active' : ''}>
                                                 <IconPercent />
-                                                <span>Commission</span>
+                                                <span>{t('sidebar.commission')}</span>
                                             </NavLink>
                                         )}
                                         {hasAccess('/admin-request') && (
                                             <NavLink to="/admin-request" onClick={onNavigate} className={({ isActive }) => isActive ? 'active' : ''}>
                                                 <IconWallet />
-                                                <span>Withdraw Request</span>
+                                                <span>{t('sidebar.withdrawRequest')}</span>
                                             </NavLink>
                                         )}
                                         {hasAccess('/admin-discount') && (
                                             <NavLink to="/admin-discount" onClick={onNavigate} className={({ isActive }) => isActive ? 'active' : ''}>
                                                 <IconTicket />
-                                                <span>Discount Code</span>
+                                                <span>{t('sidebar.discountCode')}</span>
                                             </NavLink>
                                         )}
                                     </nav>
@@ -293,17 +295,17 @@ export default function AdminSidebar({ collapsed, onToggle, onNavigate, onMobile
                             /* Collapsed state - show all payment page icons */
                             <div className="collapsed-section">
                                 {hasAccess('/admin-commission') && (
-                                    <NavLink to="/admin-commission" onClick={onNavigate} className={({ isActive }) => isActive ? 'active' : ''} title="Commission">
+                                    <NavLink to="/admin-commission" onClick={onNavigate} className={({ isActive }) => isActive ? 'active' : ''} title={t('sidebar.commission')}>
                                         <IconPercent />
                                     </NavLink>
                                 )}
                                 {hasAccess('/admin-request') && (
-                                    <NavLink to="/admin-request" onClick={onNavigate} className={({ isActive }) => isActive ? 'active' : ''} title="Withdraw Request">
+                                    <NavLink to="/admin-request" onClick={onNavigate} className={({ isActive }) => isActive ? 'active' : ''} title={t('sidebar.withdrawRequest')}>
                                         <IconWallet />
                                     </NavLink>
                                 )}
                                 {hasAccess('/admin-discount') && (
-                                    <NavLink to="/admin-discount" onClick={onNavigate} className={({ isActive }) => isActive ? 'active' : ''} title="Discount Code">
+                                    <NavLink to="/admin-discount" onClick={onNavigate} className={({ isActive }) => isActive ? 'active' : ''} title={t('sidebar.discountCode')}>
                                         <IconTicket />
                                     </NavLink>
                                 )}

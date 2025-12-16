@@ -6,6 +6,7 @@ import { useState as useModalState } from 'react';
 import UserProfileModal from './UserProfileModal';
 import UserSettingModal from './UserSettingModal';
 import { getAvatarInitial, getAvatarColor } from '../../utils/avatarUtils';
+import { useTranslation } from '../../shared/contexts/TranslationContext';
 
 interface UserHeaderProps {
     title: string;
@@ -14,6 +15,7 @@ interface UserHeaderProps {
 }
 
 export default function UserHeader({ title, mobileMenuOpen, onMobileMenuToggle }: UserHeaderProps) {
+    const { t } = useTranslation();
     const [open, setOpen] = useState(false);
     const navigate = useNavigate();
     const location = useLocation();
@@ -138,7 +140,7 @@ export default function UserHeader({ title, mobileMenuOpen, onMobileMenuToggle }
             {onMobileMenuToggle && (
                 <button 
                     className="admin-mobile-toggle" 
-                    aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'} 
+                    aria-label={mobileMenuOpen ? t('common.closeMenu') : t('common.openMenu')} 
                     onClick={onMobileMenuToggle}
                 >
                     <IconMenu />
@@ -201,10 +203,10 @@ export default function UserHeader({ title, mobileMenuOpen, onMobileMenuToggle }
                 {open && (
                     <div className="dropdown">
                         <a href="#profile" onClick={(e) => { e.preventDefault(); setOpen(false); setProfileOpen(true); }}>
-                            <IconUser /> Profile
+                            <IconUser /> {t('header.profile')}
                         </a>
                         <a href="#setting" onClick={(e) => { e.preventDefault(); setOpen(false); setSettingOpen(true); }}>
-                            <IconSettings /> Settings
+                            <IconSettings /> {t('header.settings')}
                         </a>
                         <a
                             href="#"
@@ -215,7 +217,7 @@ export default function UserHeader({ title, mobileMenuOpen, onMobileMenuToggle }
                                 navigate('/login', { replace: true });
                             }}
                         >
-                            <IconLogout /> Logout
+                            <IconLogout /> {t('header.logout')}
                         </a>
                     </div>
                 )}

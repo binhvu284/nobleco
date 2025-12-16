@@ -310,7 +310,7 @@ export default async function handler(req, res) {
 
     if (req.method === 'PATCH') {
       const body = req.body || await readBody(req);
-      const { id, status, name, phone, address, location, country, state, level, referred_by, refer_code } = body || {};
+      const { id, status, name, phone, email, address, location, country, state, level, referred_by, refer_code } = body || {};
       
       // Handle referred_by updates (set or remove senior consultant)
       // Check if refer_code is provided and not empty, or if referred_by is explicitly set
@@ -427,26 +427,44 @@ export default async function handler(req, res) {
       }
       
       // Handle profile updates
-      if (name !== undefined || phone !== undefined || address !== undefined || location !== undefined || country !== undefined || state !== undefined) {
+      if (name !== undefined || phone !== undefined || email !== undefined || address !== undefined || location !== undefined || country !== undefined || state !== undefined) {
         if (!id) {
           return res.status(400).json({ error: 'User ID is required' });
         }
 
-        // Build update object with only provided fields
-        const updates = {};
-        if (name !== undefined) updates.name = name || null;
-        if (phone !== undefined) updates.phone = phone || null;
-        if (address !== undefined) updates.address = address || null;
-        if (location !== undefined) updates.location = location || null;
-        if (country !== undefined) updates.country = country || null;
-        if (state !== undefined) updates.state = state || null;
-
-        if (Object.keys(updates).length === 0) {
-          return res.status(400).json({ error: 'No fields to update' });
-        }
-
         try {
           const supabase = getSupabase();
+          
+          // Build update object with only provided fields
+          const updates = {};
+          if (name !== undefined) updates.name = name || null;
+          if (phone !== undefined) updates.phone = phone || null;
+          if (email !== undefined) {
+            // Validate email format
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+              return res.status(400).json({ error: 'Invalid email format' });
+            }
+            // Check if email already exists
+            const { data: existingUser } = await supabase
+              .from('users')
+              .select('id')
+              .eq('email', email)
+              .neq('id', id)
+              .maybeSingle();
+            if (existingUser) {
+              return res.status(400).json({ error: 'Email already in use' });
+            }
+            updates.email = email;
+          }
+          if (address !== undefined) updates.address = address || null;
+          if (location !== undefined) updates.location = location || null;
+          if (country !== undefined) updates.country = country || null;
+          if (state !== undefined) updates.state = state || null;
+
+          if (Object.keys(updates).length === 0) {
+            return res.status(400).json({ error: 'No fields to update' });
+          }
           const { data: userData, error: userError } = await supabase
             .from('users')
             .update(updates)

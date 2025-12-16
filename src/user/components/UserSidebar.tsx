@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { IconDashboard, IconBox, IconWallet, IconShoppingBag, IconBook, IconUsers, IconChevronLeft, IconChevronRight, IconAddressBook, IconMail, IconLibrary, IconChevronDown, IconChevronUp } from '../../admin/components/icons';
+import { useTranslation } from '../../shared/contexts/TranslationContext';
 
 export default function UserSidebar({ collapsed, onToggle, onNavigate, onMobileClose }: { collapsed: boolean; onToggle: () => void; onNavigate?: () => void; onMobileClose?: () => void }) {
+    const { t } = useTranslation();
     const [openSections, setOpenSections] = useState<{ [key: string]: boolean }>(() => {
         const saved = localStorage.getItem('user-sidebar-sections');
         if (saved) {
@@ -71,32 +73,32 @@ export default function UserSidebar({ collapsed, onToggle, onNavigate, onMobileC
             <nav className="admin-nav">
                 <NavLink to="/dashboard" onClick={onNavigate} className={({ isActive }) => (isActive ? 'active' : '')}>
                     <IconDashboard />
-                    {!collapsed && <span>Dashboard</span>}
+                    {!collapsed && <span>{t('sidebar.dashboard')}</span>}
                 </NavLink>
                 <NavLink to="/inbox" onClick={onNavigate} className={({ isActive }) => (isActive ? 'active' : '')}>
                     <IconMail />
-                    {!collapsed && <span>Inbox</span>}
+                    {!collapsed && <span>{t('sidebar.inbox')}</span>}
                 </NavLink>
                 {!collapsed && <div className="nav-divider"></div>}
                 <NavLink to="/member" onClick={onNavigate} className={({ isActive }) => (isActive ? 'active' : '')}>
                     <IconUsers />
-                    {!collapsed && <span>My member</span>}
+                    {!collapsed && <span>{t('sidebar.myMember')}</span>}
                 </NavLink>
                 <NavLink to="/client" onClick={onNavigate} className={({ isActive }) => (isActive ? 'active' : '')}>
                     <IconAddressBook />
-                    {!collapsed && <span>Clients</span>}
+                    {!collapsed && <span>{t('sidebar.clients')}</span>}
                 </NavLink>
                 <NavLink to="/product" onClick={onNavigate} className={({ isActive }) => (isActive ? 'active' : '')}>
                     <IconBox />
-                    {!collapsed && <span>Product</span>}
+                    {!collapsed && <span>{t('sidebar.product')}</span>}
                 </NavLink>
                 <NavLink to="/wallet" onClick={onNavigate} className={({ isActive }) => (isActive ? 'active' : '')}>
                     <IconWallet />
-                    {!collapsed && <span>Wallet</span>}
+                    {!collapsed && <span>{t('sidebar.wallet')}</span>}
                 </NavLink>
                 <NavLink to="/orders" onClick={onNavigate} className={({ isActive }) => (isActive ? 'active' : '')}>
                     <IconShoppingBag />
-                    {!collapsed && <span>Orders</span>}
+                    {!collapsed && <span>{t('sidebar.orders')}</span>}
                 </NavLink>
                 {/* Materials Section */}
                 <div className={`nav-section ${isMaterialsActive ? 'active' : ''}`}>
@@ -107,7 +109,7 @@ export default function UserSidebar({ collapsed, onToggle, onNavigate, onMobileC
                                 onClick={() => toggleSection('materials')}
                                 type="button"
                             >
-                                <span className="section-title">MATERIALS</span>
+                                <span className="section-title">{t('sidebar.materials')}</span>
                                 <span className="section-toggle">
                                     {openSections.materials ? <IconChevronUp /> : <IconChevronDown />}
                                 </span>
@@ -116,21 +118,21 @@ export default function UserSidebar({ collapsed, onToggle, onNavigate, onMobileC
                                 <nav className="section-content">
                                     <NavLink to="/library" onClick={onNavigate} className={({ isActive }) => isActive ? 'active' : ''}>
                                         <IconLibrary />
-                                        <span>Library</span>
+                                        <span>{t('sidebar.library')}</span>
                                     </NavLink>
                                     <NavLink to="/training-materials" onClick={onNavigate} className={({ isActive }) => isActive ? 'active' : ''}>
                                         <IconBook />
-                                        <span>Training Materials</span>
+                                        <span>{t('sidebar.trainingMaterials')}</span>
                                     </NavLink>
                                 </nav>
                             )}
                         </>
                     ) : (
                         <div className="collapsed-section">
-                            <NavLink to="/library" onClick={onNavigate} className={({ isActive }) => isActive ? 'active' : ''} title="Library">
+                            <NavLink to="/library" onClick={onNavigate} className={({ isActive }) => isActive ? 'active' : ''} title={t('sidebar.library')}>
                                 <IconLibrary />
                             </NavLink>
-                            <NavLink to="/training-materials" onClick={onNavigate} className={({ isActive }) => isActive ? 'active' : ''} title="Training Materials">
+                            <NavLink to="/training-materials" onClick={onNavigate} className={({ isActive }) => isActive ? 'active' : ''} title={t('sidebar.trainingMaterials')}>
                                 <IconBook />
                             </NavLink>
                         </div>

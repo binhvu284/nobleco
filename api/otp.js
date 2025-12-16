@@ -52,8 +52,8 @@ async function handleSendOTP(req, res, body) {
     return res.status(400).json({ error: 'Phone number or email, and purpose are required' });
   }
 
-  if (!['signup', 'password_reset'].includes(purpose)) {
-    return res.status(400).json({ error: 'Invalid purpose. Use: signup or password_reset' });
+  if (!['signup', 'password_reset', 'email_change', 'phone_change'].includes(purpose)) {
+    return res.status(400).json({ error: 'Invalid purpose. Use: signup, password_reset, email_change, or phone_change' });
   }
 
   let cleanedPhone = null;
@@ -167,8 +167,8 @@ async function handleVerifyOTP(req, res, body) {
     return res.status(400).json({ error: 'Phone number or email, code, and purpose are required' });
   }
 
-  if (!['signup', 'password_reset'].includes(purpose)) {
-    return res.status(400).json({ error: 'Invalid purpose. Use: signup or password_reset' });
+  if (!['signup', 'password_reset', 'email_change', 'phone_change'].includes(purpose)) {
+    return res.status(400).json({ error: 'Invalid purpose. Use: signup, password_reset, email_change, or phone_change' });
   }
 
   let cleanedPhone = null;
