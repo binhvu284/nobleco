@@ -41,7 +41,10 @@ export default function SettingsModal({ open, onClose }: { open: boolean; onClos
     const [userData, setUserData] = useState<{ email?: string; phone?: string } | null>(null);
     
     // Settings state - sync with translation and theme contexts
-    const [settings, setSettings] = useState({
+    const [settings, setSettings] = useState<{
+        language: 'en' | 'vi';
+        theme: 'light' | 'dark' | 'auto';
+    }>({
         language: language,
         theme: theme,
     });
@@ -149,13 +152,15 @@ export default function SettingsModal({ open, onClose }: { open: boolean; onClos
     };
 
     const handleLanguageChange = (lang: string) => {
-        setSettings({ ...settings, language: lang });
-        setLanguage(lang as 'en' | 'vi');
+        const languageValue = lang as 'en' | 'vi';
+        setSettings({ ...settings, language: languageValue });
+        setLanguage(languageValue);
     };
 
     const handleThemeChange = (newTheme: string) => {
-        setTheme(newTheme as 'light' | 'dark' | 'auto');
-        setSettings({ ...settings, theme: newTheme });
+        const themeValue = newTheme as 'light' | 'dark' | 'auto';
+        setTheme(themeValue);
+        setSettings({ ...settings, theme: themeValue });
     };
 
     // Handle password verification for email/phone changes
