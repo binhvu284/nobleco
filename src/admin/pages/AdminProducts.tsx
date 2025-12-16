@@ -991,7 +991,7 @@ export default function AdminProducts() {
                                                             Edit
                                                         </button>
                                                         {product.status === 'inactive' ? (
-                                                            <button 
+                                                        <button 
                                                                 className="unified-dropdown-item"
                                                                 onClick={() => handleStatusChange(product.id, product.name, 'active')}
                                                             >
@@ -1048,25 +1048,25 @@ export default function AdminProducts() {
                                             className={`unified-dropdown ${activeDropdown === product.id ? 'active' : ''}`}
                                             onClick={(e) => e.stopPropagation()}
                                         >
-                                            <button
+                                        <button
                                                 className="unified-more-btn"
                                                 onClick={(e) => {
                                                     e.stopPropagation();
                                                     setActiveDropdown(activeDropdown === product.id ? null : product.id);
                                                 }}
                                                 title="More Actions"
-                                            >
-                                                <IconMoreVertical />
-                                            </button>
-                                            {activeDropdown === product.id && (
+                                        >
+                                            <IconMoreVertical />
+                                        </button>
+                                        {activeDropdown === product.id && (
                                                 <div className="unified-dropdown-menu">
                                                     <button 
                                                         className="unified-dropdown-item"
                                                         onClick={() => handleViewDetail(product)}
                                                     >
-                                                        <IconEye />
-                                                        View Details
-                                                    </button>
+                                                    <IconEye />
+                                                    View Details
+                                                </button>
                                                     <button 
                                                         className="unified-dropdown-item"
                                                         onClick={(e) => {
@@ -1074,11 +1074,11 @@ export default function AdminProducts() {
                                                             handleEditProduct(product);
                                                         }}
                                                     >
-                                                        <IconEdit />
-                                                        Edit
-                                                    </button>
+                                                    <IconEdit />
+                                                    Edit
+                                                </button>
                                                     {product.status === 'inactive' ? (
-                                                        <button 
+                                                <button 
                                                             className="unified-dropdown-item"
                                                             onClick={() => handleStatusChange(product.id, product.name, 'active')}
                                                         >
@@ -1097,12 +1097,12 @@ export default function AdminProducts() {
                                                     <button 
                                                         className="unified-dropdown-item danger"
                                                         onClick={() => handleDeleteClick(product.id, product.name)}
-                                                    >
-                                                        <IconTrash2 />
-                                                        Delete
-                                                    </button>
-                                                </div>
-                                            )}
+                                                >
+                                                    <IconTrash2 />
+                                                    Delete
+                                                </button>
+                                            </div>
+                                        )}
                                         </div>
                                     </div>
                                 </div>
