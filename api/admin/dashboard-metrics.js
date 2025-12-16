@@ -1,4 +1,10 @@
 import { getSupabase } from '../_db.js';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 /**
  * Extract user from auth token
@@ -141,23 +147,28 @@ async function getBusinessMetrics(supabase) {
   const startOfLastYear = new Date(now.getFullYear() - 1, 0, 1).toISOString();
   const endOfLastYear = new Date(now.getFullYear(), 0, 0).toISOString();
 
-  // Total revenue (sum of paid orders)
-  const { data: paidOrders, error: ordersError } = await supabase
+  // Get all orders (for counting processing + completed)
+  const { data: allOrders, error: allOrdersError } = await supabase
     .from('orders')
-    .select('total_amount, created_at, payment_status, status, shipping_address')
-    .eq('payment_status', 'paid');
+    .select('total_amount, created_at, payment_status, status, shipping_address');
 
-  if (ordersError) throw ordersError;
+  if (allOrdersError) throw allOrdersError;
 
-  const totalRevenue = paidOrders.reduce((sum, order) => sum + (order.total_amount || 0), 0);
-  const totalOrders = paidOrders.length;
+  // Total orders (both processing and completed)
+  const totalOrders = allOrders.filter(o => o.status === 'processing' || o.status === 'completed').length;
 
-  // Revenue this month vs last month
-  const revenueThisMonth = paidOrders
+  // Get completed orders only (for revenue calculations)
+  const completedOrders = allOrders.filter(o => o.status === 'completed');
+
+  // Total revenue (sum of completed orders only)
+  const totalRevenue = completedOrders.reduce((sum, order) => sum + (order.total_amount || 0), 0);
+
+  // Revenue this month (completed orders only)
+  const revenueThisMonth = completedOrders
     .filter(o => new Date(o.created_at) >= new Date(startOfThisMonth))
     .reduce((sum, order) => sum + (order.total_amount || 0), 0);
 
-  const revenueLastMonth = paidOrders
+  const revenueLastMonth = completedOrders
     .filter(o => {
       const date = new Date(o.created_at);
       return date >= new Date(startOfLastMonth) && date < new Date(startOfThisMonth);
@@ -166,12 +177,12 @@ async function getBusinessMetrics(supabase) {
 
   const revenueMonthChange = calculatePercentageChange(revenueThisMonth, revenueLastMonth);
 
-  // Revenue this year vs last year
-  const revenueThisYear = paidOrders
+  // Revenue this year (completed orders only)
+  const revenueThisYear = completedOrders
     .filter(o => new Date(o.created_at) >= new Date(startOfThisYear))
     .reduce((sum, order) => sum + (order.total_amount || 0), 0);
 
-  const revenueLastYear = paidOrders
+  const revenueLastYear = completedOrders
     .filter(o => {
       const date = new Date(o.created_at);
       return date >= new Date(startOfLastYear) && date < new Date(startOfThisYear);
@@ -180,19 +191,36 @@ async function getBusinessMetrics(supabase) {
 
   const revenueYearChange = calculatePercentageChange(revenueThisYear, revenueLastYear);
 
-  // Orders this month vs last month
-  const ordersThisMonth = paidOrders.filter(o => new Date(o.created_at) >= new Date(startOfThisMonth)).length;
-  const ordersLastMonth = paidOrders.filter(o => {
+  // Orders this month (processing + completed)
+  const ordersThisMonth = allOrders.filter(o => {
     const date = new Date(o.created_at);
-    return date >= new Date(startOfLastMonth) && date < new Date(startOfThisMonth);
+    return date >= new Date(startOfThisMonth) && (o.status === 'processing' || o.status === 'completed');
+  }).length;
+
+  const ordersLastMonth = allOrders.filter(o => {
+    const date = new Date(o.created_at);
+    return date >= new Date(startOfLastMonth) && date < new Date(startOfThisMonth) && (o.status === 'processing' || o.status === 'completed');
   }).length;
 
   const ordersMonthChange = calculatePercentageChange(ordersThisMonth, ordersLastMonth);
 
-  // Average order value
-  const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+  // Orders this year (processing + completed)
+  const ordersThisYear = allOrders.filter(o => {
+    const date = new Date(o.created_at);
+    return date >= new Date(startOfThisYear) && (o.status === 'processing' || o.status === 'completed');
+  }).length;
 
-  // Orders by country
+  const ordersLastYear = allOrders.filter(o => {
+    const date = new Date(o.created_at);
+    return date >= new Date(startOfLastYear) && date < new Date(startOfThisYear) && (o.status === 'processing' || o.status === 'completed');
+  }).length;
+
+  const ordersYearChange = calculatePercentageChange(ordersThisYear, ordersLastYear);
+
+  // Average order value (from completed orders only)
+  const averageOrderValue = completedOrders.length > 0 ? totalRevenue / completedOrders.length : 0;
+
+  // Orders by country (from all orders: processing + completed)
   // Extract country from shipping_address (might be full address or just country name)
   const countryMap = new Map();
   const countryList = [
@@ -201,7 +229,9 @@ async function getBusinessMetrics(supabase) {
     'Philippines', 'Other'
   ];
   
-  paidOrders.forEach(order => {
+  const ordersForCountry = allOrders.filter(o => o.status === 'processing' || o.status === 'completed');
+  
+  ordersForCountry.forEach(order => {
     let country = 'Unknown';
     const address = order.shipping_address || '';
     
@@ -224,7 +254,10 @@ async function getBusinessMetrics(supabase) {
     }
     const data = countryMap.get(country);
     data.count++;
-    data.revenue += order.total_amount || 0;
+    // Only count revenue from completed orders
+    if (order.status === 'completed') {
+      data.revenue += order.total_amount || 0;
+    }
   });
 
   const ordersByCountry = Array.from(countryMap.entries())
@@ -232,29 +265,40 @@ async function getBusinessMetrics(supabase) {
       country,
       orderCount: data.count,
       revenue: data.revenue,
-      percentage: totalOrders > 0 ? Math.round((data.count / totalOrders) * 100) : 0
+      percentage: totalOrders > 0 ? parseFloat(((data.count / totalOrders) * 100).toFixed(2)) : 0,
+      revenuePercentage: totalRevenue > 0 ? parseFloat(((data.revenue / totalRevenue) * 100).toFixed(2)) : 0
     }))
     .sort((a, b) => b.orderCount - a.orderCount);
 
-  // Orders by status
+  // Orders by status (only processing and completed)
+  // Use allOrders directly, not ordersForCountry, to get accurate status counts
   const statusMap = new Map();
-  paidOrders.forEach(order => {
+  // Initialize both statuses to ensure they appear even if count is 0
+  statusMap.set('processing', 0);
+  statusMap.set('completed', 0);
+  
+  allOrders.forEach(order => {
     const status = order.status || 'unknown';
-    if (!statusMap.has(status)) {
-      statusMap.set(status, 0);
+    if (status === 'processing' || status === 'completed') {
+      statusMap.set(status, (statusMap.get(status) || 0) + 1);
     }
-    statusMap.set(status, statusMap.get(status) + 1);
   });
 
-  const ordersByStatus = Array.from(statusMap.entries())
-    .map(([status, count]) => ({
-      status,
-      count,
-      percentage: totalOrders > 0 ? Math.round((count / totalOrders) * 100) : 0
-    }))
-    .sort((a, b) => b.count - a.count);
+  // Always include both statuses, even if count is 0
+  const ordersByStatus = [
+    {
+      status: 'completed',
+      count: statusMap.get('completed') || 0,
+      percentage: totalOrders > 0 ? Math.round(((statusMap.get('completed') || 0) / totalOrders) * 100) : 0
+    },
+    {
+      status: 'processing',
+      count: statusMap.get('processing') || 0,
+      percentage: totalOrders > 0 ? Math.round(((statusMap.get('processing') || 0) / totalOrders) * 100) : 0
+    }
+  ];
 
-  // Revenue trend (last 30 days for chart)
+  // Revenue trend (last 30 days for chart - completed orders only)
   const revenueTrend = [];
   for (let i = 29; i >= 0; i--) {
     const date = new Date(now);
@@ -262,7 +306,7 @@ async function getBusinessMetrics(supabase) {
     const startOfDay = new Date(date.getFullYear(), date.getMonth(), date.getDate()).toISOString();
     const endOfDay = new Date(date.getFullYear(), date.getMonth(), date.getDate() + 1).toISOString();
     
-    const dayRevenue = paidOrders
+    const dayRevenue = completedOrders
       .filter(o => {
         const orderDate = new Date(o.created_at);
         return orderDate >= new Date(startOfDay) && orderDate < new Date(endOfDay);
@@ -290,6 +334,10 @@ async function getBusinessMetrics(supabase) {
     ordersLastMonth,
     ordersMonthChange,
     ordersMonthTrend: ordersMonthChange > 0 ? 'up' : ordersMonthChange < 0 ? 'down' : 'neutral',
+    ordersThisYear,
+    ordersLastYear,
+    ordersYearChange,
+    ordersYearTrend: ordersYearChange > 0 ? 'up' : ordersYearChange < 0 ? 'down' : 'neutral',
     averageOrderValue,
     ordersByCountry,
     ordersByStatus,
@@ -301,6 +349,10 @@ async function getBusinessMetrics(supabase) {
  * Get User Analytics Section Metrics
  */
 async function getUserMetrics(supabase) {
+  // #region agent log
+  const logPath = path.join(__dirname, '..', '..', '.cursor', 'debug.log');
+  // #endregion
+  
   // User level distribution
   const { data: allUsers, error: usersError } = await supabase
     .from('users')
@@ -319,15 +371,78 @@ async function getUserMetrics(supabase) {
 
   const totalUsers = allUsers.length;
   const levelDistribution = Array.from(levelMap.entries())
-    .map(([level, count]) => ({
-      level: level.charAt(0).toUpperCase() + level.slice(1),
-      count,
-      percentage: totalUsers > 0 ? Math.round((count / totalUsers) * 100) : 0
-    }))
-    .sort((a, b) => b.count - a.count);
+    .map(([level, count]) => {
+      // Capitalize properly: "unit manager" -> "Unit Manager", "brand manager" -> "Brand Manager"
+      const capitalized = level.split(' ').map(word => 
+        word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+      ).join(' ');
+      return {
+        level: capitalized,
+        count,
+        percentage: totalUsers > 0 ? parseFloat(((count / totalUsers) * 100).toFixed(2)) : 0
+      };
+    })
+    .sort((a, b) => {
+      // Sort order: Guest, Member, Unit Manager, Brand Manager
+      const order = { 'Guest': 0, 'Member': 1, 'Unit Manager': 2, 'Brand Manager': 3 };
+      return (order[a.level] ?? 99) - (order[b.level] ?? 99);
+    });
+  
+  // #region agent log
+  const levelDistLogEntry = {
+    location: 'dashboard-metrics.js:375',
+    message: 'Level distribution calculated',
+    data: { totalUsers, levelDistribution },
+    timestamp: Date.now(),
+    sessionId: 'debug-session',
+    runId: 'run1',
+    hypothesisId: 'C'
+  };
+  try {
+    fs.appendFileSync(logPath, JSON.stringify(levelDistLogEntry) + '\n');
+  } catch (e) {}
+  // #endregion
 
-  // Top users by points
+  // Top users by points (exclude admin and coworker)
+  // #region agent log
+  const logUser = (u, msg) => {
+    const logEntry = {
+      location: 'dashboard-metrics.js:377',
+      message: msg,
+      data: { userId: u.id, name: u.name, level: u.level, levelLower: (u.level || 'guest').toLowerCase(), points: u.points },
+      timestamp: Date.now(),
+      sessionId: 'debug-session',
+      runId: 'run1',
+      hypothesisId: 'B'
+    };
+    try {
+      fs.appendFileSync(logPath, JSON.stringify(logEntry) + '\n');
+    } catch (e) {}
+  };
+  // #endregion
   const topUsersByPoints = allUsers
+    .filter(u => {
+      const level = (u.level || 'guest').toLowerCase();
+      // #region agent log
+      logUser(u, 'Filtering user for top users by points');
+      // #endregion
+      const shouldInclude = level !== 'admin' && level !== 'coworker';
+      // #region agent log
+      const filterResultLogEntry = {
+        location: 'dashboard-metrics.js:385',
+        message: 'Filter result',
+        data: { userId: u.id, name: u.name, level, shouldInclude },
+        timestamp: Date.now(),
+        sessionId: 'debug-session',
+        runId: 'run1',
+        hypothesisId: 'B'
+      };
+      try {
+        fs.appendFileSync(logPath, JSON.stringify(filterResultLogEntry) + '\n');
+      } catch (e) {}
+      // #endregion
+      return shouldInclude;
+    })
     .map(u => ({
       id: u.id,
       name: u.name || 'Unknown',
@@ -336,6 +451,20 @@ async function getUserMetrics(supabase) {
     }))
     .sort((a, b) => b.points - a.points)
     .slice(0, 10);
+  // #region agent log
+  const topUsersLogEntry = {
+    location: 'dashboard-metrics.js:400',
+    message: 'Final topUsersByPoints result',
+    data: { count: topUsersByPoints.length, users: topUsersByPoints.map(u => ({ id: u.id, name: u.name, level: u.level })) },
+    timestamp: Date.now(),
+    sessionId: 'debug-session',
+    runId: 'run1',
+    hypothesisId: 'B'
+  };
+  try {
+    fs.appendFileSync(logPath, JSON.stringify(topUsersLogEntry) + '\n');
+  } catch (e) {}
+  // #endregion
 
   // Top users by order count
   const { data: ordersByUser, error: ordersError } = await supabase
@@ -403,6 +532,27 @@ async function getUserMetrics(supabase) {
     });
   }
 
+  // #region agent log
+  const finalLogEntry = {
+    location: 'dashboard-metrics.js:520',
+    message: 'getUserMetrics completed',
+    data: { 
+      levelDistributionCount: levelDistribution.length,
+      topUsersByPointsCount: topUsersByPoints.length,
+      topUsersByOrdersCount: topUsersByOrders.length,
+      topUsersByValueCount: topUsersByValue.length,
+      growthTrendCount: growthTrend.length
+    },
+    timestamp: Date.now(),
+    sessionId: 'debug-session',
+    runId: 'run1',
+    hypothesisId: 'C'
+  };
+  try {
+    fs.appendFileSync(logPath, JSON.stringify(finalLogEntry) + '\n');
+  } catch (e) {}
+  // #endregion
+
   return {
     levelDistribution,
     topUsersByPoints,
@@ -454,7 +604,39 @@ export default async function handler(req, res) {
     }
 
     if (!section || section === 'users') {
-      result.users = await getUserMetrics(supabase);
+      try {
+        result.users = await getUserMetrics(supabase);
+        // #region agent log
+        const getUserMetricsSuccessLogEntry = {
+          location: 'dashboard-metrics.js:562',
+          message: 'getUserMetrics success',
+          data: { hasUsers: !!result.users },
+          timestamp: Date.now(),
+          sessionId: 'debug-session',
+          runId: 'run1',
+          hypothesisId: 'C'
+        };
+        try {
+          fs.appendFileSync(path.join(__dirname, '..', '..', '.cursor', 'debug.log'), JSON.stringify(getUserMetricsSuccessLogEntry) + '\n');
+        } catch (e) {}
+        // #endregion
+      } catch (error) {
+        // #region agent log
+        const getUserMetricsErrorLogEntry = {
+          location: 'dashboard-metrics.js:572',
+          message: 'getUserMetrics error',
+          data: { error: error.message, stack: error.stack },
+          timestamp: Date.now(),
+          sessionId: 'debug-session',
+          runId: 'run1',
+          hypothesisId: 'C'
+        };
+        try {
+          fs.appendFileSync(path.join(__dirname, '..', '..', '.cursor', 'debug.log'), JSON.stringify(getUserMetricsErrorLogEntry) + '\n');
+        } catch (e) {}
+        // #endregion
+        throw error;
+      }
     }
 
     // Cache for 60 seconds

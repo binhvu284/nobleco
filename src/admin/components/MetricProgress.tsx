@@ -36,6 +36,9 @@ export default function MetricProgress({
             <div className="progress-container">
                 {items.map((item, index) => {
                     const color = item.color || DEFAULT_COLORS[index % DEFAULT_COLORS.length];
+                    // #region agent log
+                    fetch('http://127.0.0.1:7242/ingest/3da31dfe-5721-4e1a-a160-93fd6dd15ec4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'MetricProgress.tsx:38',message:'Progress item color',data:{label:item.label,itemColor:item.color,usedColor:color,index},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+                    // #endregion
                     return (
                         <div key={index} className="progress-item">
                             <div className="progress-info">

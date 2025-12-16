@@ -23,6 +23,7 @@ export default function MetricCard({
     height = 1,
     className = '' 
 }: MetricCardProps) {
+    const colorClass = className?.includes('metric-blue') ? 'metric-blue' : className?.includes('metric-orange') ? 'metric-orange' : className?.includes('metric-green') ? 'metric-green' : className?.includes('metric-red') ? 'metric-red' : '';
     const getTrendIcon = (trend: StatTrend) => {
         if (trend === 'up') {
             return (
@@ -85,7 +86,7 @@ export default function MetricCard({
                 )}
             </div>
             <div className="stat-body">
-                <div className="stat-value">{formatValue(value)}</div>
+                <div className={`stat-value ${colorClass}`}>{formatValue(value)}</div>
                 <div className="stat-label">{title}</div>
             </div>
         </div>

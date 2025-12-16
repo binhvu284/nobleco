@@ -29339,6 +29339,23 @@ input:focus {
     line-height: 1.2;
 }
 
+/* Metric value color variants */
+.metric-card .stat-value.metric-blue {
+    color: var(--primary);
+}
+
+.metric-card .stat-value.metric-orange {
+    color: #f59e0b;
+}
+
+.metric-card .stat-value.metric-green {
+    color: var(--success);
+}
+
+.metric-card .stat-value.metric-red {
+    color: var(--danger);
+}
+
 .metric-card .stat-label {
     font-size: 0.875rem;
     color: var(--muted);
@@ -29526,11 +29543,11 @@ input:focus {
 }
 
 /* ===== SECTION HEADER ===== */
-.section-header {
+.dashboard-page .section-header {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    margin-bottom: 1rem;
+    margin-bottom: 1.5rem !important;
     padding-bottom: 0.5rem;
     border-bottom: 1px solid var(--border);
 }

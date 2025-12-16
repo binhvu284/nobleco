@@ -5,8 +5,9 @@ import DashboardGrid from '../components/DashboardGrid';
 import SectionHeader from '../components/SectionHeader';
 import MetricCard from '../components/MetricCard';
 import MetricChart from '../components/MetricChart';
-import MetricTable from '../components/MetricTable';
 import MetricProgress from '../components/MetricProgress';
+import MetricTable from '../components/MetricTable';
+import SortableTable from '../components/SortableTable';
 import { IconUsers, IconAdmin, IconTrendingUp, IconDollarSign, IconShoppingCart, IconActivity } from '../components/icons';
 
 type StatTrend = 'up' | 'down' | 'neutral';
@@ -43,8 +44,12 @@ interface BusinessMetrics {
     ordersLastMonth: number;
     ordersMonthChange: number;
     ordersMonthTrend: StatTrend;
+    ordersThisYear: number;
+    ordersLastYear: number;
+    ordersYearChange: number;
+    ordersYearTrend: StatTrend;
     averageOrderValue: number;
-    ordersByCountry: Array<{ country: string; orderCount: number; revenue: number; percentage: number }>;
+    ordersByCountry: Array<{ country: string; orderCount: number; revenue: number; percentage: number; revenuePercentage: number }>;
     ordersByStatus: Array<{ status: string; count: number; percentage: number }>;
     revenueTrend: Array<{ date: string; revenue: number }>;
 }
@@ -125,6 +130,9 @@ export default function AdminDashboard() {
             }
         } catch (err: any) {
             console.error(`Error fetching ${section} metrics:`, err);
+            // #region agent log
+            fetch('http://127.0.0.1:7242/ingest/3da31dfe-5721-4e1a-a160-93fd6dd15ec4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminDashboard.tsx:131',message:'Fetch error',data:{section,error:err.message,stack:err.stack},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+            // #endregion
             setError(err.message || `Failed to load ${section} metrics`);
         } finally {
             setLoading(prev => ({ ...prev, [section]: false }));
@@ -221,14 +229,14 @@ export default function AdminDashboard() {
     // Level colors mapping
     const getLevelColor = (level: string): string => {
         const colors: Record<string, string> = {
-            'Guest': '#94a3b8',
-            'Member': '#3b82f6',
-            'Unit Manager': '#8b5cf6',
-            'Brand Manager': '#f59e0b',
+            'Guest': '#94a3b8', // grey
+            'Member': '#3b82f6', // blue
+            'Unit Manager': '#f59e0b', // orange
+            'Brand Manager': '#8b5cf6', // purple
             'guest': '#94a3b8',
             'member': '#3b82f6',
-            'unit manager': '#8b5cf6',
-            'brand manager': '#f59e0b'
+            'unit manager': '#f59e0b',
+            'brand manager': '#8b5cf6'
         };
         return colors[level] || '#94a3b8';
     };
@@ -244,8 +252,10 @@ export default function AdminDashboard() {
                     />
                     {loading.system ? (
                         <DashboardGrid>
-                            <div className="skeleton skeleton-card" style={{ gridColumn: 'span 2' }} />
-                            <div className="skeleton skeleton-card" style={{ gridColumn: 'span 2' }} />
+                            <div className="skeleton skeleton-card" />
+                            <div className="skeleton skeleton-card" />
+                            <div className="skeleton skeleton-card" />
+                            <div className="skeleton skeleton-card" />
                             <div className="skeleton skeleton-card" />
                             <div className="skeleton skeleton-card" />
                             <div className="skeleton skeleton-card" />
@@ -255,71 +265,64 @@ export default function AdminDashboard() {
                         <div className="error-message">{error}</div>
                     ) : systemMetrics ? (
                         <DashboardGrid>
+                            {/* Row 1: Total Users, Admin Users, Coworker Users, Associate Users */}
                             <MetricCard
                                 title="Total Users"
                                 value={systemMetrics.totalUsers}
                                 trend={systemMetrics.newUsersMonthTrend}
                                 change={systemMetrics.newUsersMonthChange}
-                                icon={
-                                    <IconUsers style={{ width: '24px', height: '24px' }} />
-                                }
-                                width={2}
+                                icon={<IconUsers style={{ width: '24px', height: '24px' }} />}
+                                width={1}
                                 height={1}
                             />
                             <MetricCard
-                                title="Active Users"
-                                value={systemMetrics.activeUsers}
-                                icon={
-                                    <IconActivity style={{ width: '24px', height: '24px' }} />
-                                }
-                                width={2}
-                                height={1}
-                            />
-                            <MetricCard
-                                title="Admin Users"
+                                title="Administrator"
                                 value={systemMetrics.adminUsers}
-                                icon={
-                                    <IconAdmin style={{ width: '24px', height: '24px' }} />
-                                }
+                                icon={<IconAdmin style={{ width: '24px', height: '24px' }} />}
                                 width={1}
                                 height={1}
+                                className="metric-blue"
                             />
                             <MetricCard
-                                title="Coworker Users"
+                                title="Coworker"
                                 value={systemMetrics.coworkerUsers}
-                                icon={
-                                    <IconUsers style={{ width: '24px', height: '24px' }} />
-                                }
+                                icon={<IconUsers style={{ width: '24px', height: '24px' }} />}
                                 width={1}
                                 height={1}
+                                className="metric-blue"
                             />
                             <MetricCard
-                                title="Associate Users"
+                                title="Associate User"
                                 value={systemMetrics.associateUsers}
-                                icon={
-                                    <IconUsers style={{ width: '24px', height: '24px' }} />
-                                }
+                                icon={<IconUsers style={{ width: '24px', height: '24px' }} />}
                                 width={1}
                                 height={1}
+                                className="metric-orange"
+                            />
+                            {/* Row 2: Active Users, Inactive Users, New Users This Month, New Users This Year */}
+                            <MetricCard
+                                title="Active User"
+                                value={systemMetrics.activeUsers}
+                                icon={<IconActivity style={{ width: '24px', height: '24px' }} />}
+                                width={1}
+                                height={1}
+                                className="metric-green"
                             />
                             <MetricCard
-                                title="Inactive Users"
+                                title="Inactive User"
                                 value={systemMetrics.inactiveUsers}
-                                icon={
-                                    <IconUsers style={{ width: '24px', height: '24px' }} />
-                                }
+                                icon={<IconUsers style={{ width: '24px', height: '24px' }} />}
                                 width={1}
                                 height={1}
+                                className="metric-red"
                             />
                             <MetricCard
                                 title="New Users This Month"
                                 value={systemMetrics.newUsersThisMonth}
                                 trend={systemMetrics.newUsersMonthTrend}
                                 change={systemMetrics.newUsersMonthChange}
-                                icon={
-                                    <IconTrendingUp style={{ width: '24px', height: '24px' }} />
-                                }
-                                width={2}
+                                icon={<IconTrendingUp style={{ width: '24px', height: '24px' }} />}
+                                width={1}
                                 height={1}
                             />
                             <MetricCard
@@ -327,10 +330,8 @@ export default function AdminDashboard() {
                                 value={systemMetrics.newUsersThisYear}
                                 trend={systemMetrics.newUsersYearTrend}
                                 change={systemMetrics.newUsersYearChange}
-                                icon={
-                                    <IconTrendingUp style={{ width: '24px', height: '24px' }} />
-                                }
-                                width={2}
+                                icon={<IconTrendingUp style={{ width: '24px', height: '24px' }} />}
+                                width={1}
                                 height={1}
                             />
                         </DashboardGrid>
@@ -346,30 +347,48 @@ export default function AdminDashboard() {
                     {loading.business ? (
                         <DashboardGrid>
                             <div className="skeleton skeleton-card" style={{ gridColumn: 'span 2' }} />
-                            <div className="skeleton skeleton-card" style={{ gridColumn: 'span 2' }} />
-                            <div className="skeleton skeleton-chart" style={{ gridColumn: 'span 2' }} />
-                            <div className="skeleton skeleton-chart" style={{ gridColumn: 'span 2' }} />
+                            <div className="skeleton skeleton-card" />
+                            <div className="skeleton skeleton-card" />
+                            <div className="skeleton skeleton-chart" style={{ gridColumn: 'span 2', gridRow: 'span 2' }} />
+                            <div className="skeleton skeleton-card" />
+                            <div className="skeleton skeleton-card" />
+                            <div className="skeleton skeleton-card" />
+                            <div className="skeleton skeleton-card" />
+                            <div className="skeleton skeleton-chart" style={{ gridColumn: 'span 2', gridRow: 'span 2' }} />
+                            <div className="skeleton skeleton-chart" style={{ gridColumn: 'span 2', gridRow: 'span 2' }} />
+                            <div className="skeleton skeleton-table" style={{ gridColumn: 'span 4' }} />
                         </DashboardGrid>
                     ) : businessMetrics ? (
                         <DashboardGrid>
+                            {/* Row 1: Total Revenue (2x1), Revenue This Month (1x1), Revenue This Year (1x1) */}
                             <MetricCard
                                 title="Total Revenue"
                                 value={formatCurrency(businessMetrics.totalRevenue)}
+                                icon={<IconDollarSign style={{ width: '24px', height: '24px' }} />}
+                                width={2}
+                                height={1}
+                                className={businessMetrics.totalRevenue > 0 ? 'metric-green' : 'metric-red'}
+                            />
+                            <MetricCard
+                                title="Revenue This Month"
+                                value={formatCurrency(businessMetrics.revenueThisMonth)}
                                 trend={businessMetrics.revenueMonthTrend}
                                 change={businessMetrics.revenueMonthChange}
-                                icon={<IconDollarSign />}
-                                width={2}
+                                icon={<IconDollarSign style={{ width: '24px', height: '24px' }} />}
+                                width={1}
                                 height={1}
                             />
                             <MetricCard
-                                title="Total Orders"
-                                value={businessMetrics.totalOrders}
-                                trend={businessMetrics.ordersMonthTrend}
-                                change={businessMetrics.ordersMonthChange}
-                                icon={<IconShoppingCart />}
-                                width={2}
+                                title="Revenue This Year"
+                                value={formatCurrency(businessMetrics.revenueThisYear)}
+                                trend={businessMetrics.revenueYearTrend}
+                                change={businessMetrics.revenueYearChange}
+                                icon={<IconDollarSign style={{ width: '24px', height: '24px' }} />}
+                                width={1}
                                 height={1}
                             />
+                            
+                            {/* Row 2: Revenue Trend (2x2), Total Orders (1x1), Orders This Month (1x1), Orders This Year (1x1), Average Order Value (1x1) */}
                             <MetricChart
                                 title="Revenue Trend (Last 30 Days)"
                                 data={businessMetrics.revenueTrend}
@@ -379,38 +398,10 @@ export default function AdminDashboard() {
                                 width={2}
                                 height={2}
                             />
-                            <MetricChart
-                                title="Orders by Status"
-                                data={businessMetrics.ordersByStatus.map(s => ({ name: s.status, value: s.count }))}
-                                type="pie"
-                                dataKey="value"
-                                nameKey="name"
-                                width={2}
-                                height={2}
-                            />
-                            <MetricTable
-                                title="Orders by Country"
-                                columns={[
-                                    { key: 'country', label: 'Country' },
-                                    { key: 'orderCount', label: 'Orders' },
-                                    { key: 'revenue', label: 'Revenue', render: (val) => formatCurrency(val) },
-                                    { key: 'percentage', label: '%', render: (val) => `${val}%` }
-                                ]}
-                                data={businessMetrics.ordersByCountry}
-                                width={2}
-                                height={2}
-                            />
                             <MetricCard
-                                title="Average Order Value"
-                                value={formatCurrency(businessMetrics.averageOrderValue)}
-                                width={1}
-                                height={1}
-                            />
-                            <MetricCard
-                                title="Revenue This Month"
-                                value={formatCurrency(businessMetrics.revenueThisMonth)}
-                                trend={businessMetrics.revenueMonthTrend}
-                                change={businessMetrics.revenueMonthChange}
+                                title="Total Orders"
+                                value={businessMetrics.totalOrders}
+                                icon={<IconShoppingCart style={{ width: '24px', height: '24px' }} />}
                                 width={1}
                                 height={1}
                             />
@@ -419,17 +410,91 @@ export default function AdminDashboard() {
                                 value={businessMetrics.ordersThisMonth}
                                 trend={businessMetrics.ordersMonthTrend}
                                 change={businessMetrics.ordersMonthChange}
+                                icon={<IconShoppingCart style={{ width: '24px', height: '24px' }} />}
                                 width={1}
                                 height={1}
                             />
                             <MetricCard
-                                title="Revenue This Year"
-                                value={formatCurrency(businessMetrics.revenueThisYear)}
-                                trend={businessMetrics.revenueYearTrend}
-                                change={businessMetrics.revenueYearChange}
+                                title="Orders This Year"
+                                value={businessMetrics.ordersThisYear}
+                                trend={businessMetrics.ordersYearTrend}
+                                change={businessMetrics.ordersYearChange}
+                                icon={<IconShoppingCart style={{ width: '24px', height: '24px' }} />}
                                 width={1}
                                 height={1}
                             />
+                            <MetricCard
+                                title="Average Order Value"
+                                value={formatCurrency(businessMetrics.averageOrderValue)}
+                                icon={<IconDollarSign style={{ width: '24px', height: '24px' }} />}
+                                width={1}
+                                height={1}
+                            />
+                            
+                            {/* Row 3: Orders by Status (2x2), Orders by Country Table (2x2) */}
+                            {/* #region agent log */}
+                            {(() => {
+                                const statusData = businessMetrics.ordersByStatus.map(s => ({ 
+                                    name: s.status === 'processing' ? 'Processing' : s.status === 'completed' ? 'Completed' : s.status, 
+                                    value: s.count 
+                                }));
+                                fetch('http://127.0.0.1:7242/ingest/3da31dfe-5721-4e1a-a160-93fd6dd15ec4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminDashboard.tsx:432',message:'Orders by Status data',data:{ordersByStatus:businessMetrics.ordersByStatus,statusData,totalOrders:businessMetrics.totalOrders},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+                                return null;
+                            })()}
+                            {/* #endregion */}
+                            <MetricChart
+                                title="Orders by Status"
+                                data={businessMetrics.ordersByStatus.map(s => ({ 
+                                    name: s.status === 'processing' ? 'Processing' : s.status === 'completed' ? 'Completed' : s.status, 
+                                    value: s.count 
+                                }))}
+                                type="pie"
+                                dataKey="value"
+                                nameKey="name"
+                                width={2}
+                                height={2}
+                            />
+                            {/* Orders by Country Table (2x2) */}
+                            <div className="metric-card metric-table" style={{ gridColumn: 'span 2', gridRow: 'span 2', display: 'flex', flexDirection: 'column' }}>
+                        <div className="widget-header">
+                                    <h3>Orders by Country</h3>
+                                </div>
+                                <div className="table-container" style={{ flex: 1, overflow: 'auto', minHeight: '300px' }}>
+                                    <table className="metric-table-content">
+                                        <thead>
+                                            <tr>
+                                                <th>Country</th>
+                                                <th>Orders</th>
+                                                <th>Revenue</th>
+                                                <th>% Orders</th>
+                                                <th>% Revenue</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {businessMetrics.ordersByCountry.length === 0 ? (
+                                                <tr>
+                                                    <td colSpan={5} className="empty-state">No data available</td>
+                                                </tr>
+                                            ) : (
+                                                businessMetrics.ordersByCountry.map((row, index) => {
+                                                    // #region agent log
+                                                    fetch('http://127.0.0.1:7242/ingest/3da31dfe-5721-4e1a-a160-93fd6dd15ec4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminDashboard.tsx:466',message:'Country row data',data:{country:row.country,revenuePercentage:row.revenuePercentage,revenue:row.revenue,totalRevenue:businessMetrics.totalRevenue},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+                                                    // #endregion
+                                                    return (
+                                                        <tr key={index}>
+                                                        <td>{row.country}</td>
+                                                        <td>{row.orderCount}</td>
+                                                        <td>{formatCurrency(row.revenue)}</td>
+                                                        <td>{typeof row.percentage === 'number' ? row.percentage.toFixed(2) : '0.00'}%</td>
+                                                        <td>{row.revenuePercentage !== undefined && row.revenuePercentage !== null ? (typeof row.revenuePercentage === 'number' ? row.revenuePercentage.toFixed(2) : '0.00') : '0.00'}%</td>
+                                                        </tr>
+                                                    );
+                                                })
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+                        </div>
                         </DashboardGrid>
                     ) : null}
                 </div>
@@ -449,67 +514,99 @@ export default function AdminDashboard() {
                         </DashboardGrid>
                     ) : userMetrics ? (
                         <DashboardGrid>
-                            <MetricProgress
-                                title="User Level Distribution"
-                                items={userMetrics.levelDistribution.map(level => ({
-                                    label: level.level,
-                                    value: level.count,
-                                    percentage: level.percentage,
-                                    color: getLevelColor(level.level)
-                                }))}
-                                width={2}
-                                height={2}
-                            />
-                            <MetricTable
-                                title="Top Users by Points"
+                            {/* Row 1: User Level Distribution (2x2), Top Users by Points (2x2) */}
+                            {(() => {
+                                // #region agent log
+                                const levelItems = userMetrics.levelDistribution.map(level => {
+                                    const color = getLevelColor(level.level);
+                                    fetch('http://127.0.0.1:7242/ingest/3da31dfe-5721-4e1a-a160-93fd6dd15ec4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminDashboard.tsx:517',message:'Level color mapping',data:{level:level.level,color,count:level.count,percentage:level.percentage},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+                                    return {
+                                        label: level.level,
+                                        value: level.count,
+                                        percentage: level.percentage,
+                                        color
+                                    };
+                                });
+                                fetch('http://127.0.0.1:7242/ingest/3da31dfe-5721-4e1a-a160-93fd6dd15ec4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminDashboard.tsx:525',message:'All level items with colors',data:{levelItems},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+                                return (
+                                    <MetricProgress
+                                        title="User Level Distribution"
+                                        items={levelItems}
+                                        width={2}
+                                        height={2}
+                                    />
+                                );
+                            })()}
+                            <div className="metric-card metric-table" style={{ gridColumn: 'span 2', gridRow: 'span 2', display: 'flex', flexDirection: 'column' }}>
+                                <div className="widget-header">
+                                    <h3>Top Users by Points</h3>
+                                </div>
+                                <div className="table-container" style={{ flex: 1, overflowY: 'auto', maxHeight: '300px' }}>
+                                    <table className="metric-table-content">
+                                        <thead>
+                                            <tr>
+                                                <th>Name</th>
+                                                <th>Level</th>
+                                                <th>Points</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {userMetrics.topUsersByPoints.length === 0 ? (
+                                                <tr>
+                                                    <td colSpan={3} className="empty-state">No data available</td>
+                                                </tr>
+                                            ) : (
+                                                userMetrics.topUsersByPoints.map((row, index) => {
+                                                    // #region agent log
+                                                    fetch('http://127.0.0.1:7242/ingest/3da31dfe-5721-4e1a-a160-93fd6dd15ec4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminDashboard.tsx:546',message:'Top user by points row',data:{id:row.id,name:row.name,level:row.level,levelLower:row.level?.toLowerCase(),points:row.points,index},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+                                                    // #endregion
+                                                    return (
+                                                        <tr key={row.id}>
+                                                            <td>{row.name}</td>
+                                                            <td>{row.level}</td>
+                                                            <td style={index === 0 ? { color: '#f59e0b', fontWeight: 'bold' } : index === 1 ? { color: '#eab308', fontWeight: 'bold' } : {}}>
+                                                                {formatNumber(row.points)}
+                                                            </td>
+                                                        </tr>
+                                                    );
+                                                })
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            
+                            {/* Row 2: Top Users by Order and Value (2x2), User Growth Trend (2x2) */}
+                            <SortableTable
+                                title="Top Users by Order and Value"
                                 columns={[
                                     { key: 'name', label: 'Name' },
                                     { key: 'level', label: 'Level' },
-                                    { key: 'points', label: 'Points', render: (val) => formatNumber(val) }
+                                    { key: 'orderCount', label: 'Orders', sortable: true, render: (val, row) => {
+                                        const sortedByOrders = [...userMetrics.topUsersByOrders].sort((a, b) => b.orderCount - a.orderCount);
+                                        const index = sortedByOrders.findIndex(u => u.id === row.id);
+                                        const style = index === 0 ? { color: '#f59e0b', fontWeight: 'bold' } : 
+                                                     index === 1 ? { color: '#eab308', fontWeight: 'bold' } : {};
+                                        return <span style={style}>{val}</span>;
+                                    }},
+                                    { key: 'totalValue', label: 'Total Value', sortable: true, render: (val, row) => {
+                                        const sortedByValue = [...userMetrics.topUsersByValue].sort((a, b) => b.totalValue - a.totalValue);
+                                        const index = sortedByValue.findIndex(u => u.id === row.id);
+                                        const style = index === 0 ? { color: '#f59e0b', fontWeight: 'bold' } : 
+                                                     index === 1 ? { color: '#eab308', fontWeight: 'bold' } : {};
+                                        return <span style={style}>{formatCurrency(val)}</span>;
+                                    }}
                                 ]}
-                                data={userMetrics.topUsersByPoints}
-                                width={2}
-                                height={2}
-                            />
-                            <MetricTable
-                                title="Top Users by Orders"
-                                columns={[
-                                    { key: 'name', label: 'Name' },
-                                    { key: 'level', label: 'Level' },
-                                    { key: 'orderCount', label: 'Orders' },
-                                    { key: 'totalValue', label: 'Total Value', render: (val) => formatCurrency(val) }
-                                ]}
-                                data={userMetrics.topUsersByOrders}
-                                width={2}
-                                height={2}
-                            />
-                            <MetricTable
-                                title="Top Users by Value"
-                                columns={[
-                                    { key: 'name', label: 'Name' },
-                                    { key: 'level', label: 'Level' },
-                                    { key: 'orderCount', label: 'Orders' },
-                                    { key: 'totalValue', label: 'Total Value', render: (val) => formatCurrency(val) }
-                                ]}
-                                data={userMetrics.topUsersByValue}
+                                data={[...userMetrics.topUsersByOrders]}
                                 width={2}
                                 height={2}
                             />
                             <MetricChart
                                 title="User Growth Trend (Last 12 Months)"
                                 data={userMetrics.growthTrend}
-                                type="bar"
+                                type="line"
                                 dataKey="count"
                                 nameKey="month"
-                                width={2}
-                                height={2}
-                            />
-                            <MetricChart
-                                title="Level Distribution"
-                                data={userMetrics.levelDistribution.map(l => ({ name: l.level, value: l.count }))}
-                                type="pie"
-                                dataKey="value"
-                                nameKey="name"
                                 width={2}
                                 height={2}
                             />
