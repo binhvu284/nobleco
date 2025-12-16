@@ -1,8 +1,13 @@
 import { FormEvent, useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import AuthFooter from '../../components/AuthFooter';
+import { useTranslation } from '../../shared/contexts/TranslationContext';
+import { IconEye, IconEyeOff } from '../../admin/components/icons';
+
+type Step = 'method' | 'input' | 'otp' | 'reset';
 
 export default function ForgotPassword() {
+    const { t } = useTranslation();
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -19,13 +24,17 @@ export default function ForgotPassword() {
             if (root) root.classList.remove('auth-page');
         };
     }, []);
+
+    const [step, setStep] = useState<Step>('method');
+    const [otpMethod, setOtpMethod] = useState<'phone' | 'email' | null>(null);
     const [phone, setPhone] = useState('');
-    const [step, setStep] = useState<'phone' | 'otp' | 'reset'>('phone');
+    const [email, setEmail] = useState('');
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [otp, setOtp] = useState(['', '', '', '']);
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
+    const [showPassword, setShowPassword] = useState({ new: false, confirm: false });
     const [resendCooldown, setResendCooldown] = useState(0);
     const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
@@ -37,12 +46,25 @@ export default function ForgotPassword() {
         }
     }, [resendCooldown]);
 
-    const handlePhoneSubmit = async (e: FormEvent) => {
+    // Handle method selection
+    const handleMethodSelect = (method: 'phone' | 'email') => {
+        setOtpMethod(method);
+        setStep('input');
+        setError('');
+    };
+
+    // Handle input submit (phone or email)
+    const handleInputSubmit = async (e: FormEvent) => {
         e.preventDefault();
         setError('');
-        
-        if (!phone) {
-            setError('Phone number is required');
+
+        if (otpMethod === 'phone' && !phone.trim()) {
+            setError(t('auth.phoneRequired'));
+            return;
+        }
+
+        if (otpMethod === 'email' && !email.trim()) {
+            setError(t('auth.emailRequired') || 'Email is required');
             return;
         }
 
@@ -54,7 +76,8 @@ export default function ForgotPassword() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     action: 'send',
-                    phone,
+                    phone: otpMethod === 'phone' ? phone : undefined,
+                    email: otpMethod === 'email' ? email : undefined,
                     purpose: 'password_reset'
                 }),
             });
@@ -62,7 +85,7 @@ export default function ForgotPassword() {
             const data = await response.json();
 
             if (!response.ok) {
-                setError(data.error || 'Failed to send verification code');
+                setError(data.error || t('auth.sendOTPFailed') || 'Failed to send verification code');
                 setIsLoading(false);
                 return;
             }
@@ -71,11 +94,12 @@ export default function ForgotPassword() {
             setResendCooldown(60);
             setIsLoading(false);
         } catch (err) {
-            setError('Failed to connect to server. Please try again.');
+            setError(t('auth.verifyFailed') || 'Failed to connect to server. Please try again.');
             setIsLoading(false);
         }
     };
 
+    // Handle OTP change
     const handleOTPChange = (index: number, value: string) => {
         if (value.length > 1) return;
         
@@ -95,13 +119,25 @@ export default function ForgotPassword() {
         }
     };
 
+    const handleOTPPaste = (e: React.ClipboardEvent) => {
+        e.preventDefault();
+        const pastedData = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 4);
+        if (pastedData.length === 4) {
+            const newOtp = pastedData.split('');
+            setOtp(newOtp);
+            inputRefs.current[3]?.focus();
+            setError('');
+        }
+    };
+
+    // Handle OTP verification
     const handleOTPVerify = async (e: FormEvent) => {
         e.preventDefault();
         setError('');
         
         const otpCode = otp.join('');
         if (otpCode.length !== 4) {
-            setError('Please enter the complete 4-digit code');
+            setError(t('auth.enterCompleteCode'));
             return;
         }
 
@@ -113,7 +149,8 @@ export default function ForgotPassword() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     action: 'verify',
-                    phone,
+                    phone: otpMethod === 'phone' ? phone : undefined,
+                    email: otpMethod === 'email' ? email : undefined,
                     code: otpCode,
                     purpose: 'password_reset'
                 }),
@@ -122,7 +159,7 @@ export default function ForgotPassword() {
             const data = await response.json();
 
             if (!response.ok) {
-                setError(data.error || 'Invalid verification code');
+                setError(data.error || t('auth.invalidCode'));
                 setIsLoading(false);
                 return;
             }
@@ -130,36 +167,37 @@ export default function ForgotPassword() {
             setStep('reset');
             setIsLoading(false);
         } catch (err) {
-            setError('Failed to verify code. Please try again.');
+            setError(t('auth.verifyFailed'));
             setIsLoading(false);
         }
     };
 
+    // Handle password reset
     const handleResetPassword = async (e: FormEvent) => {
         e.preventDefault();
         setError('');
 
         if (newPassword !== confirmPassword) {
-            setError('Passwords do not match');
+            setError(t('auth.passwordsDoNotMatch'));
             return;
         }
 
         if (newPassword.length < 6) {
-            setError('Password must be at least 6 characters');
+            setError(t('auth.passwordTooShort'));
             return;
         }
 
         setIsLoading(true);
 
         try {
-            // Get OTP code from state (user already verified it)
             const otpCode = otp.join('');
             
             const response = await fetch('/api/auth/reset-password', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    phone,
+                    phone: otpMethod === 'phone' ? phone : undefined,
+                    email: otpMethod === 'email' ? email : undefined,
                     newPassword,
                     otpCode
                 }),
@@ -168,7 +206,7 @@ export default function ForgotPassword() {
             const data = await response.json();
 
             if (!response.ok) {
-                setError(data.error || 'Failed to reset password');
+                setError(data.error || t('auth.resetPasswordFailed') || 'Failed to reset password');
                 setIsLoading(false);
                 return;
             }
@@ -176,14 +214,15 @@ export default function ForgotPassword() {
             // Success - redirect to login
             navigate('/login', {
                 replace: true,
-                state: { message: 'Password reset successfully! Please log in with your new password.' }
+                state: { message: t('auth.passwordResetSuccess') || 'Password reset successfully! Please log in with your new password.' }
             });
         } catch (err) {
-            setError('Failed to connect to server. Please try again.');
+            setError(t('auth.verifyFailed') || 'Failed to connect to server. Please try again.');
             setIsLoading(false);
         }
     };
 
+    // Handle resend OTP
     const handleResendOTP = async () => {
         if (resendCooldown > 0) return;
         
@@ -196,7 +235,8 @@ export default function ForgotPassword() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     action: 'resend',
-                    phone,
+                    phone: otpMethod === 'phone' ? phone : undefined,
+                    email: otpMethod === 'email' ? email : undefined,
                     purpose: 'password_reset'
                 }),
             });
@@ -204,7 +244,7 @@ export default function ForgotPassword() {
             const data = await response.json();
 
             if (!response.ok) {
-                setError(data.error || 'Failed to resend code');
+                setError(data.error || t('auth.resendFailed'));
                 setIsLoading(false);
                 return;
             }
@@ -214,11 +254,12 @@ export default function ForgotPassword() {
             setIsLoading(false);
             inputRefs.current[0]?.focus();
         } catch (err) {
-            setError('Failed to resend code. Please try again.');
+            setError(t('auth.resendFailed'));
             setIsLoading(false);
         }
     };
 
+    // Format phone/email for display
     const formatPhone = (phoneNumber: string) => {
         if (phoneNumber.length <= 4) return phoneNumber;
         const start = phoneNumber.slice(0, 2);
@@ -226,39 +267,110 @@ export default function ForgotPassword() {
         return `${start}****${end}`;
     };
 
+    const formatEmail = (emailAddress: string) => {
+        const [localPart, domain] = emailAddress.split('@');
+        if (localPart.length <= 2) return emailAddress;
+        const start = localPart.slice(0, 2);
+        const end = localPart.slice(-1);
+        return `${start}***${end}@${domain}`;
+    };
+
     return (
         <div className="auth-root">
             <div className="auth-gradient" aria-hidden="true" />
             <div className="auth-card">
-                <h1 className="brand">Reset password</h1>
+                <h1 className="brand">{t('auth.resetPassword')}</h1>
                 
-                {step === 'phone' && (
+                {/* Method Selection Step */}
+                {step === 'method' && (
                     <>
-                        <p className="subtitle">Enter your phone number to receive a verification code</p>
-                        <form onSubmit={handlePhoneSubmit} className="form">
+                        <p className="subtitle">{t('auth.selectMethod')}</p>
+                        <div className="form">
+                            <div className="otp-method-buttons">
+                                <button
+                                    type="button"
+                                    onClick={() => handleMethodSelect('phone')}
+                                    className="otp-method-btn"
+                                >
+                                    <span className="otp-method-icon">📱</span>
+                                    <span className="otp-method-text">{t('auth.viaPhone')}</span>
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => handleMethodSelect('email')}
+                                    className="otp-method-btn"
+                                >
+                                    <span className="otp-method-icon">✉️</span>
+                                    <span className="otp-method-text">{t('auth.viaEmail')}</span>
+                                </button>
+                            </div>
+                            {error && <div className="error" style={{ marginTop: '16px' }}>{error}</div>}
+                        </div>
+                    </>
+                )}
+
+                {/* Input Step (Phone or Email) */}
+                {step === 'input' && (
+                    <>
+                        <p className="subtitle">
+                            {otpMethod === 'phone' 
+                                ? t('auth.enterPhoneToReset') || 'Enter your phone number to receive a verification code'
+                                : t('auth.enterEmailToReset') || 'Enter your email address to receive a verification code'}
+                        </p>
+                        <form onSubmit={handleInputSubmit} className="form">
                             <label>
-                                Phone Number
+                                {otpMethod === 'phone' ? t('auth.phone') : t('auth.email')}
                                 <input 
-                                    type="tel"
-                                    value={phone} 
-                                    onChange={(e) => setPhone(e.target.value)} 
-                                    placeholder="Enter your phone number" 
+                                    type={otpMethod === 'phone' ? 'tel' : 'email'}
+                                    value={otpMethod === 'phone' ? phone : email}
+                                    onChange={(e) => {
+                                        if (otpMethod === 'phone') {
+                                            setPhone(e.target.value);
+                                        } else {
+                                            setEmail(e.target.value);
+                                        }
+                                        setError('');
+                                    }}
+                                    placeholder={otpMethod === 'phone' ? t('auth.enterPhoneNumber') : t('auth.enterEmail') || 'Enter your email'}
                                     required 
+                                    disabled={isLoading}
+                                    inputMode={otpMethod === 'phone' ? 'tel' : 'email'}
+                                    autoComplete={otpMethod === 'phone' ? 'tel' : 'email'}
                                 />
                             </label>
                             {error && <div className="error">{error}</div>}
                             <button type="submit" className="primary" disabled={isLoading}>
-                                {isLoading ? 'Sending code...' : 'Send Verification Code'}
+                                {isLoading ? t('common.loading') : t('auth.sendOTP')}
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setStep('method');
+                                    setOtpMethod(null);
+                                    setPhone('');
+                                    setEmail('');
+                                    setError('');
+                                }}
+                                className="secondary"
+                                style={{ marginTop: '12px', width: '100%' }}
+                                disabled={isLoading}
+                            >
+                                {t('common.back')}
                             </button>
                         </form>
                     </>
                 )}
 
+                {/* OTP Verification Step */}
                 {step === 'otp' && (
                     <>
                         <p className="subtitle">
-                            Enter the 4-digit code sent to<br />
-                            <strong>{formatPhone(phone)}</strong>
+                            {t('auth.codeSentTo')}<br />
+                            <strong>
+                                {otpMethod === 'phone' && phone 
+                                    ? formatPhone(phone) 
+                                    : formatEmail(email)}
+                            </strong>
                         </p>
                         <form onSubmit={handleOTPVerify} className="form">
                             <div className="otp-container">
@@ -272,6 +384,7 @@ export default function ForgotPassword() {
                                         value={digit}
                                         onChange={(e) => handleOTPChange(index, e.target.value)}
                                         onKeyDown={(e) => handleOTPKeyDown(index, e)}
+                                        onPaste={handleOTPPaste}
                                         className="otp-input"
                                         autoFocus={index === 0}
                                         disabled={isLoading}
@@ -279,11 +392,15 @@ export default function ForgotPassword() {
                                 ))}
                             </div>
                             {error && <div className="error">{error}</div>}
-                            <button type="submit" className="primary" disabled={isLoading || otp.join('').length !== 4}>
-                                {isLoading ? 'Verifying...' : 'Verify Code'}
+                            <button 
+                                type="submit" 
+                                className="primary" 
+                                disabled={isLoading || otp.join('').length !== 4}
+                            >
+                                {isLoading ? t('common.loading') : t('auth.verifyOTP')}
                             </button>
                             <div className="otp-resend">
-                                <p>Didn't receive the code?</p>
+                                <p>{t('auth.didntReceiveCode')}</p>
                                 <button
                                     type="button"
                                     onClick={handleResendOTP}
@@ -291,69 +408,111 @@ export default function ForgotPassword() {
                                     className="resend-link"
                                 >
                                     {resendCooldown > 0 
-                                        ? `Resend code in ${resendCooldown}s` 
+                                        ? `${t('auth.resendIn')} ${resendCooldown}s` 
                                         : isLoading 
-                                            ? 'Sending...' 
-                                            : 'Resend Code'}
+                                            ? t('common.loading') 
+                                            : t('auth.resendOTP')}
                                 </button>
                             </div>
                             <button
                                 type="button"
-                                onClick={() => setStep('phone')}
+                                onClick={() => {
+                                    setStep('input');
+                                    setOtp(['', '', '', '']);
+                                    setError('');
+                                }}
                                 className="secondary"
-                                style={{ marginTop: '12px' }}
+                                style={{ marginTop: '12px', width: '100%' }}
+                                disabled={isLoading}
                             >
-                                Back
+                                {t('common.back')}
                             </button>
                         </form>
                     </>
                 )}
 
+                {/* Password Reset Step */}
                 {step === 'reset' && (
                     <>
-                        <p className="subtitle">Enter your new password</p>
+                        <p className="subtitle">{t('auth.enterNewPassword') || 'Enter your new password'}</p>
                         <form onSubmit={handleResetPassword} className="form">
                             <label>
-                                New Password
-                                <input 
-                                    type="password"
-                                    value={newPassword} 
-                                    onChange={(e) => setNewPassword(e.target.value)} 
-                                    placeholder="Enter new password" 
-                                    required 
-                                    minLength={6}
-                                />
+                                {t('auth.newPassword') || 'New Password'}
+                                <div style={{ position: 'relative' }}>
+                                    <input 
+                                        type={showPassword.new ? 'text' : 'password'}
+                                        value={newPassword} 
+                                        onChange={(e) => {
+                                            setNewPassword(e.target.value);
+                                            setError('');
+                                        }}
+                                        placeholder={t('auth.enterNewPassword') || 'Enter new password'} 
+                                        required 
+                                        minLength={6}
+                                        disabled={isLoading}
+                                        style={{ paddingRight: '45px', width: '100%' }}
+                                    />
+                                    <button
+                                        type="button"
+                                        className="password-toggle"
+                                        onClick={() => setShowPassword(prev => ({ ...prev, new: !prev.new }))}
+                                        style={{ position: 'absolute', right: '8px', bottom: '8px' }}
+                                    >
+                                        {showPassword.new ? <IconEyeOff /> : <IconEye />}
+                                    </button>
+                                </div>
                             </label>
                             <label>
-                                Confirm New Password
-                                <input 
-                                    type="password"
-                                    value={confirmPassword} 
-                                    onChange={(e) => setConfirmPassword(e.target.value)} 
-                                    placeholder="Confirm new password" 
-                                    required 
-                                    minLength={6}
-                                />
+                                {t('auth.confirmPassword')}
+                                <div style={{ position: 'relative' }}>
+                                    <input 
+                                        type={showPassword.confirm ? 'text' : 'password'}
+                                        value={confirmPassword} 
+                                        onChange={(e) => {
+                                            setConfirmPassword(e.target.value);
+                                            setError('');
+                                        }}
+                                        placeholder={t('auth.confirmPassword') || 'Confirm new password'} 
+                                        required 
+                                        minLength={6}
+                                        disabled={isLoading}
+                                        style={{ paddingRight: '45px', width: '100%' }}
+                                    />
+                                    <button
+                                        type="button"
+                                        className="password-toggle"
+                                        onClick={() => setShowPassword(prev => ({ ...prev, confirm: !prev.confirm }))}
+                                        style={{ position: 'absolute', right: '8px', bottom: '8px' }}
+                                    >
+                                        {showPassword.confirm ? <IconEyeOff /> : <IconEye />}
+                                    </button>
+                                </div>
                             </label>
                             {error && <div className="error">{error}</div>}
                             <button type="submit" className="primary" disabled={isLoading}>
-                                {isLoading ? 'Resetting password...' : 'Reset Password'}
+                                {isLoading ? t('common.loading') : t('auth.changePassword') || 'Change Password'}
                             </button>
                             <button
                                 type="button"
-                                onClick={() => setStep('otp')}
+                                onClick={() => {
+                                    setStep('otp');
+                                    setNewPassword('');
+                                    setConfirmPassword('');
+                                    setError('');
+                                }}
                                 className="secondary"
-                                style={{ marginTop: '12px' }}
+                                style={{ marginTop: '12px', width: '100%' }}
+                                disabled={isLoading}
                             >
-                                Back
+                                {t('common.back')}
                             </button>
                         </form>
                     </>
                 )}
 
                 <div className="auth-footer">
-                    <span>Remembered it?</span>
-                    <Link to="/login" className="auth-link">Back to sign in</Link>
+                    <span>{t('auth.rememberedIt') || 'Remembered it?'}</span>
+                    <Link to="/login" className="auth-link">{t('auth.backToSignIn') || 'Back to sign in'}</Link>
                 </div>
             </div>
             <AuthFooter />

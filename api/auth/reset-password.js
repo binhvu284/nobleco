@@ -1,8 +1,9 @@
 import bcrypt from 'bcryptjs';
-import { findUserByPhone, updateUserPasswordHashed } from '../_repo/users.js';
+import { findUserByPhone, findUserByEmail, updateUserPasswordHashed } from '../_repo/users.js';
 import { verifyOTP } from '../_repo/otps.js';
 import { getSupabase } from '../_db.js';
 import { validatePhone } from '../_utils/sms.js';
+import { validateEmail } from '../_utils/email.js';
 
 export default async function handler(req, res) {
   try {
@@ -23,18 +24,32 @@ export default async function handler(req, res) {
 
     // Check if body is already parsed (Express) or needs to be read
     const body = req.body || await readBody(req);
-    let { phone, newPassword, otpCode } = body;
+    let { phone, email, newPassword, otpCode } = body;
 
-    if (!phone || !newPassword || !otpCode) {
-      return res.status(400).json({ error: 'Phone number, OTP code, and new password are required' });
+    if ((!phone && !email) || !newPassword || !otpCode) {
+      return res.status(400).json({ error: 'Phone number or email, OTP code, and new password are required' });
     }
 
-    // Validate and clean phone number
-    const phoneValidation = validatePhone(phone);
-    if (!phoneValidation.valid) {
-      return res.status(400).json({ error: phoneValidation.error });
+    let cleanedPhone = null;
+    let cleanedEmail = null;
+    let identifier = null;
+
+    // Validate and clean phone or email
+    if (phone) {
+      const phoneValidation = validatePhone(phone);
+      if (!phoneValidation.valid) {
+        return res.status(400).json({ error: phoneValidation.error });
+      }
+      cleanedPhone = phoneValidation.cleaned;
+      identifier = cleanedPhone;
+    } else if (email) {
+      const emailValidation = validateEmail(email);
+      if (!emailValidation.valid) {
+        return res.status(400).json({ error: emailValidation.error });
+      }
+      cleanedEmail = emailValidation.cleaned;
+      identifier = cleanedEmail;
     }
-    phone = phoneValidation.cleaned;
 
     if (newPassword.length < 6) {
       return res.status(400).json({ error: 'Password must be at least 6 characters' });
@@ -47,18 +62,24 @@ export default async function handler(req, res) {
     const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
     
     // Check for verified OTP with matching code that hasn't expired
-    const { data: verifiedOTP, error: findError } = await supabase
+    let query = supabase
       .from('otps')
       .select('*')
-      .eq('phone', phone)
       .eq('purpose', 'password_reset')
       .eq('code', otpCode)
       .eq('verified', true)
       .gte('created_at', tenMinutesAgo)
       .gt('expires_at', now) // OTP must not be expired
       .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
+      .limit(1);
+
+    if (cleanedPhone) {
+      query = query.eq('phone', cleanedPhone);
+    } else if (cleanedEmail) {
+      query = query.eq('email', cleanedEmail);
+    }
+
+    const { data: verifiedOTP, error: findError } = await query.maybeSingle();
     
     if (findError) {
       console.error('Error finding verified OTP:', findError);
@@ -67,14 +88,17 @@ export default async function handler(req, res) {
     
     if (!verifiedOTP) {
       // If not found as verified, try to verify it now (in case user skipped verification step)
-      const otpResult = await verifyOTP(phone, otpCode, 'password_reset');
+      const otpResult = await verifyOTP(cleanedPhone, otpCode, 'password_reset', cleanedEmail);
       if (!otpResult.valid) {
         return res.status(400).json({ error: otpResult.error || 'Invalid or expired OTP code. Please verify OTP again.' });
       }
     }
 
-    // Find user by phone
-    const user = await findUserByPhone(phone);
+    // Find user by phone or email
+    const user = cleanedPhone 
+      ? await findUserByPhone(cleanedPhone)
+      : await findUserByEmail(cleanedEmail);
+    
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }

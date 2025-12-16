@@ -110,7 +110,20 @@
     "verifyEmailAddress": "Xác thực địa chỉ email",
     "codeSentTo": "Chúng tôi đã gửi mã xác thực 4 chữ số đến",
     "didntReceiveCode": "Không nhận được mã?",
-    "resendIn": "Gửi lại mã sau"
+    "resendIn": "Gửi lại mã sau",
+    "selectMethod": "Chọn cách bạn muốn nhận mã xác thực:",
+    "enterPhoneToReset": "Nhập số điện thoại của bạn để nhận mã xác thực",
+    "enterEmailToReset": "Nhập địa chỉ email của bạn để nhận mã xác thực",
+    "enterEmail": "Nhập email của bạn",
+    "emailRequired": "Email là bắt buộc",
+    "sendOTPFailed": "Gửi mã xác thực thất bại",
+    "enterNewPassword": "Nhập mật khẩu mới của bạn",
+    "newPassword": "Mật khẩu mới",
+    "changePassword": "Đổi mật khẩu",
+    "resetPasswordFailed": "Đặt lại mật khẩu thất bại",
+    "passwordResetSuccess": "Đặt lại mật khẩu thành công! Vui lòng đăng nhập bằng mật khẩu mới.",
+    "rememberedIt": "Nhớ lại rồi?",
+    "backToSignIn": "Quay lại đăng nhập"
   },
   "header": {
     "profile": "Hồ sơ",

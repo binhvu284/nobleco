@@ -110,7 +110,20 @@
     "verifyEmailAddress": "Verify Email Address",
     "codeSentTo": "We've sent a 4-digit verification code to",
     "didntReceiveCode": "Didn't receive the code?",
-    "resendIn": "Resend code in"
+    "resendIn": "Resend code in",
+    "selectMethod": "Select how you want to receive the verification code:",
+    "enterPhoneToReset": "Enter your phone number to receive a verification code",
+    "enterEmailToReset": "Enter your email address to receive a verification code",
+    "enterEmail": "Enter your email",
+    "emailRequired": "Email is required",
+    "sendOTPFailed": "Failed to send verification code",
+    "enterNewPassword": "Enter your new password",
+    "newPassword": "New Password",
+    "changePassword": "Change Password",
+    "resetPasswordFailed": "Failed to reset password",
+    "passwordResetSuccess": "Password reset successfully! Please log in with your new password.",
+    "rememberedIt": "Remembered it?",
+    "backToSignIn": "Back to sign in"
   },
   "header": {
     "profile": "Profile",
