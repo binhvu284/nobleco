@@ -105,6 +105,8 @@ function normalize(p) {
     kiotviet_id: p.kiotviet_id ?? null,
     serial_number: p.serial_number ?? null,
     supplier_id: p.supplier_id ?? null,
+    jewelry_specifications: p.jewelry_specifications ?? null,
+    // Legacy fields (kept for backward compatibility, but deprecated)
     center_stone_size_mm: p.center_stone_size_mm ? parseFloat(p.center_stone_size_mm) : null,
     ni_tay: p.ni_tay ? parseFloat(p.ni_tay) : null,
     shape: p.shape ?? null,
@@ -316,15 +318,9 @@ export async function createProduct(productData, userId) {
       // Jewelry specification fields
       serial_number: productData.serial_number || null,
       supplier_id: productData.supplier_id || null,
-      type: productData.type || null,
-      center_stone_size_mm: productData.center_stone_size_mm || null,
-      ni_tay: productData.ni_tay || null,
-      shape: productData.shape || null,
-      dimensions: productData.dimensions || null,
-      stone_count: productData.stone_count || null,
-      carat_weight_ct: productData.carat_weight_ct || null,
-      gold_purity: productData.gold_purity || null,
-      product_weight_g: productData.product_weight_g || null,
+      jewelry_specifications: productData.jewelry_specifications && productData.jewelry_specifications.trim() 
+        ? productData.jewelry_specifications.trim() 
+        : null,
       inventory_value: productData.inventory_value || null,
       created_by: userId,
       updated_by: userId
@@ -390,32 +386,10 @@ export async function updateProduct(productId, productData, userId) {
   if (productData.supplier_id !== undefined) {
     updateData.supplier_id = productData.supplier_id || null;
   }
-  if (productData.type !== undefined) {
-    updateData.type = productData.type || null;
-  }
-  if (productData.center_stone_size_mm !== undefined) {
-    updateData.center_stone_size_mm = productData.center_stone_size_mm || null;
-  }
-  if (productData.ni_tay !== undefined) {
-    updateData.ni_tay = productData.ni_tay || null;
-  }
-  if (productData.shape !== undefined) {
-    updateData.shape = productData.shape || null;
-  }
-  if (productData.dimensions !== undefined) {
-    updateData.dimensions = productData.dimensions || null;
-  }
-  if (productData.stone_count !== undefined) {
-    updateData.stone_count = productData.stone_count || null;
-  }
-  if (productData.carat_weight_ct !== undefined) {
-    updateData.carat_weight_ct = productData.carat_weight_ct || null;
-  }
-  if (productData.gold_purity !== undefined) {
-    updateData.gold_purity = productData.gold_purity || null;
-  }
-  if (productData.product_weight_g !== undefined) {
-    updateData.product_weight_g = productData.product_weight_g || null;
+  if (productData.jewelry_specifications !== undefined) {
+    updateData.jewelry_specifications = productData.jewelry_specifications && productData.jewelry_specifications.trim() 
+      ? productData.jewelry_specifications.trim() 
+      : null;
   }
   if (productData.inventory_value !== undefined) {
     updateData.inventory_value = productData.inventory_value || null;

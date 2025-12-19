@@ -47,6 +47,9 @@ interface Product {
     kiotviet_id?: string | null;
     serial_number?: string | null;
     supplier_id?: string | null;
+    jewelry_specifications?: string | null;
+    inventory_value?: number | null;
+    // Legacy fields (kept for backward compatibility)
     center_stone_size_mm?: number | null;
     shape?: string | null;
     dimensions?: string | null;
@@ -55,7 +58,6 @@ interface Product {
     gold_purity?: string | null;
     product_weight_g?: number | null;
     type?: string | null;
-    inventory_value?: number | null;
     last_synced_at?: string | null;
     sync_status?: string | null;
 }

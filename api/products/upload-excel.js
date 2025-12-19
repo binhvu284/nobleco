@@ -123,26 +123,16 @@ function parseExcelFile(buffer) {
     productCode: headers.findIndex(h => h && h.toLowerCase().includes('product code')),
     supplierCode: headers.findIndex(h => h && h.toLowerCase().includes('supplier code')),
     productName: headers.findIndex(h => h && h.toLowerCase().includes('product name')),
-    type: headers.findIndex(h => h && h.toLowerCase().includes('type') && !h.toLowerCase().includes('category')),
+    jewelrySpecifications: headers.findIndex(h => h && h.toLowerCase().includes('jewelry specification')),
     description: headers.findIndex(h => h && h.toLowerCase().includes('description')),
     price: headers.findIndex(h => h && h.toLowerCase().includes('price')),
     stock: headers.findIndex(h => h && h.toLowerCase().includes('stock')),
-    caratWeight: headers.findIndex(h => h && h.toLowerCase().includes('carat weight')),
-    goldPurity: headers.findIndex(h => h && h.toLowerCase().includes('gold purity')),
-    productWeight: headers.findIndex(h => h && h.toLowerCase().includes('product weight')),
-    shape: headers.findIndex(h => h && h.toLowerCase().includes('shape')),
-    dimensions: headers.findIndex(h => h && h.toLowerCase().includes('dimensions')),
-    stoneCount: headers.findIndex(h => h && h.toLowerCase().includes('stone count')),
-    centerStoneSize: headers.findIndex(h => h && h.toLowerCase().includes('center stone size')),
-    ringSize: headers.findIndex(h => h && h.toLowerCase().includes('ring size') || h && h.toLowerCase().includes('ni tay')),
-    inventoryValue: headers.findIndex(h => h && h.toLowerCase().includes('inventory value')),
-    categoryNames: headers.findIndex(h => h && h.toLowerCase().includes('category')),
-    notes: headers.findIndex(h => h && h.toLowerCase().includes('note'))
+    categoryNames: headers.findIndex(h => h && h.toLowerCase().includes('categor'))
   };
   
   // Validate required columns
-  if (columnMap.productCode === -1 || columnMap.productName === -1 || columnMap.price === -1) {
-    throw new Error('Missing required columns: Product Code, Product Name, and Price are required');
+  if (columnMap.productCode === -1 || columnMap.productName === -1) {
+    throw new Error('Missing required columns: Product Code and Product Name are required');
   }
   
   // Parse data rows (skip header)
@@ -160,51 +150,56 @@ function parseExcelFile(buffer) {
     try {
       const productCode = row[columnMap.productCode] ? String(row[columnMap.productCode]).trim() : null;
       const productName = row[columnMap.productName] ? String(row[columnMap.productName]).trim() : null;
-      const price = row[columnMap.price] ? parseFloat(String(row[columnMap.price]).replace(/[^\d.-]/g, '')) : null;
       
       // Validate required fields
-      if (!productCode || !productName || price === null || isNaN(price) || price < 0) {
+      if (!productCode || !productName) {
         errors.push({
           row: i + 1,
           productCode: productCode || 'N/A',
-          error: 'Missing or invalid required fields (Product Code, Product Name, or Price)'
+          error: 'Missing required fields (Product Code or Product Name)'
         });
         continue;
       }
       
-      // Parse optional fields
-      // Normalize gold purity to lowercase (accept both "18K" and "18k")
-      const goldPurityRaw = row[columnMap.goldPurity] ? String(row[columnMap.goldPurity]).trim() : null;
-      const goldPurity = goldPurityRaw ? goldPurityRaw.toLowerCase() : null;
+      // Parse Jewelry Specifications (multi-line text)
+      const jewelrySpecifications = row[columnMap.jewelrySpecifications] 
+        ? String(row[columnMap.jewelrySpecifications]).trim() 
+        : null;
       
-      // Normalize dimensions: replace commas with dots for decimal values
-      // This ensures commas are not treated as value separators
-      let dimensionsRaw = row[columnMap.dimensions] ? String(row[columnMap.dimensions]).trim() : null;
-      let dimensions = null;
-      if (dimensionsRaw) {
-        // Replace commas that are part of decimal numbers with dots
-        // Pattern: digit, comma, digit (e.g., "2,5" -> "2.5")
-        dimensions = dimensionsRaw.replace(/(\d),(\d)/g, '$1.$2');
+      // Parse Description
+      const description = row[columnMap.description] 
+        ? String(row[columnMap.description]).trim() 
+        : 'No description available';
+      
+      // Parse Price
+      const price = row[columnMap.price] 
+        ? parseFloat(String(row[columnMap.price]).replace(/[^\d.-]/g, '')) 
+        : null;
+      
+      // Parse Stock
+      const stock = row[columnMap.stock] 
+        ? parseInt(String(row[columnMap.stock])) || 0 
+        : 0;
+      
+      // Validate price if provided
+      if (price !== null && (isNaN(price) || price < 0)) {
+        errors.push({
+          row: i + 1,
+          productCode: productCode || 'N/A',
+          error: 'Invalid price value'
+        });
+        continue;
       }
       
       const product = {
         serial_number: productCode,
         supplier_id: row[columnMap.supplierCode] ? String(row[columnMap.supplierCode]).trim() : null,
         name: productName,
-        type: row[columnMap.type] ? String(row[columnMap.type]).trim().toUpperCase() : null,
-        short_description: row[columnMap.description] ? String(row[columnMap.description]).trim() : 'No description available',
-        long_description: row[columnMap.notes] ? String(row[columnMap.notes]).trim() : null,
-        price: price,
-        stock: row[columnMap.stock] ? parseInt(String(row[columnMap.stock])) || 0 : 0,
-        carat_weight_ct: row[columnMap.caratWeight] ? parseFloat(String(row[columnMap.caratWeight])) || null : null,
-        gold_purity: goldPurity,
-        product_weight_g: row[columnMap.productWeight] ? parseFloat(String(row[columnMap.productWeight])) || null : null,
-        shape: row[columnMap.shape] ? String(row[columnMap.shape]).trim() : null,
-        dimensions: dimensions,
-        stone_count: row[columnMap.stoneCount] ? parseInt(String(row[columnMap.stoneCount])) || null : null,
-        center_stone_size_mm: row[columnMap.centerStoneSize] ? parseFloat(String(row[columnMap.centerStoneSize])) || null : null,
-        ni_tay: row[columnMap.ringSize] ? parseFloat(String(row[columnMap.ringSize])) || null : null,
-        inventory_value: row[columnMap.inventoryValue] ? parseFloat(String(row[columnMap.inventoryValue]).replace(/[^\d.-]/g, '')) || null : null,
+        short_description: description,
+        long_description: null,
+        jewelry_specifications: jewelrySpecifications,
+        price: price !== null ? price : 0,
+        stock: stock,
         category_names: row[columnMap.categoryNames] ? String(row[columnMap.categoryNames]).trim() : null,
         status: 'active'
       };

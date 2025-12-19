@@ -68,14 +68,7 @@ export default async function handler(req, res) {
           // Jewelry specification fields
           serial_number: req.body.serial_number || null,
           supplier_id: req.body.supplier_id || null,
-          center_stone_size_mm: req.body.center_stone_size_mm || null,
-          ni_tay: req.body.ni_tay || null,
-          shape: req.body.shape || null,
-          dimensions: req.body.dimensions || null,
-          stone_count: req.body.stone_count || null,
-          carat_weight_ct: req.body.carat_weight_ct || null,
-          gold_purity: req.body.gold_purity || null,
-          product_weight_g: req.body.product_weight_g || null,
+          jewelry_specifications: req.body.jewelry_specifications || null,
           inventory_value: req.body.inventory_value || null
         };
         categoryIds = req.body.category_ids || req.body.categoryIds || [];

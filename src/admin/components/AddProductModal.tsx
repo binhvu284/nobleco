@@ -51,15 +51,7 @@ export default function AddProductModal({ open, onClose, onSuccess, product }: A
         status: 'active' as 'active' | 'inactive',
         // Jewelry specification fields
         supplier_id: '',
-        type: '' as '' | 'L' | 'N' | 'K',
-        center_stone_size_mm: '',
-        ni_tay: '',
-        shape: [] as string[], // Array to support multiple shapes
-        dimensions: '',
-        stone_count: '',
-        carat_weight_ct: '',
-        gold_purity: '' as '' | '18k' | '14k',
-        product_weight_g: '',
+        jewelry_specifications: '',
         inventory_value: ''
     });
     
@@ -115,15 +107,7 @@ export default function AddProductModal({ open, onClose, onSuccess, product }: A
                 status: formStatus,
                 // Jewelry specification fields
                 supplier_id: (product as any).supplier_id || '',
-                type: ((product as any).type === 'L' || (product as any).type === 'N' || (product as any).type === 'K') ? (product as any).type : '',
-                center_stone_size_mm: (product as any).center_stone_size_mm?.toString() || '',
-                ni_tay: (product as any).ni_tay?.toString() || '',
-                shape: (product as any).shape ? (Array.isArray((product as any).shape) ? (product as any).shape : [(product as any).shape].filter(Boolean)) : [],
-                dimensions: (product as any).dimensions || '',
-                stone_count: (product as any).stone_count?.toString() || '',
-                carat_weight_ct: (product as any).carat_weight_ct?.toString() || '',
-                gold_purity: ((product as any).gold_purity === '18k' || (product as any).gold_purity === '14k') ? (product as any).gold_purity : '',
-                product_weight_g: (product as any).product_weight_g?.toString() || '',
+                jewelry_specifications: (product as any).jewelry_specifications || '',
                 inventory_value: (product as any).inventory_value?.toString() || ''
             });
             
@@ -168,15 +152,7 @@ export default function AddProductModal({ open, onClose, onSuccess, product }: A
                 stock: '0',
                 status: 'active',
                 supplier_id: '',
-                type: '',
-                center_stone_size_mm: '',
-                ni_tay: '',
-                shape: [] as string[],
-                dimensions: '',
-                stone_count: '',
-                carat_weight_ct: '',
-                gold_purity: '',
-                product_weight_g: '',
+                jewelry_specifications: '',
                 inventory_value: ''
             });
             setProductImages([]);
@@ -379,42 +355,7 @@ export default function AddProductModal({ open, onClose, onSuccess, product }: A
                 }
             }
             
-            // Validate jewelry specification numeric fields
-            if (formData.center_stone_size_mm && formData.center_stone_size_mm.trim()) {
-                const value = parseFloat(formData.center_stone_size_mm);
-                if (isNaN(value) || value < 0) {
-                    newErrors.center_stone_size_mm = 'Center stone size must be a valid positive number';
-                }
-            }
-            
-            if (formData.ni_tay && formData.ni_tay.trim()) {
-                const value = parseFloat(formData.ni_tay);
-                if (isNaN(value) || value < 0) {
-                    newErrors.ni_tay = 'Ni tay must be a valid positive number';
-                }
-            }
-            
-            if (formData.stone_count && formData.stone_count.trim()) {
-                const value = parseInt(formData.stone_count);
-                if (isNaN(value) || value < 0) {
-                    newErrors.stone_count = 'Stone count must be a valid non-negative number';
-                }
-            }
-            
-            if (formData.carat_weight_ct && formData.carat_weight_ct.trim()) {
-                const value = parseFloat(formData.carat_weight_ct);
-                if (isNaN(value) || value < 0) {
-                    newErrors.carat_weight_ct = 'Carat weight must be a valid positive number';
-                }
-            }
-            
-            if (formData.product_weight_g && formData.product_weight_g.trim()) {
-                const value = parseFloat(formData.product_weight_g);
-                if (isNaN(value) || value < 0) {
-                    newErrors.product_weight_g = 'Product weight must be a valid positive number';
-                }
-            }
-            
+            // Validate inventory value
             if (formData.inventory_value && formData.inventory_value.trim()) {
                 const value = parseFloat(formData.inventory_value);
                 if (isNaN(value) || value < 0) {
@@ -456,15 +397,7 @@ export default function AddProductModal({ open, onClose, onSuccess, product }: A
                     stock: formData.stock ? parseInt(formData.stock) : 0,
                     // Jewelry specification fields
                     supplier_id: formData.supplier_id.trim() || null,
-                    type: formData.type || null,
-                    center_stone_size_mm: formData.center_stone_size_mm ? parseFloat(formData.center_stone_size_mm) : null,
-                    ni_tay: formData.ni_tay ? parseFloat(formData.ni_tay) : null,
-                    shape: formData.shape.length > 0 ? (formData.shape.length === 1 ? formData.shape[0] : formData.shape.join(', ')) : null,
-                    dimensions: formData.dimensions.trim() || null,
-                    stone_count: formData.stone_count ? parseInt(formData.stone_count) : null,
-                    carat_weight_ct: formData.carat_weight_ct ? parseFloat(formData.carat_weight_ct) : null,
-                    gold_purity: formData.gold_purity || null,
-                    product_weight_g: formData.product_weight_g ? parseFloat(formData.product_weight_g) : null,
+                    jewelry_specifications: formData.jewelry_specifications.trim() || null,
                     inventory_value: formData.inventory_value ? parseFloat(formData.inventory_value) : null
                 };
                 
@@ -497,15 +430,7 @@ export default function AddProductModal({ open, onClose, onSuccess, product }: A
                     status: formData.status,
                     // Jewelry specification fields
                     supplier_id: formData.supplier_id.trim() || null,
-                    type: formData.type || null,
-                    center_stone_size_mm: formData.center_stone_size_mm ? parseFloat(formData.center_stone_size_mm) : null,
-                    ni_tay: formData.ni_tay ? parseFloat(formData.ni_tay) : null,
-                    shape: formData.shape.length > 0 ? (formData.shape.length === 1 ? formData.shape[0] : formData.shape.join(', ')) : null,
-                    dimensions: formData.dimensions.trim() || null,
-                    stone_count: formData.stone_count ? parseInt(formData.stone_count) : null,
-                    carat_weight_ct: formData.carat_weight_ct ? parseFloat(formData.carat_weight_ct) : null,
-                    gold_purity: formData.gold_purity || null,
-                    product_weight_g: formData.product_weight_g ? parseFloat(formData.product_weight_g) : null,
+                    jewelry_specifications: formData.jewelry_specifications.trim() || null,
                     inventory_value: formData.inventory_value ? parseFloat(formData.inventory_value) : null,
                     category_ids: formData.categories.length > 0 ? formData.categories : []
                 };
@@ -785,158 +710,24 @@ export default function AddProductModal({ open, onClose, onSuccess, product }: A
                                         placeholder="Enter supplier ID"
                                     />
                                 </div>
-                                <div className="form-group">
-                                    <label htmlFor="product-type">Type</label>
-                                    <select
-                                        id="product-type"
-                                        value={formData.type}
-                                        onChange={(e) => handleInputChange('type', e.target.value as '' | 'L' | 'N' | 'K')}
-                                        style={{
-                                            width: '100%',
-                                            padding: '10px 12px',
-                                            border: '1px solid #e5e7eb',
-                                            borderRadius: '8px',
-                                            fontSize: '14px',
-                                            backgroundColor: 'white',
-                                            cursor: 'pointer'
-                                        }}
-                                    >
-                                        <option value="">Select Type</option>
-                                        <option value="L">L - Lab Grown Diamond</option>
-                                        <option value="N">N - Natural Diamond</option>
-                                        <option value="K">K - Others</option>
-                                    </select>
-                                </div>
-                            </div>
-
-                            <div className="form-row">
-                                <div className="form-group">
-                                    <label htmlFor="center-stone-size">Center Stone Size (mm)</label>
-                                    <input
-                                        id="center-stone-size"
-                                        type="number"
-                                        step="0.01"
-                                        min="0"
-                                        value={formData.center_stone_size_mm}
-                                        onChange={(e) => handleInputChange('center_stone_size_mm', e.target.value)}
-                                        placeholder="0.00"
-                                    />
-                                </div>
-
-                                <div className="form-group">
-                                    <label htmlFor="ni-tay">Ni tay</label>
-                                    <input
-                                        id="ni-tay"
-                                        type="number"
-                                        step="0.01"
-                                        min="0"
-                                        value={formData.ni_tay}
-                                        onChange={(e) => handleInputChange('ni_tay', e.target.value)}
-                                        placeholder="0.00"
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="form-row">
-                                <div className="form-group">
-                                    <label htmlFor="shape">Shape</label>
-                                    <div className="shape-checkbox-group">
-                                        <label className="shape-checkbox-item">
-                                            <input
-                                                type="checkbox"
-                                                checked={formData.shape.includes('Round')}
-                                                onChange={(e) => {
-                                                    if (e.target.checked) {
-                                                        handleInputChange('shape', [...formData.shape, 'Round']);
-                                                    } else {
-                                                        handleInputChange('shape', formData.shape.filter(s => s !== 'Round'));
-                                                    }
-                                                }}
-                                            />
-                                            <span>Round</span>
-                                        </label>
-                                        <label className="shape-checkbox-item">
-                                            <input
-                                                type="checkbox"
-                                                checked={formData.shape.includes('Baguette')}
-                                                onChange={(e) => {
-                                                    if (e.target.checked) {
-                                                        handleInputChange('shape', [...formData.shape, 'Baguette']);
-                                                    } else {
-                                                        handleInputChange('shape', formData.shape.filter(s => s !== 'Baguette'));
-                                                    }
-                                                }}
-                                            />
-                                            <span>Baguette</span>
-                                        </label>
-                                    </div>
-                                </div>
                             </div>
 
                             <div className="form-group">
-                                <label htmlFor="dimensions">Dimensions</label>
-                                <input
-                                    id="dimensions"
-                                    type="text"
-                                    value={formData.dimensions}
-                                    onChange={(e) => handleInputChange('dimensions', e.target.value)}
-                                    placeholder="Enter dimensions"
+                                <label htmlFor="jewelry-specifications">Jewelry Specifications</label>
+                                <textarea
+                                    id="jewelry-specifications"
+                                    value={formData.jewelry_specifications}
+                                    onChange={(e) => handleInputChange('jewelry_specifications', e.target.value)}
+                                    placeholder="Enter jewelry specifications (multi-line format). Example:&#10;Center Stone Size: 2.4 mm&#10;Ni tay: 6.5&#10;Shape: Round&#10;Dimensions: 2.9*3.3&#10;Stone Count: 16&#10;Carat Weight: 4.065 ct&#10;Gold Purity: 18K&#10;Product Weight: 9.083 g&#10;Type: L"
+                                    rows={10}
+                                    style={{
+                                        fontFamily: 'monospace',
+                                        whiteSpace: 'pre-wrap'
+                                    }}
                                 />
-                            </div>
-
-                            <div className="form-row">
-                                <div className="form-group">
-                                    <label htmlFor="stone-count">Stone Count</label>
-                                    <input
-                                        id="stone-count"
-                                        type="number"
-                                        min="0"
-                                        value={formData.stone_count}
-                                        onChange={(e) => handleInputChange('stone_count', e.target.value)}
-                                        placeholder="0"
-                                    />
-                                </div>
-
-                                <div className="form-group">
-                                    <label htmlFor="carat-weight">Carat Weight (ct)</label>
-                                    <input
-                                        id="carat-weight"
-                                        type="number"
-                                        step="0.01"
-                                        min="0"
-                                        value={formData.carat_weight_ct}
-                                        onChange={(e) => handleInputChange('carat_weight_ct', e.target.value)}
-                                        placeholder="0.00"
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="form-row">
-                                <div className="form-group">
-                                    <label htmlFor="gold-purity">Gold Purity</label>
-                                    <select
-                                        id="gold-purity"
-                                        value={formData.gold_purity}
-                                        onChange={(e) => handleInputChange('gold_purity', e.target.value as '' | '18k' | '14k')}
-                                    >
-                                        <option value="">Select gold purity</option>
-                                        <option value="18k">18k</option>
-                                        <option value="14k">14k</option>
-                                    </select>
-                                </div>
-
-                                <div className="form-group">
-                                    <label htmlFor="product-weight">Product Weight (g)</label>
-                                    <input
-                                        id="product-weight"
-                                        type="number"
-                                        step="0.01"
-                                        min="0"
-                                        value={formData.product_weight_g}
-                                        onChange={(e) => handleInputChange('product_weight_g', e.target.value)}
-                                        placeholder="0.00"
-                                    />
-                                </div>
+                                <p style={{ fontSize: '0.875rem', color: '#6b7280', marginTop: '4px' }}>
+                                    Enter specifications in multiple lines. Each specification on a new line.
+                                </p>
                             </div>
 
                             <div className="form-row">

@@ -25,21 +25,11 @@ export default async function handler(req, res) {
       'Product Code',
       'Supplier Code',
       'Product Name',
-      'Type',
+      'Jewelry Specifications',
       'Description',
       'Price (VND)',
       'Stock',
-      'Carat Weight (Ct)',
-      'Gold Purity',
-      'Product Weight (g)',
-      'Shape',
-      'Dimensions',
-      'Stone Count',
-      'Center Stone Size (mm)',
-      'Ring Size (Ni tay)',
-      'Inventory Value',
-      'Category Names',
-      'Notes'
+      'Categories'
     ];
 
     // Create sample data row (optional - can be empty)
@@ -47,21 +37,11 @@ export default async function handler(req, res) {
       '01R0924001',           // Product Code
       'RDM24213',             // Supplier Code
       'Sample Product Name',  // Product Name
-      'L',                    // Type (L, N, or K)
+      'Center Stone Size: 2.4 mm\nNi tay: 6.5\nShape: Round\nDimensions: 2.9*3.3\nStone Count: 16\nCarat Weight: 4.065 ct\nGold Purity: 18K\nProduct Weight: 9.083 g\nType: L',  // Jewelry Specifications (multi-line)
       'Sample description',   // Description
       88300000,               // Price (VND)
       1,                      // Stock
-      4.065,                  // Carat Weight (Ct)
-      '18K',                  // Gold Purity
-      9.083,                  // Product Weight (g)
-      'Round',                // Shape
-      '2.9*3.3',              // Dimensions
-      16,                     // Stone Count
-      2.4,                    // Center Stone Size (mm)
-      6.5,                    // Ring Size (Ni tay)
-      88300000,               // Inventory Value
-      'Rings, Gold Jewelry',  // Category Names (comma-separated)
-      'Sample notes'          // Notes
+      'Rings, Gold Jewelry'  // Categories (comma-separated)
     ];
 
     // Create worksheet data
@@ -78,21 +58,11 @@ export default async function handler(req, res) {
       { wch: 15 },  // Product Code
       { wch: 15 },  // Supplier Code
       { wch: 25 },  // Product Name
-      { wch: 10 },  // Type
+      { wch: 50 },  // Jewelry Specifications (wider for multi-line text)
       { wch: 30 },  // Description
-      { wch: 15 },  // Price
+      { wch: 15 },  // Price (VND)
       { wch: 10 },  // Stock
-      { wch: 15 },  // Carat Weight
-      { wch: 12 },  // Gold Purity
-      { wch: 15 },  // Product Weight
-      { wch: 12 },  // Shape
-      { wch: 15 },  // Dimensions
-      { wch: 12 },  // Stone Count
-      { wch: 18 },  // Center Stone Size
-      { wch: 15 },  // Ring Size
-      { wch: 15 },  // Inventory Value
-      { wch: 25 },  // Category Names
-      { wch: 30 }   // Notes
+      { wch: 25 }   // Categories
     ];
     worksheet['!cols'] = columnWidths;
 

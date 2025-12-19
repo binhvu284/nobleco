@@ -33,6 +33,9 @@ interface Product {
     // KiotViet integration fields
     kiotviet_id?: string | null;
     supplier_id?: string | null;
+    jewelry_specifications?: string | null;
+    inventory_value?: number | null;
+    // Legacy fields (kept for backward compatibility)
     center_stone_size_mm?: number | null;
     ni_tay?: number | null;
     shape?: string | null;
@@ -42,7 +45,6 @@ interface Product {
     gold_purity?: string | null;
     product_weight_g?: number | null;
     type?: string | null;
-    inventory_value?: number | null;
     last_synced_at?: string | null;
     sync_status?: string | null;
 }
@@ -235,49 +237,24 @@ export default function ProductDetailModal({ open, onClose, product, onEdit }: P
                         {/* Jewelry Specifications - Always display */}
                         <div className="product-section">
                             <label className="section-label">Jewelry Specifications</label>
-                            <div className="kiotviet-fields-grid">
-                                <div className="kiotviet-field">
-                                    <label>Center Stone Size (mm)</label>
-                                    <span>{product.center_stone_size_mm != null ? `${product.center_stone_size_mm} mm` : 'null'}</span>
-                                </div>
-                                <div className="kiotviet-field">
-                                    <label>Ni tay</label>
-                                    <span>{product.ni_tay != null ? product.ni_tay : 'null'}</span>
-                                </div>
-                                <div className="kiotviet-field">
-                                    <label>Shape</label>
-                                    <span>
-                                        {product.shape 
-                                            ? (typeof product.shape === 'string' && product.shape.includes(',') 
-                                                ? product.shape.split(',').map(s => s.trim()).join(', ')
-                                                : product.shape)
-                                            : 'null'}
-                                    </span>
-                                </div>
-                                <div className="kiotviet-field">
-                                    <label>Dimensions</label>
-                                    <span>{product.dimensions ?? 'null'}</span>
-                                </div>
-                                <div className="kiotviet-field">
-                                    <label>Stone Count</label>
-                                    <span>{product.stone_count != null ? product.stone_count : 'null'}</span>
-                                </div>
-                                <div className="kiotviet-field">
-                                    <label>Carat Weight (ct)</label>
-                                    <span>{product.carat_weight_ct != null ? `${product.carat_weight_ct} ct` : 'null'}</span>
-                                </div>
-                                <div className="kiotviet-field">
-                                    <label>Gold Purity</label>
-                                    <span>{product.gold_purity ?? 'null'}</span>
-                                </div>
-                                <div className="kiotviet-field">
-                                    <label>Product Weight (g)</label>
-                                    <span>{product.product_weight_g != null ? `${product.product_weight_g} g` : 'null'}</span>
-                                </div>
-                                <div className="kiotviet-field">
-                                    <label>Type</label>
-                                    <span>{product.type ?? 'null'}</span>
-                                </div>
+                            <div className="jewelry-specifications-content">
+                                {product.jewelry_specifications ? (
+                                    <pre style={{
+                                        whiteSpace: 'pre-wrap',
+                                        fontFamily: 'inherit',
+                                        fontSize: '14px',
+                                        lineHeight: '1.6',
+                                        margin: 0,
+                                        padding: '12px',
+                                        backgroundColor: '#f9fafb',
+                                        borderRadius: '8px',
+                                        border: '1px solid #e5e7eb'
+                                    }}>
+                                        {product.jewelry_specifications}
+                                    </pre>
+                                ) : (
+                                    <span style={{ color: '#9ca3af', fontStyle: 'italic' }}>No specifications available</span>
+                                )}
                             </div>
                         </div>
 
