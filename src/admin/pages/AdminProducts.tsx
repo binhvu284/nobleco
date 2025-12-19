@@ -6,6 +6,7 @@ import ConfirmModal from '../components/ConfirmModal';
 import ExcelImportModal from '../components/ExcelImportModal';
 import AddProductModal from '../components/AddProductModal';
 import ActivityLogModal from '../components/ActivityLogModal';
+import LazyImage from '../../components/LazyImage';
 import { useTranslation } from '../../shared/contexts/TranslationContext';
 
 interface Category {
@@ -254,6 +255,8 @@ export default function AdminProducts() {
         });
     }, [filteredProducts, sortColumn, sortDirection]);
 
+    // Use sortedProducts directly - no pagination, just lazy loading
+
     const handleSort = useCallback((column: 'name' | 'sku' | 'stock' | 'price') => {
         if (sortColumn === column) {
             setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
@@ -316,23 +319,9 @@ export default function AdminProducts() {
             }
             const data = await response.json();
             
-            // Fetch images for each product
-            const productsWithImages = await Promise.all(
-                data.map(async (product: Product) => {
-                    try {
-                        const imagesResponse = await fetch(`/api/product-images?productId=${product.id}`);
-                        if (imagesResponse.ok) {
-                            const images = await imagesResponse.json();
-                            return { ...product, images: images || [] };
-                        }
-                    } catch (error) {
-                        console.warn(`Failed to load images for product ${product.id}:`, error);
-                    }
-                    return { ...product, images: [] };
-                })
-            );
-            
-            setProducts(productsWithImages);
+            // Don't fetch images upfront - load them lazily when products are visible
+            // This significantly improves initial load time
+            setProducts(data.map((product: Product) => ({ ...product, images: [] })));
         } catch (err) {
             console.error('Error fetching products:', err);
             setError(err instanceof Error ? err.message : 'Failed to load products');
@@ -340,6 +329,9 @@ export default function AdminProducts() {
             setLoading(false);
         }
     };
+
+    // Load product images on-demand (only when viewing product details)
+    // Images are NOT loaded automatically to avoid connection errors on page load
 
     // Handle window resize to force card view on mobile
     useEffect(() => {
@@ -905,10 +897,9 @@ export default function AdminProducts() {
                                             <div className="product-info">
                                                 <div className="product-image">
                                                     {product.images && product.images.length > 0 ? (
-                                                        <img 
+                                                        <LazyImage 
                                                             src={product.images[0].url} 
                                                             alt={product.name}
-                                                            loading="lazy"
                                                         />
                                                     ) : (
                                                         <span>📦</span>
@@ -1030,17 +1021,16 @@ export default function AdminProducts() {
                     <div className={`products-grid ${window.innerWidth <= 768 ? `mobile-cols-${mobileColumns}` : ''}`}>
                         {sortedProducts.map((product) => (
                             <div 
-                                key={product.id} 
+                                key={product.id}
                                 className="product-card product-card-clickable"
                                 onClick={() => handleViewDetail(product)}
                                 style={{ cursor: 'pointer' }}
                             >
                                 <div className="product-card-image">
                                     {product.images && product.images.length > 0 ? (
-                                        <img 
+                                        <LazyImage 
                                             src={product.images[0].url} 
                                             alt={product.name}
-                                            loading="lazy"
                                         />
                                     ) : (
                                         <span>📦</span>
@@ -1156,6 +1146,7 @@ export default function AdminProducts() {
                         ))}
                     </div>
                 ) : null}
+
 
                 {!loading && !error && filteredProducts.length === 0 && (
                     <div className="empty-state">

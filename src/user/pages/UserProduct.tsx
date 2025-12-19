@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import UserLayout from '../components/UserLayout';
 import ImageGallery from '../../components/ImageGallery';
+import LazyImage from '../../components/LazyImage';
 import {
     IconSearch,
     IconShoppingBag,
@@ -173,6 +174,8 @@ export default function UserProduct() {
             return matchesSearch && matchesCategory;
         });
     }, [products, debouncedSearchQuery, selectedCategory]);
+
+    // Use filteredProducts directly - no pagination, just lazy loading
 
     // Cart functions
     const addToCart = useCallback((product: Product) => {
@@ -435,10 +438,9 @@ export default function UserProduct() {
                                         {/* Product Image */}
                                         <div className="product-image">
                                             {product.images && product.images.length > 0 ? (
-                                                <img 
+                                                <LazyImage 
                                                     src={product.images[0].url} 
                                                     alt={product.images[0].alt_text || product.name}
-                                                    loading="lazy"
                                                 />
                                             ) : (
                                                 <div className="image-placeholder">
@@ -500,6 +502,7 @@ export default function UserProduct() {
                                 ))}
                             </div>
                         )}
+
                     </main>
                 </div>
 
