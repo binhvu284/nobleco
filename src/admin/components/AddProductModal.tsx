@@ -297,42 +297,7 @@ export default function AddProductModal({ open, onClose, onSuccess, product }: A
                 }
             }
             
-            // Validate jewelry specification numeric fields
-            if (formData.center_stone_size_mm && formData.center_stone_size_mm.trim()) {
-                const value = parseFloat(formData.center_stone_size_mm);
-                if (isNaN(value) || value < 0) {
-                    newErrors.center_stone_size_mm = 'Center stone size must be a valid positive number';
-                }
-            }
-            
-            if (formData.ni_tay && formData.ni_tay.trim()) {
-                const value = parseFloat(formData.ni_tay);
-                if (isNaN(value) || value < 0) {
-                    newErrors.ni_tay = 'Ni tay must be a valid positive number';
-                }
-            }
-            
-            if (formData.stone_count && formData.stone_count.trim()) {
-                const value = parseInt(formData.stone_count);
-                if (isNaN(value) || value < 0) {
-                    newErrors.stone_count = 'Stone count must be a valid non-negative number';
-                }
-            }
-            
-            if (formData.carat_weight_ct && formData.carat_weight_ct.trim()) {
-                const value = parseFloat(formData.carat_weight_ct);
-                if (isNaN(value) || value < 0) {
-                    newErrors.carat_weight_ct = 'Carat weight must be a valid positive number';
-                }
-            }
-            
-            if (formData.product_weight_g && formData.product_weight_g.trim()) {
-                const value = parseFloat(formData.product_weight_g);
-                if (isNaN(value) || value < 0) {
-                    newErrors.product_weight_g = 'Product weight must be a valid positive number';
-                }
-            }
-            
+            // Validate inventory value
             if (formData.inventory_value && formData.inventory_value.trim()) {
                 const value = parseFloat(formData.inventory_value);
                 if (isNaN(value) || value < 0) {
