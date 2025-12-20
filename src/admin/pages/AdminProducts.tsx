@@ -312,16 +312,16 @@ export default function AdminProducts() {
         setLoading(true);
         setError(null);
         try {
-            const response = await fetch('/api/products');
+            const response = await fetch('/api/products?includeImages=true');
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
                 throw new Error(errorData.error || `HTTP ${response.status}: Failed to fetch products`);
             }
             const data = await response.json();
             
-            // Don't fetch images upfront - load them lazily when products are visible
-            // This significantly improves initial load time
-            setProducts(data.map((product: Product) => ({ ...product, images: [] })));
+            // Images are included in the API response and will be loaded lazily via LazyImage component
+            // This improves performance by only loading images when they enter the viewport
+            setProducts(data);
         } catch (err) {
             console.error('Error fetching products:', err);
             setError(err instanceof Error ? err.message : 'Failed to load products');
