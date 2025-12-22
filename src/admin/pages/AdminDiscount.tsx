@@ -264,10 +264,16 @@ export default function AdminDiscount() {
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/3da31dfe-5721-4e1a-a160-93fd6dd15ec4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminDiscount.tsx:266',message:'handleSubmit function called',data:{submitting,isEditMode},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+        // #endregion
         e.preventDefault();
         
         // Prevent double submission
         if (submitting) {
+            // #region agent log
+            fetch('http://127.0.0.1:7242/ingest/3da31dfe-5721-4e1a-a160-93fd6dd15ec4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminDiscount.tsx:270',message:'handleSubmit blocked - already submitting',data:{submitting},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+            // #endregion
             console.warn('Form submission already in progress');
             return;
         }
@@ -844,7 +850,12 @@ export default function AdminDiscount() {
                                 display: 'flex',
                                 flexDirection: 'column'
                             }}>
-                            <form onSubmit={handleSubmit} style={{
+                            <form id="discount-form" onSubmit={(e) => {
+                                // #region agent log
+                                fetch('http://127.0.0.1:7242/ingest/3da31dfe-5721-4e1a-a160-93fd6dd15ec4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminDiscount.tsx:847',message:'Form onSubmit handler called',data:{formId:'discount-form'},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+                                // #endregion
+                                handleSubmit(e);
+                            }} style={{
                                 display: 'flex',
                                 flexDirection: 'column',
                                 flex: 1,
@@ -1299,15 +1310,32 @@ export default function AdminDiscount() {
                                 <button 
                                     type="button"
                                     onClick={(e) => {
+                                        // #region agent log
+                                        const isDisabled = submitting || !formData.code || formData.code.trim() === '' || !!codeDuplicateError || !formData.discount_rate || formData.discount_rate.trim() === '' || isNaN(parseFloat(formData.discount_rate)) || parseFloat(formData.discount_rate) <= 0 || parseFloat(formData.discount_rate) > 100 || (formData.valid_from && formData.valid_until && formData.valid_until_type !== 'unlimited' && new Date(formData.valid_from) > new Date(formData.valid_until)) || (formData.max_usage_type === 'limited' && (!formData.max_usage || formData.max_usage.trim() === '' || isNaN(parseInt(formData.max_usage)) || parseInt(formData.max_usage) <= 0));
+                                        fetch('http://127.0.0.1:7242/ingest/3da31dfe-5721-4e1a-a160-93fd6dd15ec4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminDiscount.tsx:1301',message:'Create button clicked',data:{submitting,isDisabled,formDataCode:formData.code,codeDuplicateError,formDataDiscountRate:formData.discount_rate,buttonDisabled:isDisabled},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+                                        // #endregion
                                         e.preventDefault();
                                         // Prevent double submission
                                         if (submitting) {
+                                            // #region agent log
+                                            fetch('http://127.0.0.1:7242/ingest/3da31dfe-5721-4e1a-a160-93fd6dd15ec4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminDiscount.tsx:1305',message:'Submission blocked - already submitting',data:{submitting},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+                                            // #endregion
                                             return;
                                         }
                                         // Find and submit the form
                                         const form = document.getElementById('discount-form') as HTMLFormElement;
+                                        // #region agent log
+                                        fetch('http://127.0.0.1:7242/ingest/3da31dfe-5721-4e1a-a160-93fd6dd15ec4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminDiscount.tsx:1308',message:'Form lookup result',data:{formFound:!!form,formId:'discount-form'},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+                                        // #endregion
                                         if (form) {
+                                            // #region agent log
+                                            fetch('http://127.0.0.1:7242/ingest/3da31dfe-5721-4e1a-a160-93fd6dd15ec4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminDiscount.tsx:1310',message:'Calling form.requestSubmit()',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+                                            // #endregion
                                             form.requestSubmit();
+                                        } else {
+                                            // #region agent log
+                                            fetch('http://127.0.0.1:7242/ingest/3da31dfe-5721-4e1a-a160-93fd6dd15ec4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminDiscount.tsx:1312',message:'Form not found - cannot submit',data:{formId:'discount-form'},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+                                            // #endregion
                                         }
                                     }}
                                     disabled={submitting || !formData.code || formData.code.trim() === '' || !!codeDuplicateError || !formData.discount_rate || formData.discount_rate.trim() === '' || isNaN(parseFloat(formData.discount_rate)) || parseFloat(formData.discount_rate) <= 0 || parseFloat(formData.discount_rate) > 100 || (formData.valid_from && formData.valid_until && formData.valid_until_type !== 'unlimited' && new Date(formData.valid_from) > new Date(formData.valid_until)) || (formData.max_usage_type === 'limited' && (!formData.max_usage || formData.max_usage.trim() === '' || isNaN(parseInt(formData.max_usage)) || parseInt(formData.max_usage) <= 0))}
