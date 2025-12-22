@@ -4,7 +4,15 @@ import { IconX, IconUpload, IconDownload, IconCheck, IconAlertCircle, IconLoader
 interface ExcelImportModalProps {
     open: boolean;
     onClose: () => void;
-    onImport: (file: File) => Promise<{ success: boolean; estimatedCount?: number; errors?: string[] }>;
+    onImport: (file: File) => Promise<{ 
+        success: boolean; 
+        estimatedCount?: number; 
+        errors?: string[];
+        duplicateCount?: number;
+        duplicateSKUs?: string[];
+        duplicateDetails?: Array<{ sku: string; rows: number[] }>;
+        duplicateSKUList?: string;
+    }>;
     onDownloadTemplate: () => Promise<void>;
 }
 
@@ -14,6 +22,14 @@ interface FileAnalysis {
     errors: string[];
 }
 
+interface DuplicateSKUError {
+    duplicateCount: number;
+    duplicateSKUs?: string[];
+    duplicateDetails?: Array<{ sku: string; rows: number[] }>;
+    duplicateSKUList?: string;
+    errorMessage: string;
+}
+
 export default function ExcelImportModal({ open, onClose, onImport, onDownloadTemplate }: ExcelImportModalProps) {
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [fileAnalysis, setFileAnalysis] = useState<FileAnalysis | null>(null);
@@ -21,6 +37,7 @@ export default function ExcelImportModal({ open, onClose, onImport, onDownloadTe
     const [importing, setImporting] = useState(false);
     const [importProgress, setImportProgress] = useState({ current: 0, total: 0 });
     const [downloadTemplateLoading, setDownloadTemplateLoading] = useState(false);
+    const [duplicateSKUError, setDuplicateSKUError] = useState<DuplicateSKUError | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
@@ -29,6 +46,7 @@ export default function ExcelImportModal({ open, onClose, onImport, onDownloadTe
             setSelectedFile(null);
             setFileAnalysis(null);
             setImportProgress({ current: 0, total: 0 });
+            setDuplicateSKUError(null);
         }
     }, [open]);
 
@@ -133,6 +151,7 @@ export default function ExcelImportModal({ open, onClose, onImport, onDownloadTe
 
         setImporting(true);
         setImportProgress({ current: 0, total: fileAnalysis.estimatedCount });
+        setDuplicateSKUError(null);
 
         try {
             // Call the import function with progress callback
@@ -146,7 +165,19 @@ export default function ExcelImportModal({ open, onClose, onImport, onDownloadTe
                     window.location.reload();
                 }, 1000);
             } else {
-                alert('Import failed. Please check the errors and try again.');
+                // Check if this is a duplicate SKU error
+                if (result.duplicateCount !== undefined) {
+                    setDuplicateSKUError({
+                        duplicateCount: result.duplicateCount,
+                        duplicateSKUs: result.duplicateSKUs,
+                        duplicateDetails: result.duplicateDetails,
+                        duplicateSKUList: result.duplicateSKUList,
+                        errorMessage: result.errors?.[0] || 'Duplicate SKUs found'
+                    });
+                } else {
+                    // Generic error - show alert for now
+                    alert(result.errors?.join('\n') || 'Import failed. Please check the errors and try again.');
+                }
             }
         } catch (error) {
             console.error('Import error:', error);
@@ -171,6 +202,7 @@ export default function ExcelImportModal({ open, onClose, onImport, onDownloadTe
     const handleRemoveFile = () => {
         setSelectedFile(null);
         setFileAnalysis(null);
+        setDuplicateSKUError(null);
         if (fileInputRef.current) {
             fileInputRef.current.value = '';
         }
@@ -317,6 +349,62 @@ export default function ExcelImportModal({ open, onClose, onImport, onDownloadTe
                             </div>
                             <div className="progress-text">
                                 {importProgress.current} / {fileAnalysis?.estimatedCount || 0} products imported
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Duplicate SKU Error Display */}
+                    {duplicateSKUError && (
+                        <div className="duplicate-sku-error">
+                            <div className="duplicate-sku-error-header">
+                                <IconAlertCircle className="error-icon" />
+                                <div className="error-title">
+                                    <strong>Duplicate Product Code (SKU) Detected</strong>
+                                </div>
+                            </div>
+                            <div className="duplicate-sku-error-body">
+                                <div className="duplicate-sku-summary">
+                                    This file contains <strong>{duplicateSKUError.duplicateCount} duplicate Product Code{duplicateSKUError.duplicateCount > 1 ? 's' : ''}</strong>. 
+                                    Product Code (SKU) must be unique.
+                                </div>
+                                
+                                {/* Show duplicate details if available (duplicates within file) */}
+                                {duplicateSKUError.duplicateDetails && duplicateSKUError.duplicateDetails.length > 0 && (
+                                    <div className="duplicate-sku-details">
+                                        <strong>Duplicates found in this file:</strong>
+                                        <ul className="duplicate-sku-list">
+                                            {duplicateSKUError.duplicateDetails.map((dup, index) => (
+                                                <li key={index}>
+                                                    <span className="sku-value">"{dup.sku}"</span> appears in row{dup.rows.length > 1 ? 's' : ''}: {dup.rows.join(', ')}
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )}
+                                
+                                {/* Show duplicate SKUs if available (duplicates in database) */}
+                                {duplicateSKUError.duplicateSKUs && duplicateSKUError.duplicateSKUs.length > 0 && (
+                                    <div className="duplicate-sku-details">
+                                        <strong>Product Codes that already exist in the database:</strong>
+                                        <div className="duplicate-sku-tags">
+                                            {duplicateSKUError.duplicateSKUs.map((sku, index) => (
+                                                <span key={index} className="sku-tag">{sku}</span>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                                
+                                {/* Show duplicate SKU list if available (alternative format) */}
+                                {duplicateSKUError.duplicateSKUList && !duplicateSKUError.duplicateSKUs && (
+                                    <div className="duplicate-sku-details">
+                                        <strong>Details:</strong>
+                                        <div className="duplicate-sku-text">{duplicateSKUError.duplicateSKUList}</div>
+                                    </div>
+                                )}
+                                
+                                <div className="duplicate-sku-action">
+                                    Please fix the duplicate Product Codes in your Excel file and try again.
+                                </div>
                             </div>
                         </div>
                     )}

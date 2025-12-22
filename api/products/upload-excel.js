@@ -98,6 +98,57 @@ async function resolveCategories(categoryNames) {
   return categoryIds;
 }
 
+// Helper to check for duplicate SKUs within the Excel file
+function checkDuplicateSKUsInFile(products) {
+  const skuCounts = {};
+  const duplicates = [];
+  
+  products.forEach((product, index) => {
+    const sku = product.sku;
+    if (sku) {
+      if (!skuCounts[sku]) {
+        skuCounts[sku] = [];
+      }
+      // Excel row number = index + 2 (index 0 = Excel row 2, since row 1 is header)
+      skuCounts[sku].push(index + 2);
+    }
+  });
+  
+  // Find SKUs that appear more than once
+  Object.keys(skuCounts).forEach(sku => {
+    if (skuCounts[sku].length > 1) {
+      duplicates.push({
+        sku: sku,
+        rows: skuCounts[sku]
+      });
+    }
+  });
+  
+  return duplicates;
+}
+
+// Helper to check for duplicate SKUs against existing database products
+async function checkDuplicateSKUsInDatabase(skus) {
+  if (!skus || skus.length === 0) {
+    return [];
+  }
+  
+  const supabase = getSupabase();
+  const { data: existingProducts, error } = await supabase
+    .from('products')
+    .select('sku')
+    .in('sku', skus.filter(Boolean)); // Filter out null/empty SKUs
+  
+  if (error) {
+    console.error('Error checking duplicate SKUs:', error);
+    // Don't throw, just return empty array - we'll catch duplicates during insert
+    return [];
+  }
+  
+  const existingSKUs = existingProducts.map(p => p.sku).filter(Boolean);
+  return skus.filter(sku => sku && existingSKUs.includes(sku));
+}
+
 // Parse Excel file and extract products
 function parseExcelFile(buffer) {
   const workbook = XLSX.read(buffer, { type: 'buffer' });
@@ -192,7 +243,7 @@ function parseExcelFile(buffer) {
       }
       
       const product = {
-        serial_number: productCode,
+        sku: productCode,
         supplier_id: row[columnMap.supplierCode] ? String(row[columnMap.supplierCode]).trim() : null,
         name: productName,
         short_description: description,
@@ -279,6 +330,40 @@ export default async function handler(req, res) {
       });
     }
 
+    // Check for duplicate SKUs within the Excel file
+    const duplicateSKUsInFile = checkDuplicateSKUsInFile(products);
+    if (duplicateSKUsInFile.length > 0) {
+      const duplicateCount = duplicateSKUsInFile.length;
+      const duplicateDetails = duplicateSKUsInFile.map(dup => 
+        `SKU "${dup.sku}" appears in rows: ${dup.rows.join(', ')}`
+      ).join('; ');
+      
+      return res.status(400).json({
+        error: `Found ${duplicateCount} duplicate SKU${duplicateCount > 1 ? 's' : ''} within the Excel file. SKU must be unique.`,
+        duplicateCount: duplicateCount,
+        duplicateDetails: duplicateDetails,
+        duplicates: duplicateSKUsInFile,
+        errors: parseErrors
+      });
+    }
+
+    // Check for duplicate SKUs against existing database products
+    const skus = products.map(p => p.sku).filter(Boolean);
+    const duplicateSKUsInDB = await checkDuplicateSKUsInDatabase(skus);
+    
+    if (duplicateSKUsInDB.length > 0) {
+      const duplicateCount = duplicateSKUsInDB.length;
+      const duplicateSKUList = duplicateSKUsInDB.join(', ');
+      
+      return res.status(400).json({
+        error: `Found ${duplicateCount} duplicate SKU${duplicateCount > 1 ? 's' : ''} that already exist${duplicateCount > 1 ? '' : 's'} in the database. SKU must be unique.`,
+        duplicateCount: duplicateCount,
+        duplicateSKUs: duplicateSKUsInDB,
+        duplicateSKUList: duplicateSKUList,
+        errors: parseErrors
+      });
+    }
+
     // Process products
     const created = [];
     const failed = [];
@@ -305,12 +390,12 @@ export default async function handler(req, res) {
         created.push({
           id: product.id,
           name: product.name,
-          serial_number: product.serial_number
+          sku: product.sku
         });
       } catch (error) {
-        console.error(`Error creating product ${productData.serial_number}:`, error);
+        console.error(`Error creating product ${productData.sku}:`, error);
         failed.push({
-          productCode: productData.serial_number,
+          productCode: productData.sku,
           error: error.message || 'Failed to create product'
         });
       }

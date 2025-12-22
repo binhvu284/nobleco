@@ -28993,6 +28993,130 @@ input:focus {
     font-size: 14px;
 }
 
+/* Duplicate SKU Error Styles */
+.duplicate-sku-error {
+    margin-top: 24px;
+    padding: 20px 24px;
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(239, 68, 68, 0.05) 100%);
+    border-radius: 12px;
+    border: 2px solid var(--danger);
+    box-shadow: 0 4px 16px rgba(239, 68, 68, 0.15);
+}
+
+.duplicate-sku-error-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.duplicate-sku-error-header .error-icon {
+    width: 24px;
+    height: 24px;
+    color: var(--danger);
+    flex-shrink: 0;
+}
+
+.duplicate-sku-error-header .error-title {
+    color: var(--danger);
+    font-size: 16px;
+    font-weight: 700;
+}
+
+.duplicate-sku-error-body {
+    color: var(--text);
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.duplicate-sku-summary {
+    margin-bottom: 16px;
+    padding: 12px;
+    background: rgba(239, 68, 68, 0.05);
+    border-radius: 8px;
+    border-left: 3px solid var(--danger);
+}
+
+.duplicate-sku-summary strong {
+    color: var(--danger);
+    font-weight: 600;
+}
+
+.duplicate-sku-details {
+    margin-top: 16px;
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.5);
+    border-radius: 8px;
+}
+
+.duplicate-sku-details strong {
+    display: block;
+    margin-bottom: 8px;
+    color: var(--text);
+    font-weight: 600;
+}
+
+.duplicate-sku-list {
+    margin: 8px 0 0 0;
+    padding-left: 20px;
+    list-style-type: disc;
+}
+
+.duplicate-sku-list li {
+    margin-bottom: 8px;
+    color: var(--text);
+}
+
+.duplicate-sku-list .sku-value {
+    font-family: 'Courier New', monospace;
+    background: rgba(239, 68, 68, 0.1);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: 600;
+    color: var(--danger);
+}
+
+.duplicate-sku-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.sku-tag {
+    display: inline-block;
+    padding: 6px 12px;
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid var(--danger);
+    border-radius: 6px;
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--danger);
+}
+
+.duplicate-sku-text {
+    margin-top: 8px;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.7);
+    border-radius: 6px;
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    color: var(--text);
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.duplicate-sku-action {
+    margin-top: 16px;
+    padding: 12px;
+    background: rgba(239, 68, 68, 0.05);
+    border-radius: 8px;
+    color: var(--text);
+    font-weight: 500;
+    text-align: center;
+}
+
 .btn-import {
     background: var(--primary);
     color: white;

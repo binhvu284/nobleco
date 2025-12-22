@@ -434,7 +434,15 @@ export default function AdminProducts() {
         setProductToDelete(null);
     };
 
-    const handleExcelImport = async (file: File): Promise<{ success: boolean; estimatedCount?: number; errors?: string[] }> => {
+    const handleExcelImport = async (file: File): Promise<{ 
+        success: boolean; 
+        estimatedCount?: number; 
+        errors?: string[];
+        duplicateCount?: number;
+        duplicateSKUs?: string[];
+        duplicateDetails?: Array<{ sku: string; rows: number[] }>;
+        duplicateSKUList?: string;
+    }> => {
         try {
             const formData = new FormData();
             formData.append('file', file);
@@ -450,6 +458,19 @@ export default function AdminProducts() {
 
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
+                
+                // Extract duplicate SKU information if available
+                if (errorData.duplicateCount !== undefined) {
+                    return {
+                        success: false,
+                        errors: [errorData.error || 'Duplicate SKUs found'],
+                        duplicateCount: errorData.duplicateCount,
+                        duplicateSKUs: errorData.duplicateSKUs || [],
+                        duplicateDetails: errorData.duplicates || [],
+                        duplicateSKUList: errorData.duplicateSKUList || errorData.duplicateDetails || ''
+                    };
+                }
+                
                 throw new Error(errorData.error || 'Failed to import products');
             }
 
