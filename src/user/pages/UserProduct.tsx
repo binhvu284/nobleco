@@ -704,7 +704,7 @@ export default function UserProduct() {
                                         />
                                     ) : (
                                         <div className="product-modal-image-placeholder">
-                                            <IconPackage size={64} />
+                                            <IconPackage width={64} height={64} />
                                         </div>
                                     )}
                                 </div>
