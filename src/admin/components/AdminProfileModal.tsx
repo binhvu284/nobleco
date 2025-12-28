@@ -221,6 +221,7 @@ export default function AdminProfileModal({ open, onClose }: { open: boolean; on
         const input = document.createElement('input');
         input.type = 'file';
         input.accept = 'image/*';
+        input.setAttribute('capture', 'user'); // Use front-facing camera for avatar
         input.onchange = (e) => {
             const file = (e.target as HTMLInputElement).files?.[0];
             if (file) {

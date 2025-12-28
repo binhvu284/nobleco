@@ -1,10 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { IconX, IconSettings, IconUser, IconMaximize, IconMinimize, IconEye, IconEyeOff } from '../../admin/components/icons';
 import { getCurrentUser } from '../../auth';
 import { useTranslation } from '../contexts/TranslationContext';
 import { useTheme } from '../contexts/ThemeContext';
-import PasswordVerificationModal from './PasswordVerificationModal';
-import SettingsOTPVerification from './SettingsOTPVerification';
 
 type SettingSection = 'general' | 'account';
 
@@ -78,18 +76,19 @@ export default function SettingsModal({ open, onClose }: { open: boolean; onClos
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
     
-    // Password verification modal states
-    const [showPasswordVerification, setShowPasswordVerification] = useState(false);
-    const [passwordVerificationPurpose, setPasswordVerificationPurpose] = useState<'email' | 'phone' | null>(null);
-    
-    // OTP verification modal states
-    const [showOTPVerification, setShowOTPVerification] = useState(false);
-    const [otpData, setOtpData] = useState<{
-        email?: string;
-        phone?: string;
-        otpMethod: 'phone' | 'email';
-        purpose: 'email_change' | 'phone_change';
-    } | null>(null);
+    // Inline flow states for email/phone change
+    const [changeFlowStep, setChangeFlowStep] = useState<'idle' | 'password' | 'newValue' | 'otp' | 'success'>('idle');
+    const [changeFlowType, setChangeFlowType] = useState<'email' | 'phone' | null>(null);
+    const [passwordVerified, setPasswordVerified] = useState(false);
+    const [currentPassword, setCurrentPassword] = useState('');
+    const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+    const [otpCode, setOtpCode] = useState(['', '', '', '']);
+    const [otpError, setOtpError] = useState('');
+    const [isVerifyingOTP, setIsVerifyingOTP] = useState(false);
+    const [isResendingOTP, setIsResendingOTP] = useState(false);
+    const [otpResendCooldown, setOtpResendCooldown] = useState(0);
+    const [otpTargetEmail, setOtpTargetEmail] = useState<string>('');
+    const otpInputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
     // Load user data when modal opens
     useEffect(() => {
@@ -104,10 +103,17 @@ export default function SettingsModal({ open, onClose }: { open: boolean; onClos
             setNewPhone('');
             setPasswordData({ current: '', new: '', confirm: '' });
             setShowPasswordVisibility({ current: false, new: false, confirm: false });
-            setShowPasswordVerification(false);
-            setShowOTPVerification(false);
-            setPasswordVerificationPurpose(null);
-            setOtpData(null);
+            setChangeFlowStep('idle');
+            setChangeFlowType(null);
+            setPasswordVerified(false);
+            setCurrentPassword('');
+            setShowCurrentPassword(false);
+            setOtpCode(['', '', '', '']);
+            setOtpError('');
+            setIsVerifyingOTP(false);
+            setIsResendingOTP(false);
+            setOtpResendCooldown(0);
+            setOtpTargetEmail('');
             setError('');
             setSuccess('');
             setIsFullscreen(false);
@@ -163,34 +169,113 @@ export default function SettingsModal({ open, onClose }: { open: boolean; onClos
         setSettings({ ...settings, theme: themeValue });
     };
 
-    // Handle password verification for email/phone changes
-    const handlePasswordVerify = async (password: string) => {
-        const authToken = localStorage.getItem('nobleco_auth_token');
-        const response = await fetch('/api/users/verify-password', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${authToken}`
-            },
-            body: JSON.stringify({ password })
-        });
-        
-        if (!response.ok) {
-            const data = await response.json();
-            throw new Error(data.error || t('settings.invalidPassword'));
+    
+    const handleStartEmailChange = () => {
+        setChangeFlowStep('password');
+        setChangeFlowType('email');
+        setEmailEditing(true);
+        setNewEmail(userData?.email || '');
+        setError('');
+        setSuccess('');
+        setOtpError('');
+        setPasswordVerified(false);
+        setCurrentPassword('');
+    };
+    
+    const handleStartPhoneChange = () => {
+        setChangeFlowStep('password');
+        setChangeFlowType('phone');
+        setPhoneEditing(true);
+        setNewPhone(userData?.phone || '');
+        setError('');
+        setSuccess('');
+        setOtpError('');
+        setPasswordVerified(false);
+        setCurrentPassword('');
+    };
+    
+    const handleEmailInputSubmit = async () => {
+        if (!newEmail || !newEmail.includes('@')) {
+            setError(t('settings.invalidEmail'));
+            return;
+        }
+        // In step 2, password should already be verified, so proceed to OTP
+        await handleSendOTP('email');
+    };
+    
+    const handlePhoneInputSubmit = async () => {
+        if (!newPhone) {
+            setError(t('settings.enterPhone'));
+            return;
+        }
+        // In step 2, password should already be verified, so proceed to OTP
+        await handleSendOTP('phone');
+    };
+    
+    const handlePasswordVerifyInline = async () => {
+        if (!currentPassword) {
+            setError(t('settings.enterCurrentPassword'));
+            return;
         }
         
-        // Password verified - proceed with email/phone change flow
-        if (passwordVerificationPurpose === 'email') {
-            // Validate new email
-            if (!newEmail || !newEmail.includes('@')) {
-                setError(t('settings.invalidEmail'));
-                setShowPasswordVerification(false);
-                return;
+        setSaving(true);
+        setError('');
+        setOtpError('');
+        
+        try {
+            const authToken = localStorage.getItem('nobleco_auth_token');
+            const response = await fetch('/api/users/verify-password', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${authToken}`
+                },
+                body: JSON.stringify({ password: currentPassword })
+            });
+            
+            // Check if response is JSON before parsing
+            const contentType = response.headers.get('content-type');
+            let data;
+            
+            if (contentType && contentType.includes('application/json')) {
+                data = await response.json();
+            } else {
+                // If not JSON, read as text to see what we got
+                const text = await response.text();
+                throw new Error(response.status === 401 
+                    ? t('settings.invalidPassword') 
+                    : response.status === 404 
+                        ? 'API endpoint not found' 
+                        : `Server error: ${response.status}`);
             }
-            // Send OTP to new email
-            setSaving(true);
-            try {
+            
+            if (!response.ok) {
+                throw new Error(data.error || t('settings.invalidPassword'));
+            }
+            
+            // Password verified - proceed to next step
+            setPasswordVerified(true);
+            setChangeFlowStep('newValue');
+            setCurrentPassword('');
+        } catch (err: any) {
+            setError(err.message || t('settings.invalidPassword'));
+        } finally {
+            setSaving(false);
+        }
+    };
+    
+    const handleSendOTP = async (type: 'email' | 'phone') => {
+        setSaving(true);
+        setError('');
+        setOtpError('');
+        
+        try {
+            if (type === 'email') {
+                if (!newEmail || !newEmail.includes('@')) {
+                    setError(t('settings.invalidEmail'));
+                    return;
+                }
+                // Send OTP to new email
                 const otpResponse = await fetch('/api/otp', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -206,30 +291,14 @@ export default function SettingsModal({ open, onClose }: { open: boolean; onClos
                     throw new Error(otpData.error || t('settings.failedUpdateEmail'));
                 }
                 
-                // Show OTP verification modal
-                setShowPasswordVerification(false);
-                setOtpData({
-                    email: newEmail,
-                    otpMethod: 'email',
-                    purpose: 'email_change'
-                });
-                setShowOTPVerification(true);
-            } catch (err: any) {
-                setError(err.message || t('settings.failedUpdateEmail'));
-                setShowPasswordVerification(false);
-            } finally {
-                setSaving(false);
-            }
-        } else if (passwordVerificationPurpose === 'phone') {
-            // Validate new phone
-            if (!newPhone) {
-                setError(t('settings.enterPhone'));
-                setShowPasswordVerification(false);
-                return;
-            }
-            // Send OTP to current email (not phone)
-            setSaving(true);
-            try {
+                setOtpTargetEmail(newEmail);
+                setChangeFlowStep('otp');
+            } else {
+                if (!newPhone) {
+                    setError(t('settings.enterPhone'));
+                    return;
+                }
+                // Send OTP to current email (not phone)
                 const currentEmail = userData?.email;
                 if (!currentEmail) {
                     throw new Error('Current email not found');
@@ -250,30 +319,91 @@ export default function SettingsModal({ open, onClose }: { open: boolean; onClos
                     throw new Error(otpData.error || t('settings.failedUpdatePhone'));
                 }
                 
-                // Show OTP verification modal
-                setShowPasswordVerification(false);
-                setOtpData({
-                    email: currentEmail,
-                    phone: newPhone,
-                    otpMethod: 'email',
-                    purpose: 'phone_change'
-                });
-                setShowOTPVerification(true);
-            } catch (err: any) {
-                setError(err.message || t('settings.failedUpdatePhone'));
-                setShowPasswordVerification(false);
-            } finally {
-                setSaving(false);
+                setOtpTargetEmail(currentEmail);
+                setChangeFlowStep('otp');
             }
+        } catch (err: any) {
+            setError(err.message || (type === 'email' ? t('settings.failedUpdateEmail') : t('settings.failedUpdatePhone')));
+        } finally {
+            setSaving(false);
         }
     };
     
-    // Handle OTP verification success
+    const handleOTPChange = (index: number, value: string) => {
+        if (value.length > 1) return;
+        
+        const newOtp = [...otpCode];
+        newOtp[index] = value.replace(/\D/g, '');
+        setOtpCode(newOtp);
+        setOtpError('');
+        
+        if (value && index < 3) {
+            otpInputRefs.current[index + 1]?.focus();
+        }
+    };
+    
+    const handleOTPKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Backspace' && !otpCode[index] && index > 0) {
+            otpInputRefs.current[index - 1]?.focus();
+        }
+    };
+    
+    const handleOTPPaste = (e: React.ClipboardEvent) => {
+        e.preventDefault();
+        const pastedData = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 4);
+        if (pastedData.length === 4) {
+            setOtpCode(pastedData.split(''));
+            otpInputRefs.current[3]?.focus();
+            setOtpError('');
+        }
+    };
+    
+    const handleOTPVerify = async () => {
+        const otpCodeString = otpCode.join('');
+        if (otpCodeString.length !== 4) {
+            setOtpError(t('auth.enterCompleteCode'));
+            return;
+        }
+        
+        setIsVerifyingOTP(true);
+        setOtpError('');
+        
+        try {
+            const verifyBody: any = {
+                action: 'verify',
+                code: otpCodeString,
+                purpose: changeFlowType === 'email' ? 'email_change' : 'phone_change'
+            };
+            
+            verifyBody.email = otpTargetEmail;
+            
+            const verifyResponse = await fetch('/api/otp', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(verifyBody),
+            });
+            
+            const verifyData = await verifyResponse.json();
+            
+            if (!verifyResponse.ok) {
+                setOtpError(verifyData.error || t('auth.invalidCode'));
+                setIsVerifyingOTP(false);
+                return;
+            }
+            
+            // OTP verified successfully - update the value
+            await handleOTPSuccess();
+        } catch (err) {
+            setOtpError(t('auth.verifyFailed'));
+            setIsVerifyingOTP(false);
+        }
+    };
+    
     const handleOTPSuccess = async () => {
-        setShowOTPVerification(false);
+        setChangeFlowStep('success');
         setSaving(true);
         setError('');
-        setSuccess('');
+        setOtpError('');
         
         try {
             const currentUser = getCurrentUser();
@@ -284,7 +414,7 @@ export default function SettingsModal({ open, onClose }: { open: boolean; onClos
             
             const authToken = localStorage.getItem('nobleco_auth_token');
             
-            if (otpData?.purpose === 'email_change') {
+            if (changeFlowType === 'email') {
                 // Update email
                 const response = await fetch(`/api/users`, {
                     method: 'PATCH',
@@ -297,13 +427,16 @@ export default function SettingsModal({ open, onClose }: { open: boolean; onClos
                 const data = await response.json();
                 if (response.ok) {
                     setSuccess(t('settings.emailUpdated'));
-                    setEmailEditing(false);
-                    setNewEmail('');
                     await loadUserData();
+                    // Reset after 2 seconds
+                    setTimeout(() => {
+                        resetChangeFlow();
+                    }, 2000);
                 } else {
                     setError(data.error || t('settings.failedUpdateEmail'));
+                    setChangeFlowStep('otp');
                 }
-            } else if (otpData?.purpose === 'phone_change') {
+            } else {
                 // Update phone
                 const response = await fetch(`/api/users`, {
                     method: 'PATCH',
@@ -316,55 +449,90 @@ export default function SettingsModal({ open, onClose }: { open: boolean; onClos
                 const data = await response.json();
                 if (response.ok) {
                     setSuccess(t('settings.phoneUpdated'));
-                    setPhoneEditing(false);
-                    setNewPhone('');
                     await loadUserData();
+                    // Reset after 2 seconds
+                    setTimeout(() => {
+                        resetChangeFlow();
+                    }, 2000);
                 } else {
                     setError(data.error || t('settings.failedUpdatePhone'));
+                    setChangeFlowStep('otp');
                 }
             }
         } catch (err) {
-            setError(otpData?.purpose === 'email_change' 
+            setError(changeFlowType === 'email' 
                 ? t('settings.failedUpdateEmail') 
                 : t('settings.failedUpdatePhone'));
+            setChangeFlowStep('otp');
         } finally {
             setSaving(false);
-            setOtpData(null);
         }
     };
     
-    const handleStartEmailChange = () => {
-        setEmailEditing(true);
-        setNewEmail(userData?.email || '');
+    const handleOTPResend = async () => {
+        if (otpResendCooldown > 0) return;
+        
+        setIsResendingOTP(true);
+        setOtpError('');
+        
+        try {
+            const resendBody: any = {
+                action: 'resend',
+                purpose: changeFlowType === 'email' ? 'email_change' : 'phone_change'
+            };
+            
+            resendBody.email = otpTargetEmail;
+            
+            const response = await fetch('/api/otp', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(resendBody),
+            });
+            
+            const data = await response.json();
+            
+            if (!response.ok) {
+                setOtpError(data.error || t('auth.resendFailed'));
+                setIsResendingOTP(false);
+                return;
+            }
+            
+            setOtpCode(['', '', '', '']);
+            setOtpResendCooldown(60);
+            setIsResendingOTP(false);
+            otpInputRefs.current[0]?.focus();
+        } catch (err) {
+            setOtpError(t('auth.resendFailed'));
+            setIsResendingOTP(false);
+        }
+    };
+    
+    // OTP resend cooldown timer
+    useEffect(() => {
+        if (otpResendCooldown > 0) {
+            const timer = setTimeout(() => setOtpResendCooldown(otpResendCooldown - 1), 1000);
+            return () => clearTimeout(timer);
+        }
+    }, [otpResendCooldown]);
+    
+    const resetChangeFlow = () => {
+        setChangeFlowStep('idle');
+        setChangeFlowType(null);
+        setPasswordVerified(false);
+        setCurrentPassword('');
+        setShowCurrentPassword(false);
+        setOtpCode(['', '', '', '']);
+        setOtpError('');
+        setIsVerifyingOTP(false);
+        setIsResendingOTP(false);
+        setOtpResendCooldown(0);
+        setOtpTargetEmail('');
+        setEmailEditing(false);
+        setPhoneEditing(false);
+        setNewEmail('');
+        setNewPhone('');
         setError('');
         setSuccess('');
-    };
-    
-    const handleStartPhoneChange = () => {
-        setPhoneEditing(true);
-        setNewPhone(userData?.phone || '');
-        setError('');
-        setSuccess('');
-    };
-    
-    const handleEmailInputSubmit = () => {
-        if (!newEmail || !newEmail.includes('@')) {
-            setError(t('settings.invalidEmail'));
-            return;
-        }
-        // Show password verification modal
-        setPasswordVerificationPurpose('email');
-        setShowPasswordVerification(true);
-    };
-    
-    const handlePhoneInputSubmit = () => {
-        if (!newPhone) {
-            setError(t('settings.enterPhone'));
-            return;
-        }
-        // Show password verification modal
-        setPasswordVerificationPurpose('phone');
-        setShowPasswordVerification(true);
     };
 
 
@@ -425,6 +593,235 @@ export default function SettingsModal({ open, onClose }: { open: boolean; onClos
             [field]: !prev[field]
         }));
     };
+    
+    // Format email/phone for display in OTP step
+    const formatEmail = (emailAddress: string) => {
+        const [localPart, domain] = emailAddress.split('@');
+        if (localPart.length <= 2) return emailAddress;
+        const start = localPart.slice(0, 2);
+        const end = localPart.slice(-1);
+        return `${start}***${end}@${domain}`;
+    };
+    
+    const formatPhone = (phoneNumber: string) => {
+        if (phoneNumber.length <= 4) return phoneNumber;
+        const start = phoneNumber.slice(0, 2);
+        const end = phoneNumber.slice(-2);
+        return `${start}****${end}`;
+    };
+    
+    // Render inline password verification form
+    const renderPasswordVerificationForm = () => {
+        return (
+            <div className="settings-edit-field">
+                <div style={{ marginBottom: '12px', fontSize: '14px', color: 'var(--muted)' }}>
+                    Step 1 of 3
+                </div>
+                <p style={{ marginBottom: '16px', color: 'var(--muted)', fontSize: '14px' }}>
+                    {changeFlowType === 'email' 
+                        ? t('settings.verifyPasswordToChangeEmail')
+                        : t('settings.verifyPasswordToChangePhone')}
+                </p>
+                <div style={{ position: 'relative', marginBottom: '16px', maxWidth: '100%' }}>
+                    <input
+                        type={showCurrentPassword ? 'text' : 'password'}
+                        value={currentPassword}
+                        onChange={(e) => {
+                            setCurrentPassword(e.target.value);
+                            setError('');
+                        }}
+                        placeholder={t('settings.enterCurrentPassword')}
+                        disabled={saving}
+                        style={{ 
+                            paddingRight: '45px', 
+                            width: '100%',
+                            maxWidth: '100%',
+                            boxSizing: 'border-box'
+                        }}
+                        autoFocus
+                    />
+                    <button
+                        type="button"
+                        className="password-toggle"
+                        onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                        style={{ 
+                            position: 'absolute', 
+                            right: '8px', 
+                            top: '50%',
+                            transform: 'translateY(-50%)',
+                            background: 'none', 
+                            border: 'none', 
+                            cursor: 'pointer', 
+                            padding: '4px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                        }}
+                    >
+                        {showCurrentPassword ? <IconEyeOff /> : <IconEye />}
+                    </button>
+                </div>
+                {error && (
+                    <div className="error" style={{ marginBottom: '16px' }}>
+                        {error}
+                    </div>
+                )}
+                <div className="settings-edit-actions">
+                    <button
+                        className="btn-primary"
+                        onClick={handlePasswordVerifyInline}
+                        disabled={saving || !currentPassword}
+                    >
+                        {saving ? t('common.loading') : t('common.verify')}
+                    </button>
+                    <button
+                        className="btn-secondary"
+                        onClick={resetChangeFlow}
+                        disabled={saving}
+                    >
+                        {t('common.cancel')}
+                    </button>
+                </div>
+            </div>
+        );
+    };
+    
+    // Render inline OTP verification form
+    const renderOTPVerificationForm = () => {
+        return (
+            <div className="settings-edit-field">
+                <div style={{ marginBottom: '12px', fontSize: '14px', color: 'var(--muted)' }}>
+                    Step 3 of 3
+                </div>
+                <p style={{ marginBottom: '16px', color: 'var(--muted)', fontSize: '14px' }}>
+                    {t('auth.codeSentTo')}{' '}
+                    <strong style={{ color: 'var(--text)' }}>
+                        {formatEmail(otpTargetEmail)}
+                    </strong>
+                </p>
+                <form onSubmit={(e) => { e.preventDefault(); handleOTPVerify(); }}>
+                    <div className="otp-container" style={{ marginBottom: '20px', display: 'flex', gap: '12px', justifyContent: 'center' }}>
+                        {otpCode.map((digit, index) => (
+                            <input
+                                key={index}
+                                ref={(el) => (otpInputRefs.current[index] = el)}
+                                type="text"
+                                inputMode="numeric"
+                                maxLength={1}
+                                value={digit}
+                                onChange={(e) => handleOTPChange(index, e.target.value)}
+                                onKeyDown={(e) => handleOTPKeyDown(index, e)}
+                                onPaste={handleOTPPaste}
+                                className="otp-input"
+                                style={{
+                                    width: '48px',
+                                    height: '48px',
+                                    textAlign: 'center',
+                                    fontSize: '20px',
+                                    border: '1px solid var(--border)',
+                                    borderRadius: '8px',
+                                    padding: '0'
+                                }}
+                                autoFocus={index === 0}
+                                disabled={isVerifyingOTP}
+                            />
+                        ))}
+                    </div>
+                    {(otpError || error) && (
+                        <div className="error" style={{ marginBottom: '16px' }}>
+                            {otpError || error}
+                        </div>
+                    )}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
+                            <button
+                                type="submit"
+                                className="btn-primary"
+                                disabled={isVerifyingOTP || otpCode.join('').length !== 4}
+                                style={{ 
+                                    width: 'auto',
+                                    minWidth: '500px',
+                                    textAlign: 'center',
+                                    justifyContent: 'center',
+                                    display: 'flex',
+                                    alignItems: 'center'
+                                }}
+                            >
+                                {isVerifyingOTP ? t('common.loading') : t('auth.verifyOTP')}
+                            </button>
+                        </div>
+                        <div style={{ 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            justifyContent: 'space-between',
+                            gap: '8px',
+                            fontSize: '14px',
+                            color: 'var(--muted)',
+                            width: '100%',
+                            flexWrap: 'wrap'
+                        }}>
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setChangeFlowStep('newValue');
+                                        setOtpCode(['', '', '', '']);
+                                        setOtpError('');
+                                    }}
+                                    className="btn-secondary"
+                                    disabled={isVerifyingOTP}
+                                    style={{ 
+                                        fontSize: '14px',
+                                        padding: '6px 12px',
+                                        minWidth: 'auto',
+                                        whiteSpace: 'nowrap'
+                                    }}
+                                >
+                                    {t('common.back')}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={resetChangeFlow}
+                                    className="btn-secondary"
+                                    disabled={isVerifyingOTP}
+                                    style={{ 
+                                        fontSize: '14px',
+                                        padding: '6px 12px',
+                                        minWidth: 'auto',
+                                        whiteSpace: 'nowrap'
+                                    }}
+                                >
+                                    {t('common.cancel')}
+                                </button>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <span>{t('auth.didntReceiveCode')}</span>
+                                <button
+                                    type="button"
+                                    onClick={handleOTPResend}
+                                    disabled={isResendingOTP || otpResendCooldown > 0}
+                                    className="btn-secondary"
+                                    style={{ 
+                                        fontSize: '14px',
+                                        padding: '6px 12px',
+                                        minWidth: 'auto',
+                                        whiteSpace: 'nowrap'
+                                    }}
+                                >
+                                    {otpResendCooldown > 0 
+                                        ? `${t('auth.resendIn')} ${otpResendCooldown}s` 
+                                        : isResendingOTP 
+                                            ? t('common.loading') 
+                                            : t('auth.resendOTP')}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        );
+    };
+
 
     if (!open) return null;
 
@@ -482,7 +879,7 @@ export default function SettingsModal({ open, onClose }: { open: boolean; onClos
                         <div className="settings-form">
                             <div className="settings-field">
                                 <label>{t('settings.email')}</label>
-                                {!emailEditing ? (
+                                {changeFlowStep === 'idle' && changeFlowType !== 'email' ? (
                                     <div className="settings-display-field">
                                         <span className="settings-display-value">
                                             {isLoading ? t('common.loading') : (userData?.email || t('settings.notSet'))}
@@ -494,8 +891,13 @@ export default function SettingsModal({ open, onClose }: { open: boolean; onClos
                                             {t('settings.changeEmail')}
                                         </button>
                                     </div>
-                                ) : (
+                                ) : changeFlowType === 'email' && changeFlowStep === 'password' ? (
+                                    renderPasswordVerificationForm()
+                                ) : changeFlowType === 'email' && changeFlowStep === 'newValue' ? (
                                     <div className="settings-edit-field">
+                                        <div style={{ marginBottom: '12px', fontSize: '14px', color: 'var(--muted)' }}>
+                                            Step 2 of 3
+                                        </div>
                                         <input 
                                             type="email"
                                             value={newEmail}
@@ -504,37 +906,63 @@ export default function SettingsModal({ open, onClose }: { open: boolean; onClos
                                                 setError('');
                                             }}
                                             placeholder={t('settings.enterNewEmail')}
-                                            disabled={saving || showPasswordVerification || showOTPVerification}
+                                            disabled={saving}
+                                            style={{ width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}
                                         />
                                         <div className="settings-edit-actions">
                                             <button 
                                                 className="btn-primary"
                                                 onClick={handleEmailInputSubmit}
-                                                disabled={saving || showPasswordVerification || showOTPVerification}
+                                                disabled={saving || !newEmail || !newEmail.includes('@')}
                                             >
                                                 {saving ? t('common.loading') : t('common.next')}
                                             </button>
                                             <button 
                                                 className="btn-secondary"
                                                 onClick={() => {
-                                                    setEmailEditing(false);
-                                                    setNewEmail('');
-                                                    setError('');
-                                                    setSuccess('');
-                                                    setShowPasswordVerification(false);
-                                                    setShowOTPVerification(false);
+                                                    setChangeFlowStep('password');
                                                 }}
-                                                disabled={saving || showPasswordVerification || showOTPVerification}
+                                                disabled={saving}
+                                            >
+                                                {t('common.back')}
+                                            </button>
+                                            <button 
+                                                className="btn-secondary"
+                                                onClick={resetChangeFlow}
+                                                disabled={saving}
                                             >
                                                 {t('common.cancel')}
                                             </button>
                                         </div>
                                     </div>
+                                ) : changeFlowType === 'email' && changeFlowStep === 'otp' ? (
+                                    renderOTPVerificationForm()
+                                ) : changeFlowType === 'email' && changeFlowStep === 'success' ? (
+                                    <div className="settings-display-field">
+                                        <span className="settings-display-value" style={{ color: 'var(--success)' }}>
+                                            {isLoading ? t('common.loading') : (userData?.email || t('settings.notSet'))}
+                                        </span>
+                                        <span style={{ color: 'var(--success)', fontSize: '14px' }}>
+                                            {t('settings.emailUpdated')}
+                                        </span>
+                                    </div>
+                                ) : (
+                                    <div className="settings-display-field">
+                                        <span className="settings-display-value">
+                                            {isLoading ? t('common.loading') : (userData?.email || t('settings.notSet'))}
+                                        </span>
+                                        <button 
+                                            className="btn-secondary"
+                                            onClick={handleStartEmailChange}
+                                        >
+                                            {t('settings.changeEmail')}
+                                        </button>
+                                    </div>
                                 )}
                             </div>
                             <div className="settings-field">
                                 <label>{t('settings.phone')}</label>
-                                {!phoneEditing ? (
+                                {changeFlowStep === 'idle' && changeFlowType !== 'phone' ? (
                                     <div className="settings-display-field">
                                         <span className="settings-display-value">
                                             {isLoading ? t('common.loading') : (userData?.phone || t('settings.notSet'))}
@@ -546,8 +974,13 @@ export default function SettingsModal({ open, onClose }: { open: boolean; onClos
                                             {t('settings.changePhone')}
                                         </button>
                                     </div>
-                                ) : (
+                                ) : changeFlowType === 'phone' && changeFlowStep === 'password' ? (
+                                    renderPasswordVerificationForm()
+                                ) : changeFlowType === 'phone' && changeFlowStep === 'newValue' ? (
                                     <div className="settings-edit-field">
+                                        <div style={{ marginBottom: '12px', fontSize: '14px', color: 'var(--muted)' }}>
+                                            Step 2 of 3
+                                        </div>
                                         <input 
                                             type="tel"
                                             value={newPhone}
@@ -556,31 +989,57 @@ export default function SettingsModal({ open, onClose }: { open: boolean; onClos
                                                 setError('');
                                             }}
                                             placeholder={t('settings.enterNewPhone')}
-                                            disabled={saving || showPasswordVerification || showOTPVerification}
+                                            disabled={saving}
+                                            style={{ width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}
                                         />
                                         <div className="settings-edit-actions">
                                             <button 
                                                 className="btn-primary"
                                                 onClick={handlePhoneInputSubmit}
-                                                disabled={saving || showPasswordVerification || showOTPVerification}
+                                                disabled={saving || !newPhone}
                                             >
                                                 {saving ? t('common.loading') : t('common.next')}
                                             </button>
                                             <button 
                                                 className="btn-secondary"
                                                 onClick={() => {
-                                                    setPhoneEditing(false);
-                                                    setNewPhone('');
-                                                    setError('');
-                                                    setSuccess('');
-                                                    setShowPasswordVerification(false);
-                                                    setShowOTPVerification(false);
+                                                    setChangeFlowStep('password');
                                                 }}
-                                                disabled={saving || showPasswordVerification || showOTPVerification}
+                                                disabled={saving}
+                                            >
+                                                {t('common.back')}
+                                            </button>
+                                            <button 
+                                                className="btn-secondary"
+                                                onClick={resetChangeFlow}
+                                                disabled={saving}
                                             >
                                                 {t('common.cancel')}
                                             </button>
                                         </div>
+                                    </div>
+                                ) : changeFlowType === 'phone' && changeFlowStep === 'otp' ? (
+                                    renderOTPVerificationForm()
+                                ) : changeFlowType === 'phone' && changeFlowStep === 'success' ? (
+                                    <div className="settings-display-field">
+                                        <span className="settings-display-value" style={{ color: 'var(--success)' }}>
+                                            {isLoading ? t('common.loading') : (userData?.phone || t('settings.notSet'))}
+                                        </span>
+                                        <span style={{ color: 'var(--success)', fontSize: '14px' }}>
+                                            {t('settings.phoneUpdated')}
+                                        </span>
+                                    </div>
+                                ) : (
+                                    <div className="settings-display-field">
+                                        <span className="settings-display-value">
+                                            {isLoading ? t('common.loading') : (userData?.phone || t('settings.notSet'))}
+                                        </span>
+                                        <button 
+                                            className="btn-secondary"
+                                            onClick={handleStartPhoneChange}
+                                        >
+                                            {t('settings.changePhone')}
+                                        </button>
                                     </div>
                                 )}
                             </div>
@@ -603,7 +1062,7 @@ export default function SettingsModal({ open, onClose }: { open: boolean; onClos
                                     </div>
                                 ) : (
                                     <div className="settings-edit-field">
-                                        <div style={{ position: 'relative', marginBottom: '12px' }}>
+                                        <div style={{ position: 'relative', marginBottom: '12px', maxWidth: '100%' }}>
                                             <input 
                                                 type={showPasswordVisibility.current ? 'text' : 'password'}
                                                 value={passwordData.current}
@@ -613,18 +1072,35 @@ export default function SettingsModal({ open, onClose }: { open: boolean; onClos
                                                 }}
                                                 placeholder={t('settings.enterCurrentPassword')}
                                                 disabled={saving}
-                                                style={{ paddingRight: '45px', width: '100%' }}
+                                                style={{ 
+                                                    paddingRight: '45px', 
+                                                    width: '100%',
+                                                    maxWidth: '100%',
+                                                    boxSizing: 'border-box'
+                                                }}
                                             />
                                             <button
                                                 type="button"
                                                 className="password-toggle"
                                                 onClick={() => togglePasswordVisibility('current')}
-                                                style={{ position: 'absolute', right: '8px', bottom: '8px' }}
+                                                style={{ 
+                                                    position: 'absolute', 
+                                                    right: '8px', 
+                                                    top: '50%',
+                                                    transform: 'translateY(-50%)',
+                                                    background: 'none',
+                                                    border: 'none',
+                                                    cursor: 'pointer',
+                                                    padding: '4px',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center'
+                                                }}
                                             >
                                                 {showPasswordVisibility.current ? <IconEyeOff /> : <IconEye />}
                                             </button>
                                         </div>
-                                        <div style={{ position: 'relative', marginBottom: '12px' }}>
+                                        <div style={{ position: 'relative', marginBottom: '12px', maxWidth: '100%' }}>
                                             <input 
                                                 type={showPasswordVisibility.new ? 'text' : 'password'}
                                                 value={passwordData.new}
@@ -634,18 +1110,35 @@ export default function SettingsModal({ open, onClose }: { open: boolean; onClos
                                                 }}
                                                 placeholder={t('settings.enterNewPassword')}
                                                 disabled={saving}
-                                                style={{ paddingRight: '45px', width: '100%' }}
+                                                style={{ 
+                                                    paddingRight: '45px', 
+                                                    width: '100%',
+                                                    maxWidth: '100%',
+                                                    boxSizing: 'border-box'
+                                                }}
                                             />
                                             <button
                                                 type="button"
                                                 className="password-toggle"
                                                 onClick={() => togglePasswordVisibility('new')}
-                                                style={{ position: 'absolute', right: '8px', bottom: '8px' }}
+                                                style={{ 
+                                                    position: 'absolute', 
+                                                    right: '8px', 
+                                                    top: '50%',
+                                                    transform: 'translateY(-50%)',
+                                                    background: 'none',
+                                                    border: 'none',
+                                                    cursor: 'pointer',
+                                                    padding: '4px',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center'
+                                                }}
                                             >
                                                 {showPasswordVisibility.new ? <IconEyeOff /> : <IconEye />}
                                             </button>
                                         </div>
-                                        <div style={{ position: 'relative', marginBottom: '12px' }}>
+                                        <div style={{ position: 'relative', marginBottom: '12px', maxWidth: '100%' }}>
                                             <input 
                                                 type={showPasswordVisibility.confirm ? 'text' : 'password'}
                                                 value={passwordData.confirm}
@@ -655,13 +1148,30 @@ export default function SettingsModal({ open, onClose }: { open: boolean; onClos
                                                 }}
                                                 placeholder={t('settings.confirmNewPassword')}
                                                 disabled={saving}
-                                                style={{ paddingRight: '45px', width: '100%' }}
+                                                style={{ 
+                                                    paddingRight: '45px', 
+                                                    width: '100%',
+                                                    maxWidth: '100%',
+                                                    boxSizing: 'border-box'
+                                                }}
                                             />
                                             <button
                                                 type="button"
                                                 className="password-toggle"
                                                 onClick={() => togglePasswordVisibility('confirm')}
-                                                style={{ position: 'absolute', right: '8px', bottom: '8px' }}
+                                                style={{ 
+                                                    position: 'absolute', 
+                                                    right: '8px', 
+                                                    top: '50%',
+                                                    transform: 'translateY(-50%)',
+                                                    background: 'none',
+                                                    border: 'none',
+                                                    cursor: 'pointer',
+                                                    padding: '4px',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center'
+                                                }}
                                             >
                                                 {showPasswordVisibility.confirm ? <IconEyeOff /> : <IconEye />}
                                             </button>
@@ -701,37 +1211,6 @@ export default function SettingsModal({ open, onClose }: { open: boolean; onClos
 
     return (
         <>
-            <PasswordVerificationModal
-                open={showPasswordVerification}
-                onClose={() => {
-                    setShowPasswordVerification(false);
-                    setPasswordVerificationPurpose(null);
-                }}
-                onVerify={handlePasswordVerify}
-                title={t('settings.verifyPassword')}
-                description={passwordVerificationPurpose === 'email' 
-                    ? t('settings.verifyPasswordToChangeEmail')
-                    : passwordVerificationPurpose === 'phone'
-                    ? t('settings.verifyPasswordToChangePhone')
-                    : undefined}
-            />
-            {showOTPVerification && otpData && (
-                <SettingsOTPVerification
-                    email={otpData.email}
-                    phone={otpData.phone}
-                    otpMethod={otpData.otpMethod}
-                    purpose={otpData.purpose}
-                    onSuccess={handleOTPSuccess}
-                    onCancel={() => {
-                        setShowOTPVerification(false);
-                        setOtpData(null);
-                        setEmailEditing(false);
-                        setPhoneEditing(false);
-                        setNewEmail('');
-                        setNewPhone('');
-                    }}
-                />
-            )}
             <div className="settings-modal-overlay" onClick={onClose} />
             <div className={`settings-modal ${isFullscreen ? 'fullscreen' : ''}`} role="dialog" aria-modal="true">
                 <div className="settings-header">

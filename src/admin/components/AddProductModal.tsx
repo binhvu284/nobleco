@@ -30,9 +30,10 @@ interface AddProductModalProps {
     onClose: () => void;
     onSuccess: () => void;
     product?: Product | null; // If provided, we're in edit mode
+    productType?: 'jewelry' | 'centerstone'; // Product type: jewelry or centerstone
 }
 
-export default function AddProductModal({ open, onClose, onSuccess, product }: AddProductModalProps) {
+export default function AddProductModal({ open, onClose, onSuccess, product, productType = 'jewelry' }: AddProductModalProps) {
     const isEditMode = !!product;
     const [isFullscreen, setIsFullscreen] = useState(false);
     const [isMobile, setIsMobile] = useState(false);
@@ -127,7 +128,8 @@ export default function AddProductModal({ open, onClose, onSuccess, product }: A
     const loadProductImages = async (productId: number) => {
         try {
             setLoadingImages(true);
-            const response = await fetch(`/api/product-images?productId=${productId}`);
+            const endpoint = productType === 'jewelry' ? '/api/product-images' : '/api/centerstone-images';
+            const response = await fetch(`${endpoint}?${productType === 'jewelry' ? 'productId' : 'centerstoneId'}=${productId}`);
             if (response.ok) {
                 const images = await response.json();
                 setProductImages(images || []);
@@ -181,7 +183,8 @@ export default function AddProductModal({ open, onClose, onSuccess, product }: A
     const fetchCategories = async () => {
         try {
             setLoadingCategories(true);
-            const response = await fetch('/api/categories');
+            const endpoint = productType === 'jewelry' ? '/api/categories' : '/api/centerstone-categories';
+            const response = await fetch(endpoint);
             if (response.ok) {
                 const data = await response.json();
                 setCategories(data.filter((cat: any) => cat.status === 'active'));
@@ -256,7 +259,7 @@ export default function AddProductModal({ open, onClose, onSuccess, product }: A
         if (!image) return;
         
         try {
-            await deleteProductImage(imageId, image.storage_path);
+            await deleteProductImage(imageId, image.storage_path, productType);
             setProductImages(prev => prev.filter(img => img.id !== imageId));
         } catch (error) {
             console.error('Error removing image:', error);
@@ -376,7 +379,8 @@ export default function AddProductModal({ open, onClose, onSuccess, product }: A
                     requestBody.categoryIds = formData.categories;
                 }
                 
-                response = await fetch('/api/products', {
+                const endpoint = productType === 'jewelry' ? '/api/products' : '/api/centerstones';
+                response = await fetch(endpoint, {
                     method: 'PATCH',
                     headers: {
                         'Content-Type': 'application/json'
@@ -400,7 +404,8 @@ export default function AddProductModal({ open, onClose, onSuccess, product }: A
                     category_ids: formData.categories.length > 0 ? formData.categories : []
                 };
                 
-                response = await fetch('/api/products', {
+                const endpoint = productType === 'jewelry' ? '/api/products' : '/api/centerstones';
+                response = await fetch(endpoint, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -462,7 +467,9 @@ export default function AddProductModal({ open, onClose, onSuccess, product }: A
                 onClick={(e) => e.stopPropagation()}
             >
                 <div className="add-product-modal-header">
-                    <h2>{isEditMode ? 'Edit Product' : 'Add New Product'}</h2>
+                    <h2>{isEditMode 
+                        ? (productType === 'jewelry' ? 'Edit Jewelry' : 'Edit Center Stone')
+                        : (productType === 'jewelry' ? 'Add New Jewelry' : 'Add New Center Stone')}</h2>
                     <div className="add-product-modal-actions">
                         {!isMobile && (
                             <button 
@@ -558,6 +565,7 @@ export default function AddProductModal({ open, onClose, onSuccess, product }: A
                                         onRemove={handleImageRemove}
                                         onImagesChange={handleImagesChange}
                                         disabled={submitting || loadingImages}
+                                        productType={productType}
                                     />
                                 ) : (
                                     <div className="image-upload-placeholder">
@@ -660,9 +668,11 @@ export default function AddProductModal({ open, onClose, onSuccess, product }: A
                             </div>
                         </div>
 
-                        {/* Jewelry Specification Section */}
+                        {/* Specification Section */}
                         <div className="form-section">
-                            <h3 className="form-section-title">Jewelry Specification</h3>
+                            <h3 className="form-section-title">
+                                {productType === 'jewelry' ? 'Jewelry Specification' : 'Center Stone Specification'}
+                            </h3>
                             
                             <div className="form-row">
                                 <div className="form-group">
@@ -678,12 +688,16 @@ export default function AddProductModal({ open, onClose, onSuccess, product }: A
                             </div>
 
                             <div className="form-group">
-                                <label htmlFor="jewelry-specifications">Jewelry Specifications</label>
+                                <label htmlFor="jewelry-specifications">
+                                    {productType === 'jewelry' ? 'Jewelry Specifications' : 'Center Stone Specifications'}
+                                </label>
                                 <textarea
                                     id="jewelry-specifications"
                                     value={formData.jewelry_specifications}
                                     onChange={(e) => handleInputChange('jewelry_specifications', e.target.value)}
-                                    placeholder="Enter jewelry specifications (multi-line format). Example:&#10;Center Stone Size: 2.4 mm&#10;Ni tay: 6.5&#10;Shape: Round&#10;Dimensions: 2.9*3.3&#10;Stone Count: 16&#10;Carat Weight: 4.065 ct&#10;Gold Purity: 18K&#10;Product Weight: 9.083 g&#10;Type: L"
+                                    placeholder={productType === 'jewelry' 
+                                        ? "Enter jewelry specifications (multi-line format). Example:&#10;Center Stone Size: 2.4 mm&#10;Ni tay: 6.5&#10;Shape: Round&#10;Dimensions: 2.9*3.3&#10;Stone Count: 16&#10;Carat Weight: 4.065 ct&#10;Gold Purity: 18K&#10;Product Weight: 9.083 g&#10;Type: L"
+                                        : "Enter center stone specifications (multi-line format). Example:&#10;Cut: Excellent&#10;Clarity: VS1&#10;Color: D&#10;Carat Weight: 1.5 ct&#10;Shape: Round&#10;Dimensions: 7.5*7.5 mm"}
                                     rows={10}
                                     style={{
                                         fontFamily: 'monospace',
@@ -791,7 +805,9 @@ export default function AddProductModal({ open, onClose, onSuccess, product }: A
                         >
                             {submitting 
                                 ? (isEditMode ? 'Saving...' : 'Creating...') 
-                                : (isEditMode ? 'Save Product' : 'Create Product')}
+                                : (isEditMode 
+                                    ? (productType === 'jewelry' ? 'Save Jewelry' : 'Save Center Stone')
+                                    : (productType === 'jewelry' ? 'Create Jewelry' : 'Create Center Stone'))}
                         </button>
                     </div>
                 </form>

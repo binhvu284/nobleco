@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import AdminLayout from '../components/AdminLayout';
 import { IconPlus, IconSearch, IconFilter, IconList, IconGrid, IconMoreVertical, IconEdit, IconTrash2, IconEye, IconPackage, IconLayout, IconChevronDown, IconChevronUp, IconCheck, IconX, IconImage, IconHistory, IconUpload } from '../components/icons';
 import ProductDetailModal from '../components/ProductDetailModal';
@@ -70,6 +70,7 @@ const formatVND = (amount: number): string => {
 
 export default function AdminProducts() {
     const { t } = useTranslation();
+    const [productType, setProductType] = useState<'jewelry' | 'centerstone'>('jewelry');
     const [products, setProducts] = useState<Product[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -135,7 +136,8 @@ export default function AdminProducts() {
     useEffect(() => {
         const fetchCategories = async () => {
             try {
-                const response = await fetch('/api/categories');
+                const endpoint = productType === 'jewelry' ? '/api/categories' : '/api/centerstone-categories';
+                const response = await fetch(endpoint);
                 if (response.ok) {
                     const data = await response.json();
                     setAvailableCategories(data || []);
@@ -145,7 +147,7 @@ export default function AdminProducts() {
             }
         };
         fetchCategories();
-    }, []);
+    }, [productType]);
 
     // Close category dropdown when clicking outside
     useEffect(() => {
@@ -266,10 +268,105 @@ export default function AdminProducts() {
         }
     }, [sortColumn, sortDirection]);
 
-    // Fetch products from API
+    // AbortController ref to cancel previous requests
+    const abortControllerRef = useRef<AbortController | null>(null);
+
+    // Fetch products from API with request cancellation
+    const fetchProducts = useCallback(async () => {
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/3da31dfe-5721-4e1a-a160-93fd6dd15ec4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminProducts.tsx:272',message:'fetchProducts called',data:{productType},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'B'})}).catch(()=>{});
+        // #endregion
+        // Cancel previous request if it exists
+        if (abortControllerRef.current) {
+            // #region agent log
+            fetch('http://127.0.0.1:7242/ingest/3da31dfe-5721-4e1a-a160-93fd6dd15ec4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminProducts.tsx:276',message:'Cancelling previous request',data:{productType},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'B'})}).catch(()=>{});
+            // #endregion
+            abortControllerRef.current.abort();
+        }
+        
+        // Create new AbortController for this request
+        const abortController = new AbortController();
+        abortControllerRef.current = abortController;
+        const currentProductType = productType;
+        
+        setLoading(true);
+        setError(null);
+        try {
+            const endpoint = currentProductType === 'jewelry' ? '/api/products' : '/api/centerstones';
+            // #region agent log
+            fetch('http://127.0.0.1:7242/ingest/3da31dfe-5721-4e1a-a160-93fd6dd15ec4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminProducts.tsx:285',message:'Starting fetch request',data:{endpoint,currentProductType,productType},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'B'})}).catch(()=>{});
+            // #endregion
+            const response = await fetch(`${endpoint}?includeImages=true`, {
+                signal: abortController.signal
+            });
+            // #region agent log
+            fetch('http://127.0.0.1:7242/ingest/3da31dfe-5721-4e1a-a160-93fd6dd15ec4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminProducts.tsx:290',message:'Fetch response received',data:{ok:response.ok,currentProductType,productType},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'B'})}).catch(()=>{});
+            // #endregion
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+                throw new Error(errorData.error || `HTTP ${response.status}: Failed to fetch ${currentProductType}`);
+            }
+            const data = await response.json();
+            // #region agent log
+            fetch('http://127.0.0.1:7242/ingest/3da31dfe-5721-4e1a-a160-93fd6dd15ec4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminProducts.tsx:297',message:'About to set products',data:{currentProductType,productType,dataLength:data?.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'B'})}).catch(()=>{});
+            // #endregion
+            // Check if request was aborted or productType changed
+            if (abortController.signal.aborted || currentProductType !== productType) {
+                // #region agent log
+                fetch('http://127.0.0.1:7242/ingest/3da31dfe-5721-4e1a-a160-93fd6dd15ec4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminProducts.tsx:301',message:'Request aborted or productType changed, ignoring result',data:{aborted:abortController.signal.aborted,currentProductType,productType},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'B'})}).catch(()=>{});
+                // #endregion
+                return; // Ignore this result
+            }
+            
+            // Images are included in the API response and will be loaded lazily via LazyImage component
+            // This improves performance by only loading images when they enter the viewport
+            setProducts(data);
+            // #region agent log
+            fetch('http://127.0.0.1:7242/ingest/3da31dfe-5721-4e1a-a160-93fd6dd15ec4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminProducts.tsx:309',message:'Products set successfully',data:{currentProductType,productType},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'B'})}).catch(()=>{});
+            // #endregion
+        } catch (err: any) {
+            // #region agent log
+            fetch('http://127.0.0.1:7242/ingest/3da31dfe-5721-4e1a-a160-93fd6dd15ec4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminProducts.tsx:313',message:'Fetch error',data:{currentProductType,productType,error:err instanceof Error ? err.message : String(err),aborted:err?.name === 'AbortError'},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'B'})}).catch(()=>{});
+            // #endregion
+            // Ignore abort errors and only set error if productType hasn't changed
+            if (err?.name === 'AbortError') {
+                // #region agent log
+                fetch('http://127.0.0.1:7242/ingest/3da31dfe-5721-4e1a-a160-93fd6dd15ec4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminProducts.tsx:317',message:'Request aborted, ignoring error',data:{currentProductType,productType},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'B'})}).catch(()=>{});
+                // #endregion
+                return;
+            }
+            if (currentProductType === productType) {
+                console.error(`Error fetching ${currentProductType}:`, err);
+                setError(err instanceof Error ? err.message : `Failed to load ${currentProductType}`);
+            }
+        } finally {
+            // Only set loading to false if request wasn't aborted and productType hasn't changed
+            if (!abortController.signal.aborted && currentProductType === productType) {
+                // #region agent log
+                fetch('http://127.0.0.1:7242/ingest/3da31dfe-5721-4e1a-a160-93fd6dd15ec4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminProducts.tsx:327',message:'Setting loading to false',data:{currentProductType,productType},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'B'})}).catch(()=>{});
+                // #endregion
+                setLoading(false);
+            } else {
+                // #region agent log
+                fetch('http://127.0.0.1:7242/ingest/3da31dfe-5721-4e1a-a160-93fd6dd15ec4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminProducts.tsx:331',message:'Not setting loading to false',data:{aborted:abortController.signal.aborted,currentProductType,productType},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'B'})}).catch(()=>{});
+                // #endregion
+            }
+        }
+    }, [productType]);
+
+    // Reset loading state when productType changes
+    useEffect(() => {
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/3da31dfe-5721-4e1a-a160-93fd6dd15ec4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminProducts.tsx:323',message:'ProductType changed, resetting state',data:{productType},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+        // #endregion
+        setLoading(true);
+        setError(null);
+        setProducts([]);
+    }, [productType]);
+
     useEffect(() => {
         fetchProducts();
-    }, []);
+    }, [fetchProducts]);
 
     // Auto-sync on page load if enabled
     useEffect(() => {
@@ -305,28 +402,6 @@ export default function AdminProducts() {
             console.error('Auto-sync error:', error);
         } finally {
             setIsAutoSyncing(false);
-        }
-    };
-
-    const fetchProducts = async () => {
-        setLoading(true);
-        setError(null);
-        try {
-            const response = await fetch('/api/products?includeImages=true');
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
-                throw new Error(errorData.error || `HTTP ${response.status}: Failed to fetch products`);
-            }
-            const data = await response.json();
-            
-            // Images are included in the API response and will be loaded lazily via LazyImage component
-            // This improves performance by only loading images when they enter the viewport
-            setProducts(data);
-        } catch (err) {
-            console.error('Error fetching products:', err);
-            setError(err instanceof Error ? err.message : 'Failed to load products');
-        } finally {
-            setLoading(false);
         }
     };
 
@@ -380,13 +455,14 @@ export default function AdminProducts() {
         setShowDeleteConfirm(true);
     }, []);
 
-    const handleDeleteConfirm = async () => {
+    const handleDeleteConfirm = useCallback(async () => {
         if (!productToDelete) return;
 
         setDeleteLoading(true);
         
         try {
-            const response = await fetch(`/api/products?id=${productToDelete.id}`, {
+            const endpoint = productType === 'jewelry' ? '/api/products' : '/api/centerstones';
+            const response = await fetch(`${endpoint}?id=${productToDelete.id}`, {
                 method: 'DELETE'
             });
             
@@ -427,7 +503,7 @@ export default function AdminProducts() {
         } finally {
             setDeleteLoading(false);
         }
-    };
+    }, [productType, productToDelete, fetchProducts]);
 
     const handleDeleteCancel = () => {
         setShowDeleteConfirm(false);
@@ -448,7 +524,8 @@ export default function AdminProducts() {
             formData.append('file', file);
 
             const authToken = localStorage.getItem('nobleco_auth_token');
-            const response = await fetch('/api/products/upload-excel', {
+            const endpoint = productType === 'jewelry' ? '/api/products/upload-excel' : '/api/centerstones/upload-excel';
+            const response = await fetch(endpoint, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${authToken}`
@@ -492,6 +569,8 @@ export default function AdminProducts() {
     const handleDownloadTemplate = async () => {
         try {
             const authToken = localStorage.getItem('nobleco_auth_token');
+            // Note: Template download currently only supports jewelry products
+            // Center stones can use the same template format
             const response = await fetch('/api/products/download-template', {
                 headers: {
                     'Authorization': `Bearer ${authToken}`
@@ -554,7 +633,8 @@ export default function AdminProducts() {
         setActiveDropdown(null);
         
         try {
-            const response = await fetch(`/api/products`, {
+            const endpoint = productType === 'jewelry' ? '/api/products' : '/api/centerstones';
+            const response = await fetch(endpoint, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json'
@@ -591,11 +671,34 @@ export default function AdminProducts() {
             // Hide error notification after 5 seconds
             setTimeout(() => setNotification(null), 5000);
         }
-    }, []);
+    }, [productType, fetchProducts]);
 
     return (
         <AdminLayout title={t('products.management')}>
             <div className="admin-products-page">
+                {/* Navigation Tabs */}
+                <div className="product-type-tabs">
+                    <button
+                        className={`tab-button ${productType === 'jewelry' ? 'active' : ''}`}
+                        onClick={() => {
+                            setProductType('jewelry');
+                            setSelectedCategories([]);
+                            setSearchTerm('');
+                        }}
+                    >
+                        Jewelry
+                    </button>
+                    <button
+                        className={`tab-button ${productType === 'centerstone' ? 'active' : ''}`}
+                        onClick={() => {
+                            setProductType('centerstone');
+                            setSelectedCategories([]);
+                            setSearchTerm('');
+                        }}
+                    >
+                        Center Stone
+                    </button>
+                </div>
 
                 {/* Toolbar */}
                 <div className="admin-products-toolbar">
@@ -1199,6 +1302,7 @@ export default function AdminProducts() {
                         }))
                     }}
                     onEdit={handleEditProduct}
+                    productType={productType}
                 />
             )}
 
@@ -1215,6 +1319,7 @@ export default function AdminProducts() {
                     fetchProducts();
                 }}
                 product={editingProduct}
+                productType={productType}
             />
 
             {/* Excel Import Modal */}

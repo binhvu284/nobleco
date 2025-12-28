@@ -1718,6 +1718,17 @@ input:focus {
     z-index: 999999 !important;
 }
 
+/* Mobile responsive for modal-card */
+@media (max-width: 768px) {
+    .modal-card {
+        width: calc(100vw - 32px);
+        max-width: calc(100vw - 32px);
+        max-height: calc(100vh - 32px);
+        padding: 16px;
+        border-radius: 12px;
+    }
+}
+
 .modal-header {
     display: flex;
     justify-content: space-between;
@@ -5426,15 +5437,30 @@ input:focus {
     align-items: center;
     padding: 24px;
     border-bottom: 1px solid #e5e7eb;
-    background: linear-gradient(to bottom, #ffffff, #f9fafb);
+    background: #ffffff;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
 }
 
-.filter-popup-header h3 {
+.filter-popup-title {
     font-size: 20px;
     font-weight: 700;
     color: #111827;
     margin: 0;
     letter-spacing: -0.02em;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.filter-popup-title::before {
+    content: '';
+    width: 4px;
+    height: 20px;
+    background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+    border-radius: 2px;
 }
 
 .filter-popup-close {
@@ -5448,8 +5474,11 @@ input:focus {
     align-items: center;
     justify-content: center;
     color: #6b7280;
-    font-size: 20px;
+    font-size: 24px;
+    font-weight: 300;
+    line-height: 1;
     transition: all 0.2s ease;
+    flex-shrink: 0;
 }
 
 .filter-popup-close:hover {
@@ -5458,21 +5487,47 @@ input:focus {
     transform: rotate(90deg);
 }
 
+.filter-popup-close:active {
+    transform: rotate(90deg) scale(0.95);
+}
+
 .filter-popup-body {
     flex: 1;
-    padding: 16px;
+    padding: 24px;
     overflow-y: auto;
     overflow-x: hidden;
     -webkit-overflow-scrolling: touch;
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 20px;
+    background: #ffffff;
+}
+
+.filter-popup-body::-webkit-scrollbar {
+    width: 6px;
+}
+
+.filter-popup-body::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.filter-popup-body::-webkit-scrollbar-thumb {
+    background: #d1d5db;
+    border-radius: 3px;
+}
+
+.filter-popup-body::-webkit-scrollbar-thumb:hover {
+    background: #9ca3af;
 }
 
 .filter-popup-group {
     display: flex;
     flex-direction: column;
     gap: 12px;
+    padding: 0;
+    background: transparent;
+    border: none;
+    border-radius: 0;
 }
 
 .filter-popup-label {
@@ -5557,10 +5612,374 @@ input:focus {
     gap: 12px;
     background: #ffffff;
     box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.04);
+    position: sticky;
+    bottom: 0;
+    z-index: 10;
 }
 
 .filter-popup-footer button {
     flex: 1;
+    padding: 12px 20px;
+    font-weight: 600;
+    font-size: 14px;
+    border-radius: 10px;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.filter-popup-footer .btn-secondary {
+    background: #ffffff;
+    border: 2px solid #e5e7eb;
+    color: #374151;
+}
+
+.filter-popup-footer .btn-secondary:hover {
+    background: #f9fafb;
+    border-color: #d1d5db;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.filter-popup-footer .btn-primary {
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    border: none;
+    color: #ffffff;
+    box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
+}
+
+.filter-popup-footer .btn-primary:hover {
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(59, 130, 246, 0.4);
+}
+
+/* Filter Category Selector */
+.filter-category-selector {
+    position: relative;
+    width: 100%;
+}
+
+.filter-category-dropdown-toggle {
+    width: 100%;
+    padding: 12px 16px;
+    border: 2px solid #e5e7eb;
+    border-radius: 10px;
+    background: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    color: #6b7280;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.filter-category-dropdown-toggle:hover {
+    border-color: #3b82f6;
+    box-shadow: 0 2px 4px rgba(59, 130, 246, 0.1);
+}
+
+.filter-category-dropdown-toggle.active {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.filter-category-dropdown-toggle span:first-child {
+    flex: 1;
+    text-align: left;
+}
+
+.filter-category-dropdown-toggle.active span:first-child {
+    color: #111827;
+    font-weight: 600;
+}
+
+.dropdown-arrow {
+    font-size: 12px;
+    color: #9ca3af;
+    transition: transform 0.2s ease;
+    margin-left: 8px;
+}
+
+.filter-category-dropdown-toggle.active .dropdown-arrow {
+    transform: rotate(180deg);
+    color: #3b82f6;
+}
+
+.filter-category-dropdown-menu {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    right: 0;
+    width: 100%;
+    background: #ffffff;
+    border: 2px solid #e5e7eb;
+    border-radius: 10px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1), 0 4px 10px rgba(0, 0, 0, 0.05);
+    z-index: 1000;
+    max-height: 300px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    animation: dropdownSlideDown 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.filter-category-dropdown-menu::-webkit-scrollbar {
+    width: 6px;
+}
+
+.filter-category-dropdown-menu::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.filter-category-dropdown-menu::-webkit-scrollbar-thumb {
+    background: #d1d5db;
+    border-radius: 3px;
+}
+
+.filter-category-dropdown-menu::-webkit-scrollbar-thumb:hover {
+    background: #9ca3af;
+}
+
+.filter-category-dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+.filter-category-dropdown-item:last-child {
+    border-bottom: none;
+}
+
+.filter-category-dropdown-item:hover {
+    background: #f9fafb;
+}
+
+.filter-category-dropdown-item.selected {
+    background: #eff6ff;
+}
+
+.filter-category-dropdown-item input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: #3b82f6;
+    margin: 0;
+    flex-shrink: 0;
+}
+
+.category-color-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    border: 2px solid rgba(255, 255, 255, 0.8);
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.1);
+}
+
+.filter-category-dropdown-item span:last-child {
+    flex: 1;
+    font-size: 14px;
+    color: #111827;
+    font-weight: 500;
+}
+
+.dropdown-empty {
+    padding: 24px 16px;
+    text-align: center;
+    color: #6b7280;
+    font-size: 14px;
+}
+
+/* Filter Price Range */
+.filter-price-range {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.filter-price-input-wrapper {
+    flex: 1;
+    min-width: 120px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    border: 2px solid #e5e7eb;
+    border-radius: 10px;
+    background: #ffffff;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.filter-price-input-wrapper:hover {
+    border-color: #3b82f6;
+    box-shadow: 0 2px 4px rgba(59, 130, 246, 0.1);
+}
+
+.filter-price-input-wrapper:focus-within {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.filter-price-prefix {
+    padding: 0 12px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #6b7280;
+    border-right: 1px solid #e5e7eb;
+    background: #f9fafb;
+    border-radius: 10px 0 0 10px;
+    display: flex;
+    align-items: center;
+    height: 100%;
+}
+
+.filter-price-input {
+    flex: 1;
+    padding: 12px 16px;
+    border: none;
+    outline: none;
+    font-size: 14px;
+    font-weight: 500;
+    color: #111827;
+    background: transparent;
+    min-width: 0;
+}
+
+.filter-price-input::placeholder {
+    color: #9ca3af;
+    font-weight: 400;
+}
+
+.filter-price-separator {
+    font-size: 14px;
+    font-weight: 500;
+    color: #6b7280;
+    padding: 0 4px;
+    flex-shrink: 0;
+}
+
+/* Filter Status Group */
+.filter-status-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.filter-status-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    border: 2px solid #e5e7eb;
+    border-radius: 10px;
+    background: #ffffff;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.filter-status-item:hover {
+    border-color: #3b82f6;
+    background: #f9fafb;
+    box-shadow: 0 2px 4px rgba(59, 130, 246, 0.1);
+}
+
+.filter-status-item.active {
+    border-color: #3b82f6;
+    background: #eff6ff;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.filter-status-item input[type="radio"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: #3b82f6;
+    margin: 0;
+    flex-shrink: 0;
+}
+
+.filter-status-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    font-size: 14px;
+    font-weight: 500;
+    color: #111827;
+}
+
+.filter-status-indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.filter-status-indicator.active {
+    background: #10b981;
+    box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+}
+
+.filter-status-indicator.inactive {
+    background: #ef4444;
+    box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2);
+}
+
+.filter-popup-label {
+    font-size: 13px;
+    font-weight: 700;
+    color: #374151;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 8px;
+    display: block;
+}
+
+/* Mobile responsive for filter popup */
+@media (max-width: 768px) {
+    .filter-popup {
+        width: 100%;
+        max-width: 100vw;
+    }
+
+    .filter-popup-body {
+        padding: 12px;
+        gap: 12px;
+    }
+
+    .filter-popup-group {
+        padding: 12px;
+        gap: 10px;
+    }
+
+    .filter-price-range {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .filter-price-input-wrapper {
+        width: 100%;
+    }
+
+    .filter-price-separator {
+        display: none;
+    }
+
+    .filter-popup-footer {
+        padding: 16px;
+        flex-direction: column;
+    }
+
+    .filter-popup-footer button {
+        width: 100%;
+    }
 }
 
 /* Filter Popup Content */
@@ -6061,12 +6480,26 @@ input:focus {
         gap: 20px;
     }
 
+    .filter-popup-header {
+        padding: 20px;
+    }
+
+    .filter-popup-body {
+        padding: 16px;
+        gap: 16px;
+    }
+
     .filter-popup-footer {
         position: sticky;
         bottom: 0;
         background: white;
         box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.08);
-        padding: 16px 20px;
+        padding: 16px;
+        flex-direction: column;
+    }
+
+    .filter-popup-footer button {
+        width: 100%;
     }
 }
 
@@ -10275,44 +10708,8 @@ input:focus {
         font-size: 14px;
     }
 
-    .client-toolbar {
-        flex-direction: column;
-        align-items: stretch;
-        gap: 12px;
-        padding: 12px;
-    }
-
-    .client-toolbar .toolbar-left {
-        flex-direction: column;
-        width: 100%;
-        gap: 12px;
-    }
-
-    .client-toolbar .toolbar-right {
-        width: 100%;
-    }
-
-    .client-toolbar .search-container {
-        min-width: 0;
-        max-width: 100%;
-    }
-
-    .client-toolbar .search-input {
-        width: 100%;
-        font-size: 16px;
-    }
-
-    .client-toolbar .btn-filter {
-        width: 100%;
-        justify-content: center;
-    }
-
-    .btn-create-client {
-        width: 100%;
-        justify-content: center;
-        padding: 12px 20px;
-        font-size: 0.9rem;
-    }
+    /* OLD RULE REMOVED - Now handled by USER CLIENT PAGE OPTIMIZATIONS section below */
+    /* This old rule was causing conflicts - toolbar mobile layout is now properly handled */
 
     .client-grid {
         grid-template-columns: 1fr;
@@ -11305,6 +11702,58 @@ input:focus {
 .btn-create-product:hover {
     background: var(--primary-dark);
     transform: translateY(-1px);
+}
+
+.product-type-tabs {
+    display: inline-flex;
+    gap: 4px;
+    margin-bottom: 16px;
+    background: var(--bg-secondary);
+    padding: 4px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+}
+
+.product-type-tabs .tab-button {
+    padding: 8px 16px;
+    border: none;
+    background: transparent;
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: all 0.2s;
+    position: relative;
+    white-space: nowrap;
+}
+
+.product-type-tabs .tab-button:hover {
+    color: var(--primary);
+    background: rgba(37, 99, 235, 0.08);
+}
+
+.product-type-tabs .tab-button.active {
+    color: var(--primary);
+    background: white;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    font-weight: 600;
+}
+
+/* Make tabs more compact on mobile */
+@media (max-width: 768px) {
+    .product-type-tabs {
+        width: 100%;
+        display: flex;
+        gap: 2px;
+        padding: 3px;
+    }
+    
+    .product-type-tabs .tab-button {
+        flex: 1;
+        padding: 8px 12px;
+        font-size: 12px;
+    }
 }
 
 .admin-products-toolbar {
@@ -14853,37 +15302,39 @@ input:focus {
 
 /* Categories Table */
 .categories-table-container {
-    background: var(--bg-secondary);
+    background: white;
+    border: 1px solid var(--border);
     border-radius: 12px;
-    border: 1px solid var(--border-color);
     overflow: visible;
     margin-top: 8px;
     position: relative;
+    z-index: 1;
 }
 
 .categories-table {
     width: 100%;
     border-collapse: collapse;
-    position: relative;
     overflow: visible;
+    position: relative;
 }
 
 .categories-table th {
-    background: var(--bg-primary);
-    color: var(--text-primary);
-    font-weight: 600;
-    font-size: 0.9rem;
-    padding: 16px 20px;
+    background: var(--bg);
+    padding: 16px;
     text-align: left;
-    border-bottom: 1px solid var(--border-color);
+    font-weight: 600;
+    color: var(--text-primary);
+    border-bottom: 1px solid var(--border);
+    font-size: 0.9rem;
+    position: relative;
+    z-index: 1;
 }
 
 .categories-table td {
-    padding: 16px 20px;
-    border-bottom: 1px solid var(--border-color);
-    color: var(--text-primary);
+    padding: 16px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
     position: relative;
-    overflow: visible;
 }
 
 .categories-table tr:hover {
@@ -15951,6 +16402,7 @@ input:focus {
     overflow: visible;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     position: relative;
+    z-index: 1;
 }
 
 .categories-table {
@@ -15968,6 +16420,8 @@ input:focus {
     padding: 16px 20px;
     text-align: left;
     border-bottom: 1px solid #e5e7eb;
+    position: relative;
+    z-index: 1;
 }
 
 .categories-table td {
@@ -15975,6 +16429,16 @@ input:focus {
     border-bottom: 1px solid #f3f4f6;
     color: #374151;
     font-size: 14px;
+    position: relative;
+    overflow: visible;
+}
+
+.categories-table td:last-child {
+    position: relative;
+}
+
+.categories-table td .unified-dropdown {
+    position: relative;
 }
 
 .categories-table tr:hover {
@@ -20641,17 +21105,23 @@ input:focus {
 .category-color {
     width: 12px;
     height: 12px;
-    border-radius: 3px;
+    min-width: 12px;
+    min-height: 12px;
+    border-radius: 50%;
     flex-shrink: 0;
+    display: block;
 }
 
 .category-dropdown-item .category-count {
     background: var(--bg);
-    padding: 4px 10px;
+    padding: 3px 8px;
     border-radius: 12px;
-    font-size: 0.813rem;
+    font-size: 12px;
     font-weight: 600;
     color: var(--text-secondary);
+    min-width: 24px;
+    text-align: center;
+    line-height: 1.2;
 }
 
 .category-dropdown-item.active .category-count {
@@ -22579,7 +23049,7 @@ input:focus {
     accent-color: var(--primary);
 }
 
-.category-dropdown-item span:not(.category-color-dot) {
+.category-dropdown-item span:not(.category-color-dot):not(.category-color):not(.category-count):not(.thumbnail-featured-badge) {
     flex: 1;
     min-width: 0;
     font-weight: 500;
@@ -24319,11 +24789,14 @@ input:focus {
     }
 
     .delete-confirm-actions {
-        flex-direction: column-reverse;
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 8px;
     }
 
     .delete-confirm-btn {
-        width: 100%;
+        flex: 1;
+        min-width: 0;
     }
 }
 
@@ -24603,12 +25076,15 @@ input:focus {
     }
 
     .image-edit-footer {
-        flex-direction: column-reverse;
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 8px;
     }
 
     .image-edit-footer .btn-primary,
     .image-edit-footer .btn-secondary {
-        width: 100%;
+        flex: 1;
+        min-width: 0;
     }
 
     .image-upload-dropzone {
@@ -25965,13 +26441,15 @@ input:focus {
     }
     
     .settings-edit-actions {
-        flex-direction: column;
-        width: 100%;
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 8px;
     }
     
     .settings-edit-actions .btn-primary,
     .settings-edit-actions .btn-secondary {
-        width: 100%;
+        flex: 1;
+        min-width: 0;
     }
 }
 
@@ -26973,6 +27451,24 @@ input:focus {
     background: var(--panel);
 }
 
+/* Mobile responsive for modal actions */
+@media (max-width: 768px) {
+    .modal-actions,
+    .modal-actions-fixed {
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .modal-actions .btn-primary,
+    .modal-actions .btn-secondary,
+    .modal-actions-fixed .btn-primary,
+    .modal-actions-fixed .btn-secondary {
+        flex: 1;
+        min-width: 0;
+    }
+}
+
 /* ===== PAYMENT PAGE STYLES ===== */
 .payment-container {
     max-width: 1000px;
@@ -27494,12 +27990,15 @@ input:focus {
     }
 
     .order-completed-actions {
-        flex-direction: column;
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 8px;
     }
 
     .order-completed-actions .btn-primary,
     .order-completed-actions .btn-secondary {
-        width: 100%;
+        flex: 1;
+        min-width: 0;
     }
 }
 
@@ -29209,7 +29708,9 @@ input:focus {
 
     .excel-import-footer-content {
         padding: 16px;
-        flex-direction: column-reverse;
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 8px;
     }
 
     .excel-import-body {
@@ -29237,7 +29738,8 @@ input:focus {
 
     .excel-import-footer-content .btn-secondary,
     .excel-import-footer-content .btn-primary {
-        width: 100%;
+        flex: 1;
+        min-width: 0;
     }
 
     .file-info-row {
@@ -29528,6 +30030,7 @@ input:focus {
 /* ===== TABLE COMPONENTS ===== */
 .table-container {
     overflow-x: auto;
+    overflow-y: visible;
 }
 
 .metric-table-content {
@@ -29759,6 +30262,1505 @@ input:focus {
 
     .chart-container {
         min-height: 200px;
+    }
+}
+
+/* ============================================
+   MOBILE RESPONSIVE OPTIMIZATION FIXES
+   ============================================ */
+
+/* Fix 1: Admin Users - 3-dot menu in card view */
+@media (max-width: 768px) {
+    /* Ensure user cards have proper stacking and z-index */
+    .user-card {
+        position: relative;
+        z-index: 1;
+    }
+    
+    .user-card .unified-dropdown {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        z-index: 10;
+    }
+    
+    .user-card .unified-dropdown-menu {
+        position: absolute;
+        right: 0;
+        top: 100%;
+        z-index: 1000;
+        margin-top: 4px;
+        min-width: 180px;
+    }
+    
+    /* Prevent card from cutting off dropdown */
+    .user-card.unified-dropdown-menu-open {
+        overflow: visible;
+        z-index: 100;
+    }
+}
+
+/* Fix 2: Admin Admin Users - Smaller add buttons */
+@media (max-width: 768px) {
+    /* Admins section - smaller add button */
+    .admin-users-section .create-btn,
+    .coworkers-section .create-btn {
+        padding: 10px;
+        min-width: 44px;
+        width: 44px;
+        height: 44px;
+        border-radius: 8px;
+    }
+    
+    .admin-users-section .create-btn span,
+    .coworkers-section .create-btn span {
+        display: none;
+    }
+    
+    .admin-users-section .create-btn svg,
+    .coworkers-section .create-btn svg {
+        width: 20px;
+        height: 20px;
+        margin: 0;
+    }
+}
+
+/* Fix 3: Admin Admin Users - Inline buttons in forms */
+@media (max-width: 768px) {
+    /* Admin and Coworker creation forms - inline buttons */
+    .add-admin-modal .modal-footer,
+    .add-coworker-modal .modal-footer,
+    .category-modal-footer,
+    .discount-modal-footer {
+        display: flex !important;
+        flex-direction: row !important;
+        gap: 10px !important;
+        padding: 16px !important;
+        justify-content: space-between;
+    }
+    
+    .add-admin-modal .modal-footer button,
+    .add-coworker-modal .modal-footer button,
+    .category-modal-footer button,
+    .discount-modal-footer button {
+        flex: 1;
+        width: auto !important;
+        min-width: 0;
+        justify-content: center;
+        margin: 0 !important;
+    }
+    
+    /* Permission Settings form - inline buttons */
+    .permission-modal .modal-footer {
+        display: flex !important;
+        flex-direction: row !important;
+        gap: 10px !important;
+        padding: 16px !important;
+    }
+    
+    .permission-modal .modal-footer button {
+        flex: 1;
+        width: auto !important;
+        min-width: 0;
+        margin: 0 !important;
+    }
+}
+
+/* Fix 4: Admin Admin Users - Detail popup optimization */
+@media (max-width: 768px) {
+    /* Full screen modals for admin/coworker detail */
+    .admin-detail-modal,
+    .coworker-detail-modal {
+        width: 100vw !important;
+        max-width: 100vw !important;
+        height: 100vh !important;
+        max-height: 100vh !important;
+        margin: 0 !important;
+        border-radius: 0 !important;
+    }
+    
+    .admin-detail-modal .modal-content,
+    .coworker-detail-modal .modal-content {
+        width: 100%;
+        max-width: 100%;
+        height: 100vh;
+        max-height: 100vh;
+        margin: 0;
+        border-radius: 0;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    /* Account info section first */
+    .admin-detail-modal .modal-body,
+    .coworker-detail-modal .modal-body {
+        display: flex;
+        flex-direction: column;
+        overflow-y: auto;
+        flex: 1;
+    }
+    
+    .admin-detail-modal .user-detail-header {
+        order: 1;
+    }
+    
+    .admin-detail-modal .user-detail-tabs {
+        order: 2;
+    }
+    
+    .admin-detail-modal .account-info-section {
+        order: 3;
+    }
+    
+    .admin-detail-modal .permissions-section {
+        order: 4;
+    }
+    
+    .coworker-detail-modal .account-info-section {
+        order: 1;
+        margin-bottom: 20px;
+    }
+    
+    .coworker-detail-modal .permissions-section {
+        order: 2;
+    }
+}
+
+/* Fix 5: Admin Products - Image cut off issues */
+@media (max-width: 768px) {
+    .product-card-image {
+        position: relative;
+        width: 100%;
+        height: 0;
+        padding-bottom: 75%; /* 4:3 aspect ratio */
+        overflow: visible !important;
+        border-radius: 12px 12px 0 0;
+    }
+    
+    .product-card-image img,
+    .product-card-image .lazy-image {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 12px 12px 0 0;
+    }
+    
+    /* Fix 3-dot menu cut off */
+    .product-card-actions {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        z-index: 100;
+    }
+    
+    .product-card .unified-dropdown-menu {
+        position: absolute;
+        right: 0;
+        top: 100%;
+        z-index: 1000;
+        margin-top: 4px;
+        min-width: 160px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    }
+    
+    /* Ensure product card doesn't clip dropdown */
+    .product-card {
+        overflow: visible !important;
+    }
+    
+    .product-card-content {
+        overflow: visible;
+    }
+}
+
+/* Fix 6: Admin Products - Edit form buttons inline */
+@media (max-width: 768px) {
+    .add-product-modal .modal-footer,
+    .edit-jewelry-form .modal-footer {
+        display: flex;
+        flex-direction: row !important;
+        gap: 10px;
+        padding: 16px;
+    }
+    
+    .add-product-modal .modal-footer button,
+    .edit-jewelry-form .modal-footer button {
+        flex: 1;
+        width: auto !important;
+        min-width: 0;
+    }
+}
+
+/* Fix 7: Admin Categories - Tab switcher overlap */
+@media (max-width: 768px) {
+    .product-type-tabs {
+        width: 100%;
+        margin-bottom: 12px;
+        margin-top: 0;
+        position: relative;
+        z-index: 5;
+    }
+    
+    .categories-toolbar {
+        margin-top: 0;
+        position: relative;
+        z-index: 4;
+    }
+    
+    /* Ensure toolbar doesn't overlap with tabs */
+    .admin-categories-page .product-type-tabs {
+        margin-bottom: 16px;
+    }
+    
+    .admin-categories-page .categories-toolbar {
+        margin-top: 0;
+    }
+}
+
+/* Fix 8: Admin Orders - Toolbar overlap sidebar */
+@media (max-width: 768px) {
+    /* Ensure toolbar is hidden when sidebar is open */
+    .admin-root.mobile-open .categories-toolbar,
+    .admin-root.mobile-open .admin-products-toolbar,
+    .admin-root.mobile-open .admin-orders-toolbar {
+        opacity: 0 !important;
+        pointer-events: none !important;
+        visibility: hidden !important;
+        transition: all 0.3s ease;
+    }
+    
+    /* Orders page toolbar specific */
+    .admin-orders-page .categories-toolbar {
+        position: relative;
+        z-index: 10;
+        background: white;
+        padding: 12px 0;
+    }
+    
+    /* When sidebar is closed, ensure toolbar is visible */
+    .admin-root:not(.mobile-open) .admin-orders-toolbar,
+    .admin-root:not(.mobile-open) .categories-toolbar {
+        opacity: 1 !important;
+        pointer-events: auto !important;
+        visibility: visible !important;
+    }
+}
+
+/* Fix 9: Admin Commission - Reduce edit rate button width */
+@media (max-width: 768px) {
+    .commission-header-content .btn-primary,
+    .commission-actions .btn-primary {
+        width: auto;
+        padding: 10px 16px;
+        font-size: 14px;
+        min-width: 100px;
+        max-width: 120px;
+    }
+    
+    .commission-actions {
+        display: flex;
+        gap: 8px;
+        justify-content: flex-end;
+    }
+    
+    .commission-actions .btn-primary,
+    .commission-actions .btn-secondary {
+        flex: 0 1 auto;
+        width: auto !important;
+    }
+}
+
+/* Fix 10: Admin Discount - Toolbar optimization */
+@media (max-width: 768px) {
+    /* Optimize discount toolbar for mobile */
+    .admin-discount .categories-toolbar .toolbar-left {
+        flex: 1;
+        min-width: 0;
+    }
+    
+    .admin-discount .categories-toolbar .toolbar-right {
+        flex-shrink: 0;
+    }
+    
+    /* Hide text in create button, show only + icon */
+    .admin-discount .btn-add span {
+        display: none;
+    }
+    
+    .admin-discount .btn-add {
+        padding: 10px;
+        min-width: 44px;
+        width: 44px;
+        height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .admin-discount .btn-add svg {
+        width: 20px;
+        height: 20px;
+        margin: 0;
+    }
+    
+    /* Inline buttons in discount forms */
+    .discount-modal .modal-footer {
+        display: flex;
+        flex-direction: row !important;
+        gap: 10px;
+        padding: 16px;
+    }
+    
+    .discount-modal .modal-footer button {
+        flex: 1;
+        width: auto !important;
+    }
+    
+    /* Fix card overlap by toolbar */
+    .admin-discount .discount-card {
+        margin-top: 0;
+    }
+    
+    .admin-discount .cards-grid {
+        margin-top: 16px;
+    }
+}
+
+/* General Mobile Modal Improvements */
+@media (max-width: 768px) {
+    /* Full screen modals on mobile */
+    .modal-overlay .modal-content {
+        width: 100%;
+        max-width: 100%;
+        height: 100vh;
+        max-height: 100vh;
+        margin: 0;
+        border-radius: 0;
+    }
+    
+    .modal-body {
+        max-height: calc(100vh - 140px);
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    /* Ensure modals are scrollable */
+    .category-modal,
+    .add-product-modal,
+    .discount-modal {
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+}
+
+/* Touch Target Optimization - Minimum 44x44px for all interactive elements */
+@media (max-width: 768px) {
+    .unified-more-btn {
+        min-width: 44px;
+        min-height: 44px;
+        width: 44px;
+        height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+    }
+    
+    .unified-more-btn svg {
+        width: 20px;
+        height: 20px;
+    }
+    
+    .btn-filter,
+    .btn-add,
+    .btn-import,
+    .btn-activity-log {
+        min-width: 44px;
+        min-height: 44px;
+    }
+    
+    /* Dropdown menu items touch targets */
+    .unified-dropdown-menu .unified-dropdown-item {
+        min-height: 44px;
+        padding: 12px 16px;
+    }
+}
+
+/* Fix dropdown menu positioning and visibility issues */
+@media (max-width: 768px) {
+    .unified-dropdown-menu {
+        position: fixed !important;
+        z-index: 9999;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
+        min-width: 200px;
+        max-width: 280px;
+    }
+    
+    /* Ensure dropdowns are visible over cards */
+    .unified-dropdown.active {
+        z-index: 10000;
+    }
+    
+    /* Prevent body scroll when dropdown is open */
+    body.dropdown-open {
+        overflow: hidden;
+    }
+}
+
+/* Toolbar responsiveness improvements */
+@media (max-width: 768px) {
+    .categories-toolbar,
+    .admin-products-toolbar {
+        flex-wrap: nowrap;
+        gap: 8px;
+        padding: 12px 0;
+    }
+    
+    .toolbar-left {
+        flex: 1;
+        min-width: 0;
+        gap: 8px;
+    }
+    
+    .toolbar-right {
+        flex-shrink: 0;
+        gap: 8px;
+    }
+    
+    .search-container {
+        flex: 1;
+        min-width: 120px;
+    }
+    
+    .search-input {
+        font-size: 14px;
+        padding: 8px 12px 8px 36px;
+    }
+}
+
+/* Card view improvements */
+@media (max-width: 768px) {
+    .user-card,
+    .product-card,
+    .category-card,
+    .discount-card {
+        position: relative;
+        z-index: 1;
+    }
+    
+    .user-card .card-header,
+    .category-card .card-header {
+        position: relative;
+        overflow: visible;
+    }
+    
+    /* Ensure dropdown menus appear above cards */
+    .user-card .unified-dropdown.active,
+    .category-card .unified-dropdown.active,
+    .product-card .unified-dropdown.active {
+        z-index: 100;
+    }
+}
+
+/* ============================================
+   USER PAGES MOBILE RESPONSIVE OPTIMIZATION
+   ============================================ */
+
+/* USER CLIENT PAGE OPTIMIZATIONS */
+@media (max-width: 768px) {
+    /* Fix 1: Client toolbar - all components in same line */
+    /* ========================================
+       CLIENT PAGE TOOLBAR - MOBILE OPTIMIZED
+       ======================================== */
+    
+    /* CLIENT TOOLBAR - EXACT COPY from categories-toolbar mobile solution */
+    .client-page .client-toolbar,
+    .user-clients-page .client-toolbar,
+    .client-page .clients-toolbar,
+    .user-clients-page .clients-toolbar {
+        flex-direction: row !important;
+        gap: 8px !important;
+        margin-bottom: 12px !important;
+        flex-wrap: nowrap !important;
+        overflow: visible !important;
+        padding: 8px 12px !important;
+        background: transparent !important;
+        border-bottom: none !important;
+    }
+    
+    /* Toolbar-left - EXACT COPY from categories-toolbar */
+    .client-page .toolbar-left,
+    .user-clients-page .toolbar-left,
+    .clients-toolbar .toolbar-left {
+        display: flex !important;
+        align-items: center !important;
+        gap: 8px !important;
+        flex-shrink: 0 !important;
+        flex-direction: row !important;
+    }
+    
+    /* Toolbar-right - EXACT COPY from categories-toolbar */
+    .client-page .toolbar-right,
+    .user-clients-page .toolbar-right,
+    .clients-toolbar .toolbar-right {
+        display: flex !important;
+        align-items: center !important;
+        gap: 8px !important;
+        flex-shrink: 0 !important;
+    }
+    
+    /* Search Container - EXACT COPY from admin-products-toolbar */
+    .client-page .search-container,
+    .user-clients-page .search-container,
+    .clients-toolbar .search-container {
+        flex: 1 !important;
+        min-width: 0 !important;
+        position: relative !important;
+    }
+    
+    .client-page .search-input,
+    .user-clients-page .search-input,
+    .clients-toolbar .search-input {
+        width: 100% !important;
+        font-size: 14px !important;
+    }
+    
+    /* Filter Button - EXACT COPY from admin-products-toolbar */
+    .client-page .btn-filter,
+    .user-clients-page .btn-filter,
+    .clients-toolbar .btn-filter {
+        padding: 10px !important;
+        min-width: 40px !important;
+        justify-content: center !important;
+    }
+    
+    /* Hide View Toggle Buttons on Mobile */
+    .client-page .toolbar-right > div:first-child,
+    .user-clients-page .toolbar-right > div:first-child,
+    .clients-toolbar .toolbar-right > div:first-child {
+        display: none !important;
+    }
+    
+    .client-page .view-toggle-btn,
+    .user-clients-page .view-toggle-btn,
+    .clients-toolbar .view-toggle-btn {
+        display: none !important;
+    }
+    
+    /* Add New Client Button - EXACT COPY from admin-products-toolbar */
+    .client-page .btn-create-client,
+    .user-clients-page .btn-create-client,
+    .clients-toolbar .btn-create-client,
+    .client-page .btn-create,
+    .user-clients-page .btn-create,
+    .client-page .create-client-btn,
+    .user-clients-page .create-client-btn {
+        padding: 10px !important;
+        min-width: 40px !important;
+        justify-content: center !important;
+    }
+    
+    /* Hide text - EXACT COPY from admin-products-toolbar .btn-text pattern */
+    .client-page .btn-create-client > *:not(svg),
+    .user-clients-page .btn-create-client > *:not(svg),
+    .clients-toolbar .btn-create-client > *:not(svg) {
+        display: none !important;
+    }
+    
+    .client-page .btn-create-client svg,
+    .user-clients-page .btn-create-client svg,
+    .clients-toolbar .btn-create-client svg {
+        display: block !important;
+        width: 20px !important;
+        height: 20px !important;
+    }
+    
+    /* Fix 2: Client detail popup - Close/Edit buttons inline */
+    .client-detail-modal .modal-footer,
+    .client-view-modal .modal-footer {
+        display: flex !important;
+        flex-direction: row !important;
+        gap: 10px;
+        padding: 16px;
+        justify-content: space-between;
+    }
+    
+    .client-detail-modal .modal-footer button,
+    .client-view-modal .modal-footer button {
+        flex: 1;
+        width: auto !important;
+        min-width: 0;
+        margin: 0 !important;
+    }
+    
+    /* Fix 3: Client edit form - fit screen properly */
+    .client-edit-modal,
+    .client-create-modal {
+        width: 100vw !important;
+        max-width: 100vw !important;
+        height: 100vh !important;
+        max-height: 100vh !important;
+        margin: 0 !important;
+        border-radius: 0 !important;
+    }
+    
+    .client-edit-modal .modal-content,
+    .client-create-modal .modal-content {
+        width: 100%;
+        height: 100%;
+        max-height: 100%;
+        border-radius: 0;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .client-edit-modal .modal-body,
+    .client-create-modal .modal-body {
+        flex: 1;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        padding: 16px;
+    }
+    
+    .client-edit-modal .modal-footer,
+    .client-create-modal .modal-footer {
+        display: flex !important;
+        flex-direction: row !important;
+        gap: 10px;
+        padding: 16px;
+        border-top: 1px solid var(--border);
+        flex-shrink: 0;
+    }
+    
+    .client-edit-modal .modal-footer button,
+    .client-create-modal .modal-footer button {
+        flex: 1;
+        width: auto !important;
+        min-width: 0;
+    }
+}
+
+/* USER PRODUCT PAGE OPTIMIZATIONS */
+@media (max-width: 768px) {
+    /* Hide desktop category sidebar on mobile */
+    .user-products-page .categories-sidebar,
+    .user-product-page .categories-sidebar {
+        display: none !important;
+    }
+    
+    /* Make products take full width */
+    .user-products-page .products-content,
+    .user-product-page .products-content {
+        display: block !important;
+        grid-template-columns: 1fr !important;
+    }
+    
+    .user-products-page .products-main,
+    .user-product-page .products-main {
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+    
+    /* Fix 1: 1 product card per row */
+    .user-product-page .products-grid,
+    .user-products-grid,
+    .products-grid {
+        grid-template-columns: 1fr !important;
+        gap: 16px;
+    }
+    
+    .user-product-page .product-card {
+        width: 100%;
+    }
+    
+    /* ========================================
+       PRODUCT DETAIL MODAL - MOBILE OPTIMIZED
+       ======================================== */
+    
+    /* Modal Container - Full screen on mobile */
+    .user-product-detail-modal {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100vw !important;
+        height: 100vh !important;
+        max-width: 100vw !important;
+        max-height: 100vh !important;
+        margin: 0 !important;
+        border-radius: 0 !important;
+        z-index: 10000 !important;
+        transform: none !important;
+        background: white !important;
+        display: flex !important;
+        flex-direction: column !important;
+        overflow: hidden !important;
+    }
+    
+    .product-detail-overlay {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100vw !important;
+        height: 100vh !important;
+        background: rgba(0, 0, 0, 0.8) !important;
+        z-index: 9999 !important;
+    }
+    
+    /* ========== HEADER ========== */
+    .user-product-detail-modal .product-modal-header {
+        flex-shrink: 0 !important;
+        padding: 12px 16px !important;
+        background: white !important;
+        border-bottom: 1px solid #e5e7eb !important;
+        display: flex !important;
+        justify-content: flex-end !important;
+        align-items: center !important;
+        position: sticky !important;
+        top: 0 !important;
+        z-index: 10 !important;
+    }
+    
+    .user-product-detail-modal .product-modal-close {
+        width: 44px !important;
+        height: 44px !important;
+        border-radius: 50% !important;
+        background: #f3f4f6 !important;
+        border: none !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        cursor: pointer !important;
+        transition: background 0.2s !important;
+    }
+    
+    .user-product-detail-modal .product-modal-close:active {
+        background: #e5e7eb !important;
+    }
+    
+    /* ========== SCROLLABLE BODY ========== */
+    .user-product-detail-modal .product-modal-body {
+        flex: 1 !important;
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+        background: white !important;
+    }
+    
+    /* ========== IMAGE SECTION ========== */
+    .user-product-detail-modal .product-modal-image-section {
+        width: 100% !important;
+        background: #f9fafb !important;
+        display: flex !important;
+        flex-direction: column !important;
+        position: relative !important;
+    }
+    
+    /* Image Gallery Container */
+    .user-product-detail-modal .product-modal-gallery,
+    .user-product-detail-modal .image-gallery {
+        width: 100% !important;
+        display: flex !important;
+        flex-direction: column !important;
+    }
+    
+    /* Main Image Container */
+    .user-product-detail-modal .gallery-main,
+    .user-product-detail-modal .main-image-container {
+        width: 100% !important;
+        height: 45vh !important;
+        min-height: 280px !important;
+        max-height: 45vh !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        background: #f9fafb !important;
+        position: relative !important;
+    }
+    
+    .user-product-detail-modal .gallery-main img,
+    .user-product-detail-modal .main-image-container img {
+        width: 100% !important;
+        height: 100% !important;
+        object-fit: contain !important;
+    }
+    
+    /* Thumbnails Container */
+    .user-product-detail-modal .gallery-thumbnails {
+        display: flex !important;
+        gap: 8px !important;
+        padding: 12px 16px !important;
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+        background: white !important;
+        border-top: 1px solid #e5e7eb !important;
+    }
+    
+    /* Hide scrollbar but keep functionality */
+    .user-product-detail-modal .gallery-thumbnails::-webkit-scrollbar {
+        height: 4px !important;
+    }
+    
+    .user-product-detail-modal .gallery-thumbnails::-webkit-scrollbar-track {
+        background: #f3f4f6 !important;
+    }
+    
+    .user-product-detail-modal .gallery-thumbnails::-webkit-scrollbar-thumb {
+        background: #d1d5db !important;
+        border-radius: 2px !important;
+    }
+    
+    /* Individual Thumbnail */
+    .user-product-detail-modal .thumbnail-item {
+        width: 60px !important;
+        height: 60px !important;
+        flex-shrink: 0 !important;
+        border-radius: 8px !important;
+        overflow: hidden !important;
+        border: 2px solid #e5e7eb !important;
+        background: white !important;
+        cursor: pointer !important;
+        transition: all 0.2s !important;
+        padding: 0 !important;
+    }
+    
+    .user-product-detail-modal .thumbnail-item img {
+        width: 100% !important;
+        height: 100% !important;
+        object-fit: cover !important;
+    }
+    
+    .user-product-detail-modal .thumbnail-item.active {
+        border-color: #2563eb !important;
+        box-shadow: 0 0 0 1px #2563eb !important;
+    }
+    
+    .user-product-detail-modal .thumbnail-item:active {
+        transform: scale(0.95) !important;
+    }
+    
+    /* Featured badge on thumbnail */
+    .user-product-detail-modal .thumbnail-featured-badge {
+        position: absolute !important;
+        top: 2px !important;
+        right: 2px !important;
+        background: #fbbf24 !important;
+        color: white !important;
+        font-size: 10px !important;
+        padding: 2px 4px !important;
+        border-radius: 4px !important;
+        line-height: 1 !important;
+    }
+    
+    /* Image placeholder */
+    .user-product-detail-modal .product-modal-image-placeholder {
+        width: 100% !important;
+        height: 45vh !important;
+        min-height: 280px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        color: #9ca3af !important;
+        background: #f9fafb !important;
+    }
+    
+    /* ========== INFO SECTION ========== */
+    .user-product-detail-modal .product-modal-info-section {
+        padding: 20px !important;
+        background: white !important;
+    }
+    
+    /* Categories */
+    .user-product-detail-modal .product-modal-categories {
+        display: flex !important;
+        flex-wrap: wrap !important;
+        gap: 8px !important;
+        margin-bottom: 12px !important;
+    }
+    
+    .user-product-detail-modal .category-badge {
+        padding: 4px 10px !important;
+        border-radius: 6px !important;
+        font-size: 12px !important;
+        font-weight: 600 !important;
+        border: 1.5px solid !important;
+    }
+    
+    /* Title */
+    .user-product-detail-modal .product-modal-title {
+        font-size: 20px !important;
+        font-weight: 700 !important;
+        line-height: 1.3 !important;
+        color: #111827 !important;
+        margin: 0 0 8px 0 !important;
+    }
+    
+    /* Short Description */
+    .user-product-detail-modal .product-modal-short-desc {
+        font-size: 14px !important;
+        line-height: 1.5 !important;
+        color: #6b7280 !important;
+        margin: 0 0 16px 0 !important;
+    }
+    
+    /* Price Section */
+    .user-product-detail-modal .product-modal-price-section {
+        display: flex !important;
+        align-items: baseline !important;
+        gap: 8px !important;
+        margin-bottom: 12px !important;
+    }
+    
+    .user-product-detail-modal .product-modal-price-label {
+        font-size: 14px !important;
+        color: #6b7280 !important;
+        font-weight: 500 !important;
+    }
+    
+    .user-product-detail-modal .product-modal-price-value {
+        font-size: 24px !important;
+        font-weight: 700 !important;
+        color: #2563eb !important;
+    }
+    
+    /* Stock Section */
+    .user-product-detail-modal .product-modal-stock-section {
+        margin-bottom: 16px !important;
+    }
+    
+    .user-product-detail-modal .stock-badge {
+        display: inline-block !important;
+        padding: 6px 12px !important;
+        border-radius: 6px !important;
+        font-size: 13px !important;
+        font-weight: 600 !important;
+    }
+    
+    .user-product-detail-modal .stock-badge.in-stock {
+        background: #d1fae5 !important;
+        color: #065f46 !important;
+    }
+    
+    .user-product-detail-modal .stock-badge.out-of-stock {
+        background: #fee2e2 !important;
+        color: #991b1b !important;
+    }
+    
+    /* Add to Cart Button */
+    .user-product-detail-modal .product-modal-add-to-cart {
+        width: 100% !important;
+        padding: 14px 20px !important;
+        background: #2563eb !important;
+        color: white !important;
+        border: none !important;
+        border-radius: 10px !important;
+        font-size: 16px !important;
+        font-weight: 600 !important;
+        cursor: pointer !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 8px !important;
+        transition: background 0.2s !important;
+        margin-bottom: 24px !important;
+    }
+    
+    .user-product-detail-modal .product-modal-add-to-cart:active {
+        background: #1d4ed8 !important;
+    }
+    
+    .user-product-detail-modal .product-modal-add-to-cart:disabled {
+        background: #d1d5db !important;
+        color: #9ca3af !important;
+        cursor: not-allowed !important;
+    }
+    
+    /* Divider */
+    .user-product-detail-modal .product-modal-divider {
+        width: 100% !important;
+        height: 1px !important;
+        background: #e5e7eb !important;
+        margin: 24px 0 !important;
+    }
+    
+    /* ========== SECTIONS (Description, Specs) ========== */
+    .user-product-detail-modal .product-modal-section {
+        margin-bottom: 24px !important;
+    }
+    
+    .user-product-detail-modal .section-title {
+        font-size: 16px !important;
+        font-weight: 700 !important;
+        color: #111827 !important;
+        margin: 0 0 12px 0 !important;
+    }
+    
+    .user-product-detail-modal .section-content {
+        font-size: 14px !important;
+        line-height: 1.6 !important;
+        color: #4b5563 !important;
+        margin: 0 !important;
+    }
+    
+    /* Specifications List */
+    .user-product-detail-modal .specs-list {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 8px !important;
+    }
+    
+    .user-product-detail-modal .spec-item {
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+        padding: 12px 14px !important;
+        background: #f9fafb !important;
+        border-radius: 8px !important;
+        border: 1px solid #e5e7eb !important;
+    }
+    
+    .user-product-detail-modal .spec-label {
+        font-size: 13px !important;
+        color: #6b7280 !important;
+        font-weight: 500 !important;
+    }
+    
+    .user-product-detail-modal .spec-value {
+        font-size: 13px !important;
+        color: #111827 !important;
+        font-weight: 600 !important;
+        text-align: right !important;
+    }
+    
+    /* Jewelry Specifications */
+    .user-product-detail-modal .jewelry-specs-content {
+        background: #f9fafb !important;
+        padding: 14px !important;
+        border-radius: 8px !important;
+        border: 1px solid #e5e7eb !important;
+        white-space: pre-wrap !important;
+        word-wrap: break-word !important;
+        font-family: inherit !important;
+        font-size: 13px !important;
+        line-height: 1.6 !important;
+        color: #374151 !important;
+        margin: 0 !important;
+    }
+    
+    .user-product-detail-modal .no-specs {
+        font-size: 14px !important;
+        color: #9ca3af !important;
+        font-style: italic !important;
+        margin: 0 !important;
+    }
+    
+    /* Fix 3: Optimize product detail layout - REMOVED OLD CODE */
+    
+    /* Fix 4: Categories and product form display - CRITICAL FIX */
+    .mobile-category-dropdown {
+        position: relative;
+        margin-bottom: 16px;
+        z-index: 100;
+    }
+    
+    .mobile-category-btn {
+        width: 100%;
+        padding: 12px 16px;
+        background: white;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        cursor: pointer;
+        font-size: 15px;
+        font-weight: 500;
+    }
+    
+    .mobile-category-name {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .mobile-category-dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+    }
+    
+    .category-dropdown-overlay {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        bottom: 0 !important;
+        background: rgba(0, 0, 0, 0.5) !important;
+        z-index: 999 !important;
+        backdrop-filter: blur(2px) !important;
+        -webkit-backdrop-filter: blur(2px) !important;
+    }
+    
+    /* Category Dropdown Menu - Clean Mobile Design */
+    .category-dropdown-menu {
+        position: fixed !important;
+        top: 50vh !important;
+        left: 50% !important;
+        right: auto !important;
+        transform: translate(-50%, -50%) !important;
+        /* Force width to be viewport-safe AND respect max width without relying on max-width overrides */
+        width: min(360px, calc(100vw - 32px)) !important;
+        max-width: none !important;
+        max-height: 65vh !important;
+        overflow-y: auto !important;
+        overflow-x: hidden !important;
+        -webkit-overflow-scrolling: touch !important;
+        background: white !important;
+        border-radius: 16px !important;
+        box-shadow: 0 12px 48px rgba(0, 0, 0, 0.25) !important;
+        z-index: 1000 !important;
+        padding: 8px !important;
+        box-sizing: border-box !important;
+    }
+    
+    .category-dropdown-menu::-webkit-scrollbar {
+        width: 4px;
+    }
+    
+    .category-dropdown-menu::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    
+    .category-dropdown-menu::-webkit-scrollbar-thumb {
+        background: #d1d5db;
+        border-radius: 2px;
+    }
+    
+    /* Dropdown Items */
+    .category-dropdown-item {
+        width: 100% !important;
+        padding: 14px 12px !important;
+        border: none !important;
+        background: transparent !important;
+        text-align: left !important;
+        cursor: pointer !important;
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+        transition: all 0.15s ease !important;
+        font-size: 15px !important;
+        font-weight: 500 !important;
+        color: #1f2937 !important;
+        border-radius: 10px !important;
+        margin: 2px 0 !important;
+        gap: 8px !important;
+    }
+    
+    .category-dropdown-item:active {
+        transform: scale(0.98) !important;
+    }
+    
+    .category-dropdown-item:hover {
+        background: #f3f4f6 !important;
+    }
+    
+    .category-dropdown-item.active {
+        background: #eff6ff !important;
+        color: #2563eb !important;
+        font-weight: 600 !important;
+    }
+    
+    /* Category Info Section */
+    .category-dropdown-item .category-info {
+        display: flex !important;
+        align-items: center !important;
+        gap: 10px !important;
+        flex: 1 !important;
+        min-width: 0 !important;
+        overflow: hidden !important;
+    }
+    
+    .category-dropdown-item .category-info span:not(.category-color) {
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        white-space: nowrap !important;
+        flex: 1 !important;
+    }
+    
+    /* Color Indicator - Fixed to be perfect circles */
+    .category-dropdown-item .category-color {
+        width: 12px !important;
+        height: 12px !important;
+        min-width: 12px !important;
+        min-height: 12px !important;
+        flex: 0 0 12px !important;
+        border-radius: 50% !important;
+        flex-shrink: 0 !important;
+        border: 2px solid rgba(255, 255, 255, 0.8) !important;
+        box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.15) !important;
+        display: block !important;
+    }
+    
+    /* Product Count Badge - Compact */
+    .category-dropdown-item .category-count {
+        font-size: 12px !important;
+        font-weight: 600 !important;
+        color: #6b7280 !important;
+        background: #f3f4f6 !important;
+        padding: 3px 8px !important;
+        border-radius: 12px !important;
+        flex: 0 0 auto !important;
+        flex-shrink: 0 !important;
+        min-width: 24px !important;
+        text-align: center !important;
+        line-height: 1.2 !important;
+    }
+    
+    .category-dropdown-item.active .category-count {
+        background: #dbeafe !important;
+        color: #2563eb !important;
+    }
+    
+    .category-dropdown-item:hover .category-count {
+        background: #e5e7eb !important;
+    }
+    
+    /* Image gallery optimization */
+    .user-product-detail-modal .image-gallery {
+        width: 100%;
+        height: 100%;
+    }
+    
+    .user-product-detail-modal .image-gallery-thumbnails {
+        display: flex;
+        gap: 8px;
+        padding: 12px;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        background: rgba(0, 0, 0, 0.8);
+    }
+    
+    .user-product-detail-modal .image-gallery-thumbnail {
+        width: 60px;
+        height: 60px;
+        flex-shrink: 0;
+        border-radius: 6px;
+        overflow: hidden;
+        border: 2px solid transparent;
+        cursor: pointer;
+        transition: border-color 0.2s;
+    }
+    
+    .user-product-detail-modal .image-gallery-thumbnail.active {
+        border-color: var(--primary);
+    }
+}
+
+/* USER ORDERS PAGE OPTIMIZATIONS */
+@media (max-width: 768px) {
+    /* Fix 1: Orders page - card overlap toolbar */
+    .user-orders-page {
+        padding-top: 0;
+    }
+    
+    .user-orders-page .orders-toolbar {
+        position: sticky;
+        top: 0;
+        background: white;
+        z-index: 10;
+        padding: 12px 0;
+        margin-bottom: 16px;
+        border-bottom: 1px solid var(--border);
+    }
+    
+    .user-orders-page .orders-grid,
+    .user-orders-page .orders-list {
+        margin-top: 0;
+        padding-top: 16px;
+    }
+    
+    .user-orders-page .order-card {
+        margin-bottom: 16px;
+    }
+    
+    /* Fix 2: Toolbar overlap sidebar */
+    .user-root.mobile-open .user-orders-page .orders-toolbar {
+        opacity: 0 !important;
+        pointer-events: none !important;
+        visibility: hidden !important;
+        transition: all 0.3s ease;
+    }
+    
+    .user-root:not(.mobile-open) .user-orders-page .orders-toolbar {
+        opacity: 1 !important;
+        pointer-events: auto !important;
+        visibility: visible !important;
+    }
+    
+    /* Optimize order card layout */
+    .user-orders-page .order-card {
+        padding: 16px;
+        border-radius: 12px;
+        background: white;
+        border: 1px solid var(--border);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+    
+    .user-orders-page .order-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 12px;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    
+    .user-orders-page .order-number {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--primary);
+    }
+    
+    .user-orders-page .order-status-badge {
+        padding: 4px 12px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+    
+    .user-orders-page .order-card-body {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .user-orders-page .order-info-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 0;
+        border-bottom: 1px solid var(--border);
+    }
+    
+    .user-orders-page .order-info-label {
+        font-size: 13px;
+        color: var(--text-secondary);
+    }
+    
+    .user-orders-page .order-info-value {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--text);
+    }
+    
+    /* Order dropdown menu */
+    .user-orders-page .order-card .unified-dropdown {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+    }
+    
+    .user-orders-page .order-card .unified-dropdown-menu {
+        position: fixed;
+        z-index: 9999;
+        min-width: 200px;
+    }
+}
+
+/* General User Layout Mobile Improvements */
+@media (max-width: 768px) {
+    /* User layout specific */
+    .user-root {
+        position: relative;
+    }
+    
+    .user-root.mobile-open .user-sidebar {
+        transform: translateX(0);
+    }
+    
+    .user-root.mobile-open .user-overlay {
+        opacity: 1;
+        pointer-events: auto;
+    }
+    
+    /* Ensure user content is scrollable */
+    .user-main {
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    .user-content {
+        padding: 16px;
+        padding-top: 72px; /* Account for fixed header */
+    }
+    
+    /* User header optimization */
+    .user-header {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 100;
+        background: white;
+        border-bottom: 1px solid var(--border);
+        padding: 12px 16px;
+    }
+    
+    /* User sidebar optimization */
+    .user-sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 280px;
+        height: 100vh;
+        transform: translateX(-100%);
+        transition: transform 0.3s ease;
+        z-index: 200;
+        background: white;
+        box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
+    }
+}
+
+/* Product card grid mobile optimization */
+@media (max-width: 768px) {
+    .products-grid.mobile-cols-1 {
+        grid-template-columns: 1fr !important;
+    }
+    
+    .products-grid.mobile-cols-2 {
+        grid-template-columns: repeat(2, 1fr) !important;
+    }
+    
+    .products-grid.mobile-cols-3 {
+        grid-template-columns: repeat(3, 1fr) !important;
+    }
+}
+
+/* Close button positioning for mobile modals */
+@media (max-width: 768px) {
+    .modal-close,
+    .modal-header .btn-close {
+        position: absolute;
+        top: 16px;
+        right: 16px;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(0, 0, 0, 0.05);
+        border: none;
+        cursor: pointer;
+        z-index: 10;
+    }
+    
+    .modal-close:active,
+    .modal-header .btn-close:active {
+        background: rgba(0, 0, 0, 0.1);
     }
 }
 

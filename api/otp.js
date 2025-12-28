@@ -78,6 +78,7 @@ async function handleSendOTP(req, res, body) {
   }
 
   // For password reset, verify phone/email exists
+  // For email_change and phone_change, get user from auth token (user is already authenticated)
   let userId = null;
   if (purpose === 'password_reset') {
     const user = cleanedPhone 
@@ -93,6 +94,27 @@ async function handleSendOTP(req, res, body) {
     }
 
     userId = user.id;
+  } else if (purpose === 'email_change' || purpose === 'phone_change') {
+    // For email_change/phone_change, user is authenticated, get user ID from auth token
+    const authHeader = req.headers.authorization || req.headers.Authorization || req.headers['x-auth-token'];
+    if (authHeader) {
+      const token = authHeader.replace('Bearer ', '').trim();
+      if (token.startsWith('ok.')) {
+        const userIdFromToken = parseInt(token.replace('ok.', ''), 10);
+        if (!isNaN(userIdFromToken)) {
+          userId = userIdFromToken;
+        }
+      }
+    }
+    
+    // If we couldn't get user ID from token, try to get from email (for phone_change only)
+    // For email_change, the email is NEW so it won't exist in the system
+    if (!userId && purpose === 'phone_change' && cleanedEmail) {
+      const user = await findUserByEmail(cleanedEmail);
+      if (user) {
+        userId = user.id;
+      }
+    }
   }
 
   // For signup resend, preserve signup_data if provided or get from existing OTP

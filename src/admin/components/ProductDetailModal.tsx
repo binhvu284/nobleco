@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { IconX } from '../components/icons';
 import ImageGallery from '../../components/ImageGallery';
 import { UploadedImage } from '../../utils/imageUpload';
@@ -54,25 +54,19 @@ interface ProductDetailModalProps {
     onClose: () => void;
     product: Product | null;
     onEdit?: (product: Product) => void;
+    productType?: 'jewelry' | 'centerstone';
 }
 
-export default function ProductDetailModal({ open, onClose, product, onEdit }: ProductDetailModalProps) {
+export default function ProductDetailModal({ open, onClose, product, onEdit, productType = 'jewelry' }: ProductDetailModalProps) {
     const [images, setImages] = useState<UploadedImage[]>([]);
     const [loadingImages, setLoadingImages] = useState(false);
 
-    // Load product images when modal opens
-    useEffect(() => {
-        if (open && product) {
-            loadProductImages(product.id);
-        } else {
-            setImages([]);
-        }
-    }, [open, product]);
-
-    const loadProductImages = async (productId: number) => {
+    const loadProductImages = useCallback(async (productId: number) => {
         try {
             setLoadingImages(true);
-            const response = await fetch(`/api/product-images?productId=${productId}`);
+            const endpoint = productType === 'jewelry' ? '/api/product-images' : '/api/centerstone-images';
+            const productIdParam = productType === 'jewelry' ? 'productId' : 'centerstoneId';
+            const response = await fetch(`${endpoint}?${productIdParam}=${productId}`);
             if (response.ok) {
                 const imageData = await response.json();
                 setImages(imageData || []);
@@ -83,7 +77,16 @@ export default function ProductDetailModal({ open, onClose, product, onEdit }: P
         } finally {
             setLoadingImages(false);
         }
-    };
+    }, [productType]);
+
+    // Load product images when modal opens
+    useEffect(() => {
+        if (open && product) {
+            loadProductImages(product.id);
+        } else {
+            setImages([]);
+        }
+    }, [open, product, loadProductImages]);
 
     if (!open || !product) return null;
 
@@ -234,9 +237,11 @@ export default function ProductDetailModal({ open, onClose, product, onEdit }: P
                             </div>
                         </div>
 
-                        {/* Jewelry Specifications - Always display */}
+                        {/* Specifications - Always display */}
                         <div className="product-section">
-                            <label className="section-label">Jewelry Specifications</label>
+                            <label className="section-label">
+                                {productType === 'jewelry' ? 'Jewelry Specifications' : 'Center Stone Specifications'}
+                            </label>
                             <div className="jewelry-specifications-content">
                                 {product.jewelry_specifications ? (
                                     <pre style={{
@@ -302,7 +307,7 @@ export default function ProductDetailModal({ open, onClose, product, onEdit }: P
                             }
                         }}
                     >
-                        Edit Product
+                        {productType === 'jewelry' ? 'Edit Jewelry' : 'Edit Center Stone'}
                     </button>
                 </div>
             </div>

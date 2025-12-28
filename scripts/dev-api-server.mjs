@@ -16,6 +16,8 @@ import userAvatarsHandler from '../api/user-avatars.js';
 import userPersonalIdsHandler from '../api/user-personal-ids.js';
 import otpHandler from '../api/otp.js';
 import resetPasswordHandler from '../api/auth/reset-password.js';
+import verifyPasswordHandler from '../api/users/verify-password.js';
+import changePasswordHandler from '../api/users/change-password.js';
 import syncHandler from '../api/integrations/sync.js';
 import testHandler from '../api/integrations/test.js';
 import listHandler from '../api/integrations/list.js';
@@ -33,6 +35,10 @@ import paymentStatusHandler from '../api/orders/[id]/payment-status.js';
 import testPaymentHandler from '../api/orders/[id]/test-payment.js';
 import paymentConfigHandler from '../api/payment-config.js';
 import discountCodesHandler from '../api/discount-codes.js';
+import centerstonesHandler from '../api/centerstones.js';
+import centerstoneCategoriesHandler from '../api/centerstone-categories.js';
+import centerstoneImagesHandler from '../api/centerstone-images.js';
+import uploadCenterstoneExcelHandler from '../api/centerstones/upload-excel.js';
 
 const app = express();
 app.use(express.json({ limit: '50mb' })); // Increase limit for base64 image uploads
@@ -80,6 +86,17 @@ app.post('/api/products/upload-excel', upload.single('file'), async (req, res) =
   return uploadExcelHandler(req, res);
 });
 app.all('/api/categories', toRoute(categoriesHandler));
+app.all('/api/centerstones', toRoute(centerstonesHandler));
+app.post('/api/centerstones/upload-excel', upload.single('file'), async (req, res) => {
+  // Attach file buffer to request body for handler
+  if (req.file) {
+    req.body.fileBuffer = req.file.buffer;
+    req.body.fileName = req.file.originalname;
+  }
+  return uploadCenterstoneExcelHandler(req, res);
+});
+app.all('/api/centerstone-categories', toRoute(centerstoneCategoriesHandler));
+app.all('/api/centerstone-images', toRoute(centerstoneImagesHandler));
 app.all('/api/clients', toRoute(clientsHandler));
 app.all('/api/orders', toRoute(ordersHandler));
 // Register specific routes BEFORE generic :id route to avoid conflicts
@@ -129,6 +146,8 @@ app.all('/api/diagnostics', toRoute(diagnosticsHandler));
 app.all('/api/auth/login', toRoute(loginHandler));
 app.all('/api/auth/signup', toRoute(signupHandler));
 app.all('/api/auth/reset-password', toRoute(resetPasswordHandler));
+app.all('/api/users/verify-password', toRoute(verifyPasswordHandler));
+app.all('/api/users/change-password', toRoute(changePasswordHandler));
 app.all('/api/coworker-permissions', toRoute(coworkerPermissionsHandler));
 app.all('/api/bank-info', toRoute(bankInfoHandler));
 app.all('/api/withdraw-requests', toRoute(withdrawRequestsHandler));

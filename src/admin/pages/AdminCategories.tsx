@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import AdminLayout from '../components/AdminLayout';
 import CategoryDetailModal from '../components/CategoryDetailModal';
 import ConfirmModal from '../components/ConfirmModal';
-import UpdateDataModal from '../components/UpdateDataModal';
 import { 
   IconPlus,
   IconSearch,
@@ -34,12 +33,12 @@ interface Category {
 }
 
 export default function AdminCategories() {
+  const [categoryType, setCategoryType] = useState<'jewelry' | 'centerstone'>('jewelry');
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState<'table' | 'card'>('table');
-  const [showUpdateDataModal, setShowUpdateDataModal] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<number | null>(null);
   const [isMobile, setIsMobile] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
@@ -115,7 +114,8 @@ export default function AdminCategories() {
     try {
       setLoading(true);
       setError(null);
-      const response = await fetch('/api/categories');
+      const endpoint = categoryType === 'jewelry' ? '/api/categories' : '/api/centerstone-categories';
+      const response = await fetch(endpoint);
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: 'Failed to fetch categories' }));
@@ -132,10 +132,17 @@ export default function AdminCategories() {
     }
   };
 
-  // Fetch categories on mount
+  // Reset loading state when categoryType changes
+  useEffect(() => {
+    setLoading(true);
+    setError(null);
+    setCategories([]);
+  }, [categoryType]);
+
+  // Fetch categories on mount and when category type changes
   useEffect(() => {
     fetchCategories();
-  }, []);
+  }, [categoryType]);
 
   // Mobile detection and view mode management
   useEffect(() => {
@@ -175,7 +182,8 @@ export default function AdminCategories() {
 
     try {
       setDeleteLoading(true);
-      const response = await fetch(`/api/categories?id=${categoryToDelete.id}`, {
+      const endpoint = categoryType === 'jewelry' ? '/api/categories' : '/api/centerstone-categories';
+      const response = await fetch(`${endpoint}?id=${categoryToDelete.id}`, {
         method: 'DELETE'
       });
 
@@ -236,20 +244,6 @@ export default function AdminCategories() {
     });
   };
 
-  const handleSyncData = async (integrationId: number) => {
-    // TODO: Implement sync logic
-    console.log('Syncing data from integration:', integrationId);
-    // Show success notification
-    setNotification({
-      type: 'success',
-      message: 'Data sync started successfully!'
-    });
-    setTimeout(() => setNotification(null), 3000);
-    // Refresh categories after sync
-    setTimeout(() => {
-      fetchCategories();
-    }, 2000);
-  };
 
   // Handle form submission
   const handleSubmitCategory = async (e: React.FormEvent) => {
@@ -290,7 +284,8 @@ export default function AdminCategories() {
               .replace(/(^-|-$)/g, '')
           : editingCategory.slug;
 
-        response = await fetch(`/api/categories?id=${editingCategory.id}`, {
+        const endpoint = categoryType === 'jewelry' ? '/api/categories' : '/api/centerstone-categories';
+        response = await fetch(`${endpoint}?id=${editingCategory.id}`, {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json'
@@ -310,7 +305,8 @@ export default function AdminCategories() {
           .replace(/[^a-z0-9]+/g, '-')
           .replace(/(^-|-$)/g, '');
 
-        response = await fetch('/api/categories', {
+        const endpoint = categoryType === 'jewelry' ? '/api/categories' : '/api/centerstone-categories';
+        response = await fetch(endpoint, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
@@ -405,6 +401,28 @@ export default function AdminCategories() {
   return (
     <AdminLayout title="Categories Management">
       <div className="admin-categories-page">
+        {/* Navigation Tabs */}
+        <div className="product-type-tabs">
+          <button
+            className={`tab-button ${categoryType === 'jewelry' ? 'active' : ''}`}
+            onClick={() => {
+              setCategoryType('jewelry');
+              setSearchTerm('');
+            }}
+          >
+            Jewelry
+          </button>
+          <button
+            className={`tab-button ${categoryType === 'centerstone' ? 'active' : ''}`}
+            onClick={() => {
+              setCategoryType('centerstone');
+              setSearchTerm('');
+            }}
+          >
+            Center Stone
+          </button>
+        </div>
+
         {/* Clean Toolbar */}
         <div className="categories-toolbar">
           <div className="toolbar-left">
@@ -420,14 +438,6 @@ export default function AdminCategories() {
             </div>
             <button className="btn-filter" title="Filter">
               <IconFilter />
-            </button>
-            <button 
-              className="btn-update-data" 
-              onClick={() => setShowUpdateDataModal(true)}
-              title="Update Data from Third Party"
-            >
-              <IconPackage />
-              <span className="desktop-only">Update Data</span>
             </button>
           </div>
           <div className="toolbar-right">
@@ -480,7 +490,7 @@ export default function AdminCategories() {
 
         {/* Content */}
         {!loading && !error && viewMode === 'table' && !isMobile ? (
-          <div className="table-container">
+          <div className="categories-table-container">
             <table className="categories-table">
               <thead>
                 <tr>
@@ -517,16 +527,22 @@ export default function AdminCategories() {
                       <span className="created-date">{new Date(category.created_at).toLocaleDateString()}</span>
                     </td>
                     <td onClick={(e) => e.stopPropagation()}>
-                      <div className={`unified-dropdown ${activeDropdown === category.id ? 'active' : ''}`}>
-                        <button 
-                          className="unified-more-btn" 
-                          title="More options"
-                          onClick={(e) => handleMoreClick(category.id, e)}
+                      <div 
+                        className={`unified-dropdown ${activeDropdown === category.id ? 'active' : ''}`}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <button
+                          className="unified-more-btn"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleMoreClick(category.id, e);
+                          }}
+                          title="More Actions"
                         >
                           <IconMoreVertical />
                         </button>
                         {activeDropdown === category.id && (
-                          <div className="unified-dropdown-menu">
+                          <div className="unified-dropdown-menu" onClick={(e) => e.stopPropagation()}>
                             <button className="unified-dropdown-item" onClick={() => handleSeeDetail(category)}>
                               <IconEye />
                               See Detail
@@ -609,16 +625,9 @@ export default function AdminCategories() {
         {!loading && !error && filteredCategories.length === 0 && (
           <div className="empty-state">
             <h3>No categories found</h3>
-            <p>Try adjusting your search or sync data from third party</p>
+            <p>Try adjusting your search or create a new category</p>
           </div>
         )}
-
-        {/* Update Data Modal */}
-        <UpdateDataModal
-          open={showUpdateDataModal}
-          onClose={() => setShowUpdateDataModal(false)}
-          onSync={handleSyncData}
-        />
 
         {/* Category Create/Edit Modal */}
         {showCategoryModal && (

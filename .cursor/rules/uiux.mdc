@@ -1,0 +1,9 @@
+---
+alwaysApply: true
+---
+For any UI issue:
+First check other pages for existing solutions
+Look for similar components/patterns (e.g., if it's a toolbar issue, check admin-products-toolbar, categories-toolbar, etc.)
+Copy the proven solution from working pages
+Check multiple pages if needed to find the best solution
+

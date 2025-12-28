@@ -430,6 +430,7 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
         const input = document.createElement('input');
         input.type = 'file';
         input.accept = 'image/*';
+        input.setAttribute('capture', 'user'); // Use front-facing camera for avatar
         input.onchange = (e) => {
             const file = (e.target as HTMLInputElement).files?.[0];
             if (file) {
@@ -1348,6 +1349,7 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
                                                             ref={frontImageInputRef}
                                                             type="file"
                                                             accept="image/*"
+                                                            capture="environment"
                                                             onChange={(e) => handlePersonalIDFileSelect('front', e)}
                                                             disabled={isUploadingPersonalID}
                                                             style={{ display: 'none' }}
@@ -1426,6 +1428,7 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
                                                             ref={backImageInputRef}
                                                             type="file"
                                                             accept="image/*"
+                                                            capture="environment"
                                                             onChange={(e) => handlePersonalIDFileSelect('back', e)}
                                                             disabled={isUploadingPersonalID}
                                                             style={{ display: 'none' }}

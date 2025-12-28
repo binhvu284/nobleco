@@ -25,16 +25,23 @@ export async function uploadProductImage(
     altText?: string;
     sortOrder?: number;
     isFeatured?: boolean;
+    productType?: 'jewelry' | 'centerstone';
   } = {}
 ): Promise<UploadedImage> {
   const {
     compress = true,
     altText,
     sortOrder,
-    isFeatured = false
+    isFeatured = false,
+    productType = 'jewelry'
   } = options;
 
   const supabase = await getSupabaseClient();
+  
+  // Determine storage bucket and API endpoint based on product type
+  const storageBucket = productType === 'jewelry' ? 'product-images' : 'centerstone-images';
+  const apiEndpoint = productType === 'jewelry' ? '/api/product-images' : '/api/centerstone-images';
+  const productIdField = productType === 'jewelry' ? 'product_id' : 'centerstone_id';
 
   // Compress image if requested (optimized for quality preservation)
   let fileToUpload = file;
@@ -70,7 +77,7 @@ export async function uploadProductImage(
 
   // Upload to Supabase Storage
   const { data: uploadData, error: uploadError } = await supabase.storage
-    .from('product-images')
+    .from(storageBucket)
     .upload(storagePath, fileToUpload, {
       cacheControl: '3600',
       upsert: false
@@ -83,7 +90,7 @@ export async function uploadProductImage(
 
   // Get public URL
   const { data: urlData } = supabase.storage
-    .from('product-images')
+    .from(storageBucket)
     .getPublicUrl(storagePath);
 
   if (!urlData?.publicUrl) {
@@ -91,13 +98,13 @@ export async function uploadProductImage(
   }
 
   // Create database record
-  const response = await fetch('/api/product-images', {
+  const response = await fetch(apiEndpoint, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({
-      product_id: productId,
+      [productIdField]: productId,
       storage_path: storagePath,
       url: urlData.publicUrl,
       alt_text: altText || null,
@@ -113,7 +120,7 @@ export async function uploadProductImage(
   if (!response.ok) {
     // Try to delete uploaded file if database record creation fails
     await supabase.storage
-      .from('product-images')
+      .from(storageBucket)
       .remove([storagePath])
       .catch(() => {
         // Ignore cleanup errors
@@ -141,11 +148,18 @@ export async function uploadProductImage(
 /**
  * Delete product image (both Storage file and database record)
  */
-export async function deleteProductImage(imageId: number, storagePath: string): Promise<void> {
+export async function deleteProductImage(
+  imageId: number, 
+  storagePath: string,
+  productType: 'jewelry' | 'centerstone' = 'jewelry'
+): Promise<void> {
   const supabase = await getSupabaseClient();
+  
+  const apiEndpoint = productType === 'jewelry' ? '/api/product-images' : '/api/centerstone-images';
+  const storageBucket = productType === 'jewelry' ? 'product-images' : 'centerstone-images';
 
   // Delete database record first
-  const response = await fetch(`/api/product-images?imageId=${imageId}`, {
+  const response = await fetch(`${apiEndpoint}?imageId=${imageId}`, {
     method: 'DELETE'
   });
 
@@ -156,7 +170,7 @@ export async function deleteProductImage(imageId: number, storagePath: string): 
 
   // Delete file from Storage
   const { error: storageError } = await supabase.storage
-    .from('product-images')
+    .from(storageBucket)
     .remove([storagePath]);
 
   if (storageError) {
@@ -168,8 +182,15 @@ export async function deleteProductImage(imageId: number, storagePath: string): 
 /**
  * Reorder product images
  */
-export async function reorderProductImages(productId: number, imageIds: number[]): Promise<void> {
-  const response = await fetch(`/api/product-images?productId=${productId}`, {
+export async function reorderProductImages(
+  productId: number, 
+  imageIds: number[],
+  productType: 'jewelry' | 'centerstone' = 'jewelry'
+): Promise<void> {
+  const apiEndpoint = productType === 'jewelry' ? '/api/product-images' : '/api/centerstone-images';
+  const productIdParam = productType === 'jewelry' ? 'productId' : 'centerstoneId';
+  
+  const response = await fetch(`${apiEndpoint}?${productIdParam}=${productId}`, {
     method: 'PATCH',
     headers: {
       'Content-Type': 'application/json'
@@ -193,9 +214,12 @@ export async function updateProductImage(
   updates: {
     alt_text?: string;
     is_featured?: boolean;
-  }
+  },
+  productType: 'jewelry' | 'centerstone' = 'jewelry'
 ): Promise<UploadedImage> {
-  const response = await fetch(`/api/product-images?imageId=${imageId}`, {
+  const apiEndpoint = productType === 'jewelry' ? '/api/product-images' : '/api/centerstone-images';
+  
+  const response = await fetch(`${apiEndpoint}?imageId=${imageId}`, {
     method: 'PATCH',
     headers: {
       'Content-Type': 'application/json'

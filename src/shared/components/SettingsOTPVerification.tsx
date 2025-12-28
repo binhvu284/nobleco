@@ -171,8 +171,8 @@ export default function SettingsOTPVerification({
     };
 
     return (
-        <div className="modal-overlay">
-            <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '450px' }}>
+        <div className="modal-overlay" style={{ zIndex: 1000000 }}>
+            <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '450px', zIndex: 1000001 }}>
                 <div className="modal-header">
                     <h2>
                         {otpMethod === 'phone' 

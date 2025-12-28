@@ -10,6 +10,7 @@ interface ImageUploadProps {
   onRemove?: (imageId: number) => void;
   onImagesChange?: (images: UploadedImage[]) => void;
   disabled?: boolean;
+  productType?: 'jewelry' | 'centerstone';
 }
 
 export default function ImageUpload({
@@ -20,7 +21,8 @@ export default function ImageUpload({
   onUploadError,
   onRemove,
   onImagesChange,
-  disabled = false
+  disabled = false,
+  productType = 'jewelry'
 }: ImageUploadProps) {
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<{ [key: string]: number }>({});
@@ -80,7 +82,8 @@ export default function ImageUpload({
         const image = await uploadProductImage(productId, file, {
           compress: true,
           isFeatured: isFirstImage,
-          sortOrder: currentImageCount + filesToUpload.indexOf(file)
+          sortOrder: currentImageCount + filesToUpload.indexOf(file),
+          productType
         });
 
         setUploadProgress(prev => ({ ...prev, [fileId]: 100 }));
@@ -154,7 +157,7 @@ export default function ImageUpload({
 
     setDeleting(true);
     try {
-      await deleteProductImage(deleteConfirmImage.id, deleteConfirmImage.storage_path);
+      await deleteProductImage(deleteConfirmImage.id, deleteConfirmImage.storage_path, productType);
       if (onRemove) {
         onRemove(deleteConfirmImage.id);
       }
@@ -178,7 +181,7 @@ export default function ImageUpload({
   const handleSetFeatured = async (imageId: number) => {
     setSavingFeatured(imageId);
     try {
-      const updatedImage = await updateProductImage(imageId, { is_featured: true });
+      const updatedImage = await updateProductImage(imageId, { is_featured: true }, productType);
       if (onImagesChange) {
         const updatedImages = existingImages.map(img => 
           img.id === imageId 
@@ -224,7 +227,7 @@ export default function ImageUpload({
       newImages.splice(dropIndex, 0, draggedImage);
 
       const imageIds = newImages.map(img => img.id);
-      await reorderProductImages(productId, imageIds);
+      await reorderProductImages(productId, imageIds, productType);
 
       if (onImagesChange) {
         const reorderedImages = newImages.map((img, idx) => ({
@@ -253,7 +256,7 @@ export default function ImageUpload({
     try {
       const updatedImage = await updateProductImage(editingImage.id, {
         alt_text: editAltText.trim() || undefined
-      });
+      }, productType);
       if (onImagesChange) {
         const updatedImages = existingImages.map(img =>
           img.id === editingImage.id ? updatedImage : img
@@ -281,11 +284,12 @@ export default function ImageUpload({
         compress: true,
         isFeatured: image.is_featured,
         sortOrder: image.sort_order,
+        productType,
         altText: image.alt_text || undefined
       });
 
       // Delete old image
-      await deleteProductImage(imageId, image.storage_path);
+      await deleteProductImage(imageId, image.storage_path, productType);
 
       if (onImagesChange) {
         const updatedImages = existingImages.map(img =>
@@ -333,6 +337,7 @@ export default function ImageUpload({
                 ref={fileInputRef}
                 type="file"
                 accept="image/*"
+                capture="environment"
                 multiple
                 onChange={handleFileSelect}
                 disabled={uploading || disabled}
@@ -517,6 +522,7 @@ export default function ImageUpload({
                         ref={replaceFileInputRef}
                         type="file"
                         accept="image/*"
+                        capture="environment"
                         onChange={(e) => {
                           const file = e.target.files?.[0];
                           if (file && editingImage) {

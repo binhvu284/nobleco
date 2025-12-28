@@ -673,7 +673,7 @@ export default function AdminAdminUsers() {
             <div className="admin-users-page">
 
                 {/* Administrator Section */}
-                <div className="administrator-section">
+                <div className="administrator-section admin-users-section">
                     <div className="section-header">
                         <div className="section-title">
                             <IconCrown />
@@ -681,7 +681,7 @@ export default function AdminAdminUsers() {
                             <span className="role-badge admin">Highest Authority</span>
                         </div>
                         <button 
-                            className="btn-primary"
+                            className="btn-primary create-btn"
                             onClick={() => setShowAddAdminModal(true)}
                             style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
                         >
@@ -826,7 +826,7 @@ export default function AdminAdminUsers() {
                 </div>
 
                 {/* Co-worker Section */}
-                <div className="coworker-section">
+                <div className="coworker-section coworkers-section">
                     <div className="section-header">
                         <div className="section-title">
                             <IconShield />
@@ -837,7 +837,7 @@ export default function AdminAdminUsers() {
                             </span>
                         </div>
                         <button 
-                            className="btn-primary"
+                            className="btn-primary create-btn"
                             onClick={() => setShowAddCoworkerModal(true)}
                             style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
                         >
@@ -1756,7 +1756,7 @@ export default function AdminAdminUsers() {
                         {/* Add Coworker Modal */}
                         {showAddCoworkerModal && (
                             <div className="modal-overlay" onClick={handleAddCoworkerCancel}>
-                                <div className="modal-content add-admin-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '500px', display: 'flex', flexDirection: 'column', maxHeight: '90vh' }}>
+                                <div className="modal-content add-admin-modal add-coworker-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '500px', display: 'flex', flexDirection: 'column', maxHeight: '90vh' }}>
                                     <div className="modal-header" style={{ flexShrink: 0 }}>
                                         <h2>Add Co-worker</h2>
                                         <button 

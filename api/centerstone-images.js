@@ -1,12 +1,12 @@
 import { getSupabase } from './_db.js';
 import {
-  getProductImages,
-  getProductImageById,
-  createProductImage,
-  updateProductImage,
-  deleteProductImage,
-  reorderProductImages
-} from './_repo/productImages.js';
+  getCenterstoneImages,
+  getCenterstoneImageById,
+  createCenterstoneImage,
+  updateCenterstoneImage,
+  deleteCenterstoneImage,
+  reorderCenterstoneImages
+} from './_repo/centerstoneImages.js';
 
 /**
  * Helper function to read request body
@@ -40,43 +40,43 @@ export default async function handler(req, res) {
   }
 
   const { method } = req;
-  const { productId, imageId } = req.query;
+  const { centerstoneId, imageId } = req.query;
 
   try {
     if (method === 'GET') {
-      // GET /api/product-images?productId=123 - Get all images for a product
-      // GET /api/product-images?imageId=456 - Get single image
+      // GET /api/centerstone-images?centerstoneId=123 - Get all images for a centerstone
+      // GET /api/centerstone-images?imageId=456 - Get single image
       if (imageId) {
         try {
-          const image = await getProductImageById(imageId);
+          const image = await getCenterstoneImageById(imageId);
           return res.status(200).json(image);
         } catch (error) {
-          console.error('GET product image error:', error);
-          return res.status(500).json({ error: error.message || 'Failed to fetch product image' });
+          console.error('GET centerstone image error:', error);
+          return res.status(500).json({ error: error.message || 'Failed to fetch centerstone image' });
         }
-      } else if (productId) {
+      } else if (centerstoneId) {
         try {
-          const images = await getProductImages(productId);
+          const images = await getCenterstoneImages(centerstoneId);
           return res.status(200).json(images);
         } catch (error) {
-          console.error('GET product images error:', error);
-          return res.status(500).json({ error: error.message || 'Failed to fetch product images' });
+          console.error('GET centerstone images error:', error);
+          return res.status(500).json({ error: error.message || 'Failed to fetch centerstone images' });
         }
       } else {
-        return res.status(400).json({ error: 'productId or imageId is required' });
+        return res.status(400).json({ error: 'centerstoneId or imageId is required' });
       }
     }
 
     if (method === 'POST') {
-      // POST /api/product-images - Upload and create image record
+      // POST /api/centerstone-images - Upload and create image record
       // Note: File upload should be handled separately via Supabase Storage client-side
       // This endpoint just creates the database record after upload
       const body = req.body || await readBody(req);
-      const { product_id, storage_path, url, alt_text, sort_order, is_featured, file_size, width, height, mime_type } = body;
+      const { centerstone_id, storage_path, url, alt_text, sort_order, is_featured, file_size, width, height, mime_type } = body;
 
-      if (!product_id || !storage_path || !url) {
+      if (!centerstone_id || !storage_path || !url) {
         return res.status(400).json({ 
-          error: 'Missing required fields: product_id, storage_path, and url' 
+          error: 'Missing required fields: centerstone_id, storage_path, and url' 
         });
       }
 
@@ -94,26 +94,26 @@ export default async function handler(req, res) {
           mime_type: mime_type || null
         };
 
-        const image = await createProductImage(product_id, imageData);
+        const image = await createCenterstoneImage(centerstone_id, imageData);
         return res.status(201).json(image);
       } catch (error) {
-        console.error('POST product image error:', error);
+        console.error('POST centerstone image error:', error);
         console.error('Error details:', {
           message: error.message,
           stack: error.stack,
-          product_id,
+          centerstone_id,
           imageData: imageData || 'not defined'
         });
         return res.status(500).json({ 
-          error: error.message || 'Failed to create product image',
+          error: error.message || 'Failed to create centerstone image',
           details: process.env.NODE_ENV === 'development' ? error.stack : undefined
         });
       }
     }
 
     if (method === 'PATCH') {
-      // PATCH /api/product-images?imageId=456 - Update image
-      // PATCH /api/product-images?productId=123 - Reorder images
+      // PATCH /api/centerstone-images?imageId=456 - Update image
+      // PATCH /api/centerstone-images?centerstoneId=123 - Reorder images
       const body = req.body || await readBody(req);
 
       if (imageId) {
@@ -130,39 +130,39 @@ export default async function handler(req, res) {
         }
 
         try {
-          const image = await updateProductImage(imageId, updates);
+          const image = await updateCenterstoneImage(imageId, updates);
           return res.status(200).json(image);
         } catch (error) {
-          console.error('PATCH product image error:', error);
-          return res.status(500).json({ error: error.message || 'Failed to update product image' });
+          console.error('PATCH centerstone image error:', error);
+          return res.status(500).json({ error: error.message || 'Failed to update centerstone image' });
         }
-      } else if (productId && body.imageIds) {
+      } else if (centerstoneId && body.imageIds) {
         // Reorder images
         try {
-          await reorderProductImages(productId, body.imageIds);
-          const images = await getProductImages(productId);
+          await reorderCenterstoneImages(centerstoneId, body.imageIds);
+          const images = await getCenterstoneImages(centerstoneId);
           return res.status(200).json({ success: true, images });
         } catch (error) {
           console.error('PATCH reorder images error:', error);
-          return res.status(500).json({ error: error.message || 'Failed to reorder product images' });
+          return res.status(500).json({ error: error.message || 'Failed to reorder centerstone images' });
         }
       } else {
-        return res.status(400).json({ error: 'imageId or productId with imageIds is required' });
+        return res.status(400).json({ error: 'imageId or centerstoneId with imageIds is required' });
       }
     }
 
     if (method === 'DELETE') {
-      // DELETE /api/product-images?imageId=456 - Delete image
+      // DELETE /api/centerstone-images?imageId=456 - Delete image
       if (!imageId) {
         return res.status(400).json({ error: 'imageId is required' });
       }
 
       try {
-        const result = await deleteProductImage(imageId);
+        const result = await deleteCenterstoneImage(imageId);
         return res.status(200).json(result);
       } catch (error) {
-        console.error('DELETE product image error:', error);
-        return res.status(500).json({ error: error.message || 'Failed to delete product image' });
+        console.error('DELETE centerstone image error:', error);
+        return res.status(500).json({ error: error.message || 'Failed to delete centerstone image' });
       }
     }
 
@@ -170,7 +170,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: `Method ${method} Not Allowed` });
 
   } catch (error) {
-    console.error('Product images API error:', error);
+    console.error('Centerstone images API error:', error);
     return res.status(500).json({ 
       error: error.message || 'Internal server error' 
     });
