@@ -94,7 +94,33 @@ export default function SettingsModal({ open, onClose }: { open: boolean; onClos
     const [otpResendCooldown, setOtpResendCooldown] = useState(0);
     const [otpTargetEmail, setOtpTargetEmail] = useState<string>('');
     const otpInputRefs = useRef<(HTMLInputElement | null)[]>([]);
+    
+    // Dropdown states
+    const [languageDropdownOpen, setLanguageDropdownOpen] = useState(false);
+    const [themeDropdownOpen, setThemeDropdownOpen] = useState(false);
+    const languageDropdownRef = useRef<HTMLDivElement>(null);
+    const themeDropdownRef = useRef<HTMLDivElement>(null);
 
+    // Close dropdowns when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (languageDropdownRef.current && !languageDropdownRef.current.contains(event.target as Node)) {
+                setLanguageDropdownOpen(false);
+            }
+            if (themeDropdownRef.current && !themeDropdownRef.current.contains(event.target as Node)) {
+                setThemeDropdownOpen(false);
+            }
+        };
+        
+        if (open) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+        
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [open]);
+    
     // Load user data when modal opens
     useEffect(() => {
         if (open) {
@@ -125,6 +151,8 @@ export default function SettingsModal({ open, onClose }: { open: boolean; onClos
             setError('');
             setSuccess('');
             setIsFullscreen(false);
+            setLanguageDropdownOpen(false);
+            setThemeDropdownOpen(false);
         }
     }, [open]);
 
@@ -165,16 +193,49 @@ export default function SettingsModal({ open, onClose }: { open: boolean; onClos
         setIsFullscreen(!isFullscreen);
     };
 
-    const handleLanguageChange = (lang: string) => {
-        const languageValue = lang as 'en' | 'vi';
-        setSettings({ ...settings, language: languageValue });
-        setLanguage(languageValue);
+    const handleLanguageChange = (lang: 'en' | 'vi') => {
+        setSettings({ ...settings, language: lang });
+        setLanguage(lang);
+        setLanguageDropdownOpen(false);
     };
 
-    const handleThemeChange = (newTheme: string) => {
-        const themeValue = newTheme as 'light' | 'dark' | 'auto';
-        setTheme(themeValue);
-        setSettings({ ...settings, theme: themeValue });
+    const handleThemeChange = (newTheme: 'light' | 'dark' | 'auto') => {
+        setTheme(newTheme);
+        setSettings({ ...settings, theme: newTheme });
+        setThemeDropdownOpen(false);
+    };
+    
+    // Theme icon component
+    const ThemeIcon = ({ theme }: { theme: 'light' | 'dark' | 'auto' }) => {
+        if (theme === 'light') {
+            return (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <circle cx="12" cy="12" r="5"/>
+                    <line x1="12" y1="1" x2="12" y2="3"/>
+                    <line x1="12" y1="21" x2="12" y2="23"/>
+                    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+                    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+                    <line x1="1" y1="12" x2="3" y2="12"/>
+                    <line x1="21" y1="12" x2="23" y2="12"/>
+                    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+                    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+                </svg>
+            );
+        } else if (theme === 'dark') {
+            return (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                </svg>
+            );
+        } else {
+            return (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+                    <line x1="8" y1="21" x2="16" y2="21"/>
+                    <line x1="12" y1="17" x2="12" y2="21"/>
+                </svg>
+            );
+        }
     };
 
     
@@ -956,30 +1017,138 @@ export default function SettingsModal({ open, onClose }: { open: boolean; onClos
                         <div className="settings-form">
                             <div className="settings-field">
                                 <label>{t('settings.language')}</label>
-                                <div className="settings-language-select">
-                                    <select 
-                                        value={settings.language}
-                                        onChange={(e) => handleLanguageChange(e.target.value)}
-                                        className="settings-language-dropdown"
+                                <div className="settings-custom-dropdown" ref={languageDropdownRef}>
+                                    <button
+                                        type="button"
+                                        className={`settings-dropdown-toggle ${languageDropdownOpen ? 'active' : ''}`}
+                                        onClick={() => {
+                                            setLanguageDropdownOpen(!languageDropdownOpen);
+                                            setThemeDropdownOpen(false);
+                                        }}
                                     >
-                                        <option value="en">English</option>
-                                        <option value="vi">Tiếng Việt</option>
-                                    </select>
-                                    <div className="settings-language-flag">
-                                        <FlagIcon country={settings.language as 'en' | 'vi'} />
-                                    </div>
+                                        <div className="settings-dropdown-selected">
+                                            <FlagIcon country={settings.language as 'en' | 'vi'} />
+                                            <span>{settings.language === 'en' ? 'English' : 'Tiếng Việt'}</span>
+                                        </div>
+                                        <svg 
+                                            className={`settings-dropdown-arrow ${languageDropdownOpen ? 'rotated' : ''}`}
+                                            width="16" 
+                                            height="16" 
+                                            viewBox="0 0 16 16" 
+                                            fill="none" 
+                                            stroke="currentColor" 
+                                            strokeWidth="2"
+                                        >
+                                            <path d="M4 6l4 4 4-4" />
+                                        </svg>
+                                    </button>
+                                    {languageDropdownOpen && (
+                                        <div className="settings-dropdown-menu">
+                                            <button
+                                                type="button"
+                                                className={`settings-dropdown-item ${settings.language === 'en' ? 'selected' : ''}`}
+                                                onClick={() => handleLanguageChange('en')}
+                                            >
+                                                <FlagIcon country="en" />
+                                                <span>English</span>
+                                                {settings.language === 'en' && (
+                                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                                        <path d="M13.5 4.5L6 12L2.5 8.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                                    </svg>
+                                                )}
+                                            </button>
+                                            <button
+                                                type="button"
+                                                className={`settings-dropdown-item ${settings.language === 'vi' ? 'selected' : ''}`}
+                                                onClick={() => handleLanguageChange('vi')}
+                                            >
+                                                <FlagIcon country="vi" />
+                                                <span>Tiếng Việt</span>
+                                                {settings.language === 'vi' && (
+                                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                                        <path d="M13.5 4.5L6 12L2.5 8.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                                    </svg>
+                                                )}
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                             <div className="settings-field">
                                 <label>{t('settings.theme')}</label>
-                                <select 
-                                    value={settings.theme}
-                                    onChange={(e) => handleThemeChange(e.target.value)}
-                                >
-                                    <option value="light">{t('settings.light')}</option>
-                                    <option value="dark">{t('settings.dark')}</option>
-                                    <option value="auto">{t('settings.auto')}</option>
-                                </select>
+                                <div className="settings-custom-dropdown" ref={themeDropdownRef}>
+                                    <button
+                                        type="button"
+                                        className={`settings-dropdown-toggle ${themeDropdownOpen ? 'active' : ''}`}
+                                        onClick={() => {
+                                            setThemeDropdownOpen(!themeDropdownOpen);
+                                            setLanguageDropdownOpen(false);
+                                        }}
+                                    >
+                                        <div className="settings-dropdown-selected">
+                                            <ThemeIcon theme={settings.theme} />
+                                            <span>
+                                                {settings.theme === 'light' ? t('settings.light') : 
+                                                 settings.theme === 'dark' ? t('settings.dark') : 
+                                                 t('settings.auto')}
+                                            </span>
+                                        </div>
+                                        <svg 
+                                            className={`settings-dropdown-arrow ${themeDropdownOpen ? 'rotated' : ''}`}
+                                            width="16" 
+                                            height="16" 
+                                            viewBox="0 0 16 16" 
+                                            fill="none" 
+                                            stroke="currentColor" 
+                                            strokeWidth="2"
+                                        >
+                                            <path d="M4 6l4 4 4-4" />
+                                        </svg>
+                                    </button>
+                                    {themeDropdownOpen && (
+                                        <div className="settings-dropdown-menu">
+                                            <button
+                                                type="button"
+                                                className={`settings-dropdown-item ${settings.theme === 'light' ? 'selected' : ''}`}
+                                                onClick={() => handleThemeChange('light')}
+                                            >
+                                                <ThemeIcon theme="light" />
+                                                <span>{t('settings.light')}</span>
+                                                {settings.theme === 'light' && (
+                                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                                        <path d="M13.5 4.5L6 12L2.5 8.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                                    </svg>
+                                                )}
+                                            </button>
+                                            <button
+                                                type="button"
+                                                className={`settings-dropdown-item ${settings.theme === 'dark' ? 'selected' : ''}`}
+                                                onClick={() => handleThemeChange('dark')}
+                                            >
+                                                <ThemeIcon theme="dark" />
+                                                <span>{t('settings.dark')}</span>
+                                                {settings.theme === 'dark' && (
+                                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                                        <path d="M13.5 4.5L6 12L2.5 8.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                                    </svg>
+                                                )}
+                                            </button>
+                                            <button
+                                                type="button"
+                                                className={`settings-dropdown-item ${settings.theme === 'auto' ? 'selected' : ''}`}
+                                                onClick={() => handleThemeChange('auto')}
+                                            >
+                                                <ThemeIcon theme="auto" />
+                                                <span>{t('settings.auto')}</span>
+                                                {settings.theme === 'auto' && (
+                                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                                        <path d="M13.5 4.5L6 12L2.5 8.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                                    </svg>
+                                                )}
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     </div>

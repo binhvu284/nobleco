@@ -102,11 +102,28 @@ export default function UserProduct() {
     const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
     const [showProductDetail, setShowProductDetail] = useState(false);
     const [isFullscreen, setIsFullscreen] = useState(false);
+    const [bestSellers, setBestSellers] = useState<number[]>([]);
+
+    // Fetch best sellers
+    const fetchBestSellers = async () => {
+        try {
+            const response = await fetch('/api/admin/product-metrics');
+            if (response.ok) {
+                const result = await response.json();
+                if (result.success && result.data?.bestSellers) {
+                    setBestSellers(result.data.bestSellers);
+                }
+            }
+        } catch (error) {
+            console.error('Error fetching best sellers:', error);
+        }
+    };
 
     // Fetch products and categories
     useEffect(() => {
         fetchProducts();
         fetchCategories();
+        fetchBestSellers();
     }, [productType]);
 
     // Mobile detection
@@ -530,8 +547,23 @@ export default function UserProduct() {
                                         {/* Product Info */}
                                         <div className="product-info">
                                             <div>
-                                                <h3 className="product-name">
+                                                <h3 className="product-name" style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                                                     {product.name}
+                                                    {bestSellers.includes(product.id) && (
+                                                        <span style={{
+                                                            background: 'linear-gradient(135deg, #f59e0b 0%, #eab308 100%)',
+                                                            color: 'white',
+                                                            fontSize: '10px',
+                                                            fontWeight: 'bold',
+                                                            padding: '2px 6px',
+                                                            borderRadius: '4px',
+                                                            textTransform: 'uppercase',
+                                                            letterSpacing: '0.5px',
+                                                            whiteSpace: 'nowrap'
+                                                        }}>
+                                                            Best Seller
+                                                        </span>
+                                                    )}
                                                 </h3>
                                                 <p className="product-description">
                                                     {product.short_description}

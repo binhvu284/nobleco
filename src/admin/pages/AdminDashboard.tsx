@@ -62,18 +62,38 @@ interface UserMetrics {
     growthTrend: Array<{ month: string; count: number }>;
 }
 
+interface ProductMetrics {
+    totalProductsWithOrders: number;
+    totalCompletedOrders: number;
+    bestSellers: number[];
+    productsWithOrders: Array<{
+        product_id: number;
+        product_name: string;
+        order_count: number;
+        total_quantity: number;
+        total_revenue: number;
+        name?: string;
+        sku?: string | null;
+        price?: number;
+        status?: string;
+        images?: Array<{ url: string; is_featured: boolean; sort_order: number }>;
+    }>;
+}
+
 export default function AdminDashboard() {
     const navigate = useNavigate();
     const [systemMetrics, setSystemMetrics] = useState<SystemMetrics | null>(null);
     const [businessMetrics, setBusinessMetrics] = useState<BusinessMetrics | null>(null);
     const [userMetrics, setUserMetrics] = useState<UserMetrics | null>(null);
-    const [loading, setLoading] = useState({ system: true, business: false, users: false });
+    const [productMetrics, setProductMetrics] = useState<ProductMetrics | null>(null);
+    const [loading, setLoading] = useState({ system: true, business: false, users: false, products: false });
     const [error, setError] = useState<string | null>(null);
     
     // Lazy loading refs
     const systemRef = useRef<HTMLDivElement>(null);
     const businessRef = useRef<HTMLDivElement>(null);
     const usersRef = useRef<HTMLDivElement>(null);
+    const productsRef = useRef<HTMLDivElement>(null);
     const [loadedSections, setLoadedSections] = useState<Set<string>>(new Set());
     const loadedSectionsRef = useRef<Set<string>>(new Set());
     
@@ -99,13 +119,20 @@ export default function AdminDashboard() {
     };
 
     // Fetch metrics
-    const fetchMetrics = async (section: 'system' | 'business' | 'users') => {
+    const fetchMetrics = async (section: 'system' | 'business' | 'users' | 'products') => {
         if (loadedSections.has(section)) return; // Already loaded
 
         try {
             setLoading(prev => ({ ...prev, [section]: true }));
             const authToken = localStorage.getItem('nobleco_auth_token');
-            const url = `/api/admin/dashboard-metrics?section=${section}`;
+            
+            let url: string;
+            if (section === 'products') {
+                url = '/api/admin/product-metrics';
+            } else {
+                url = `/api/admin/dashboard-metrics?section=${section}`;
+            }
+            
             const response = await fetch(url, {
                 headers: {
                     'Authorization': `Bearer ${authToken}`
@@ -125,14 +152,13 @@ export default function AdminDashboard() {
                     setBusinessMetrics(result.data.business);
                 } else if (section === 'users' && result.data.users) {
                     setUserMetrics(result.data.users);
+                } else if (section === 'products' && result.data) {
+                    setProductMetrics(result.data);
                 }
                 setLoadedSections(prev => new Set([...prev, section]));
             }
         } catch (err: any) {
             console.error(`Error fetching ${section} metrics:`, err);
-            // #region agent log
-            fetch('http://127.0.0.1:7242/ingest/3da31dfe-5721-4e1a-a160-93fd6dd15ec4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminDashboard.tsx:131',message:'Fetch error',data:{section,error:err.message,stack:err.stack},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-            // #endregion
             setError(err.message || `Failed to load ${section} metrics`);
         } finally {
             setLoading(prev => ({ ...prev, [section]: false }));
@@ -196,7 +222,7 @@ export default function AdminDashboard() {
                 entries.forEach((entry) => {
                     if (entry.isIntersecting) {
                         const section = entry.target.getAttribute('data-section');
-                        if (section && (section === 'business' || section === 'users')) {
+                        if (section && (section === 'business' || section === 'users' || section === 'products')) {
                             // Use requestAnimationFrame to batch updates for smooth scrolling
                             // Check ref instead of state to avoid dependency issues
                             if (!loadedSectionsRef.current.has(section) && !pendingSections.has(section)) {
@@ -217,6 +243,7 @@ export default function AdminDashboard() {
 
         if (businessRef.current) observer.observe(businessRef.current);
         if (usersRef.current) observer.observe(usersRef.current);
+        if (productsRef.current) observer.observe(productsRef.current);
 
         return () => {
             if (rafId !== null) {
@@ -610,6 +637,115 @@ export default function AdminDashboard() {
                                 width={2}
                                 height={2}
                             />
+                        </DashboardGrid>
+                    ) : null}
+                </div>
+
+                {/* Product Analytics Section */}
+                <div ref={productsRef} data-section="products">
+                    <SectionHeader 
+                        title="Product Analytics" 
+                        description="Product sales performance and best sellers"
+                    />
+                    {loading.products ? (
+                        <DashboardGrid>
+                            <div className="skeleton skeleton-card" />
+                            <div className="skeleton skeleton-card" />
+                            <div className="skeleton skeleton-table" style={{ gridColumn: 'span 4' }} />
+                        </DashboardGrid>
+                    ) : productMetrics ? (
+                        <DashboardGrid>
+                            {/* Row 1: Total Products with Orders, Total Completed Orders */}
+                            <MetricCard
+                                title="Products with Completed Orders"
+                                value={productMetrics.totalProductsWithOrders}
+                                icon={<IconShoppingCart style={{ width: '24px', height: '24px' }} />}
+                                width={2}
+                                height={1}
+                            />
+                            <MetricCard
+                                title="Total Completed Orders"
+                                value={productMetrics.totalCompletedOrders}
+                                icon={<IconActivity style={{ width: '24px', height: '24px' }} />}
+                                width={2}
+                                height={1}
+                            />
+                            
+                            {/* Row 2: Products Table */}
+                            <div className="metric-card metric-table" style={{ gridColumn: 'span 4', display: 'flex', flexDirection: 'column' }}>
+                                <div className="widget-header">
+                                    <h3>Products with Completed Orders</h3>
+                                </div>
+                                <div className="table-container" style={{ flex: 1, overflow: 'auto', minHeight: '300px' }}>
+                                    <table className="metric-table-content">
+                                        <thead>
+                                            <tr>
+                                                <th>Product</th>
+                                                <th>SKU</th>
+                                                <th>Orders</th>
+                                                <th>Quantity Sold</th>
+                                                <th>Total Revenue</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {productMetrics.productsWithOrders.length === 0 ? (
+                                                <tr>
+                                                    <td colSpan={5} className="empty-state">No products with completed orders yet</td>
+                                                </tr>
+                                            ) : (
+                                                productMetrics.productsWithOrders.map((product, index) => {
+                                                    const isBestSeller = productMetrics.bestSellers.includes(product.product_id);
+                                                    return (
+                                                        <tr key={product.product_id}>
+                                                            <td>
+                                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                                    {product.images && product.images.length > 0 && (
+                                                                        <img 
+                                                                            src={product.images[0].url} 
+                                                                            alt={product.name || product.product_name}
+                                                                            style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '4px' }}
+                                                                        />
+                                                                    )}
+                                                                    <div>
+                                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                                            <span>{product.name || product.product_name}</span>
+                                                                            {isBestSeller && (
+                                                                                <span style={{
+                                                                                    background: 'linear-gradient(135deg, #f59e0b 0%, #eab308 100%)',
+                                                                                    color: 'white',
+                                                                                    fontSize: '10px',
+                                                                                    fontWeight: 'bold',
+                                                                                    padding: '2px 6px',
+                                                                                    borderRadius: '4px',
+                                                                                    textTransform: 'uppercase',
+                                                                                    letterSpacing: '0.5px'
+                                                                                }}>
+                                                                                    Best Seller
+                                                                                </span>
+                                                                            )}
+                                                                        </div>
+                                                                        {product.status && (
+                                                                            <span style={{ fontSize: '12px', color: '#64748b' }}>
+                                                                                {product.status}
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            </td>
+                                                            <td>{product.sku || '-'}</td>
+                                                            <td style={index === 0 ? { color: '#f59e0b', fontWeight: 'bold' } : index === 1 ? { color: '#eab308', fontWeight: 'bold' } : {}}>
+                                                                {formatNumber(product.order_count)}
+                                                            </td>
+                                                            <td>{formatNumber(product.total_quantity)}</td>
+                                                            <td>{formatCurrency(product.total_revenue)}</td>
+                                                        </tr>
+                                                    );
+                                                })
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
                         </DashboardGrid>
                     ) : null}
                 </div>

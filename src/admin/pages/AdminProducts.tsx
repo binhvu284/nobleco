@@ -131,6 +131,7 @@ export default function AdminProducts() {
     const [showActivityLog, setShowActivityLog] = useState(false);
     const [priceRange, setPriceRange] = useState({ min: '', max: '' });
     const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
+    const [bestSellers, setBestSellers] = useState<number[]>([]);
 
     // Fetch categories for filter
     useEffect(() => {
@@ -364,9 +365,30 @@ export default function AdminProducts() {
         setProducts([]);
     }, [productType]);
 
+    // Fetch best sellers
+    const fetchBestSellers = useCallback(async () => {
+        try {
+            const authToken = localStorage.getItem('nobleco_auth_token');
+            const response = await fetch('/api/admin/product-metrics', {
+                headers: {
+                    'Authorization': `Bearer ${authToken}`
+                }
+            });
+            if (response.ok) {
+                const result = await response.json();
+                if (result.success && result.data?.bestSellers) {
+                    setBestSellers(result.data.bestSellers);
+                }
+            }
+        } catch (err) {
+            console.error('Error fetching best sellers:', err);
+        }
+    }, []);
+
     useEffect(() => {
         fetchProducts();
-    }, [fetchProducts]);
+        fetchBestSellers();
+    }, [fetchProducts, fetchBestSellers]);
 
     // Auto-sync on page load if enabled
     useEffect(() => {
@@ -1035,7 +1057,24 @@ export default function AdminProducts() {
                                                     )}
                                                 </div>
                                                 <div className="product-details">
-                                                    <h4>{product.name}</h4>
+                                                    <h4 style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                                        {product.name}
+                                                        {bestSellers.includes(product.id) && (
+                                                            <span style={{
+                                                                background: 'linear-gradient(135deg, #f59e0b 0%, #eab308 100%)',
+                                                                color: 'white',
+                                                                fontSize: '10px',
+                                                                fontWeight: 'bold',
+                                                                padding: '2px 6px',
+                                                                borderRadius: '4px',
+                                                                textTransform: 'uppercase',
+                                                                letterSpacing: '0.5px',
+                                                                whiteSpace: 'nowrap'
+                                                            }}>
+                                                                Best Seller
+                                                            </span>
+                                                        )}
+                                                    </h4>
                                                     <p>{product.short_description}</p>
                                                 </div>
                                             </div>
@@ -1229,7 +1268,24 @@ export default function AdminProducts() {
                                 </div>
                                 <div className="product-card-content">
                                     <div className="product-card-header">
-                                        <h4>{product.name}</h4>
+                                        <h4 style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                            {product.name}
+                                            {bestSellers.includes(product.id) && (
+                                                <span style={{
+                                                    background: 'linear-gradient(135deg, #f59e0b 0%, #eab308 100%)',
+                                                    color: 'white',
+                                                    fontSize: '10px',
+                                                    fontWeight: 'bold',
+                                                    padding: '2px 6px',
+                                                    borderRadius: '4px',
+                                                    textTransform: 'uppercase',
+                                                    letterSpacing: '0.5px',
+                                                    whiteSpace: 'nowrap'
+                                                }}>
+                                                    Best Seller
+                                                </span>
+                                            )}
+                                        </h4>
                                         <span className={`product-status ${getProductStatusClass(product.status)}`}>
                                             {product.status.charAt(0).toUpperCase() + product.status.slice(1)}
                                         </span>

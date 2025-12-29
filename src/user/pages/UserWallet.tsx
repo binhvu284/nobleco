@@ -492,80 +492,127 @@ export default function UserWallet() {
             <div className="wallet-page">
                 {/* Balance Card */}
                 <div className="balance-card">
-                    <div className="balance-header">
-                        <div className="balance-icon">
-                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
-                                <line x1="1" y1="10" x2="23" y2="10"/>
-                            </svg>
-                        </div>
-                        <div className="balance-info">
-                            <p className="balance-label">Available Balance</p>
-                            <div className="balance-amount-row">
-                                <div className="balance-amount-section">
-                                    <div className="balance-amount-with-toggle">
-                                        <h1 className="balance-amount">
-                                            {balanceVisible ? (
-                                                <>
-                                                    {currentBalance.toLocaleString()}
-                                                    <span className="points-label">
-                                                        <span className="points-text">point</span>
-                                                        <svg className="points-star-icon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="none">
-                                                            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-                                                        </svg>
-                                                    </span>
-                                                </>
-                                            ) : '••••••'}
-                                        </h1>
-                                        <button 
-                                            className="balance-toggle-btn"
-                                            onClick={() => setBalanceVisible(!balanceVisible)}
-                                            title={balanceVisible ? "Hide balance" : "Show balance"}
-                                        >
-                                            {balanceVisible ? (
-                                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
-                                                    <line x1="1" y1="1" x2="23" y2="23"/>
-                                                </svg>
-                                            ) : (
-                                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                                                    <circle cx="12" cy="12" r="3"/>
-                                                </svg>
-                                            )}
-                                        </button>
-                                    </div>
-                                    {balanceVisible && (
-                                        <div className="balance-vnd-conversion">
-                                            <span className="vnd-label">≈</span>
-                                            <span className="vnd-amount">{currentBalance.toLocaleString('vi-VN')} VND</span>
+                    <div className="balance-left-section">
+                        <div className="balance-header">
+                            <div className="balance-icon">
+                                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
+                                    <line x1="1" y1="10" x2="23" y2="10"/>
+                                </svg>
+                            </div>
+                            <div className="balance-info">
+                                <p className="balance-label">Available Balance</p>
+                                <div className="balance-amount-row">
+                                    <div className="balance-amount-section">
+                                        <div className="balance-amount-with-toggle">
+                                            <h1 className="balance-amount">
+                                                {balanceVisible ? (
+                                                    <>
+                                                        {currentBalance.toLocaleString()}
+                                                        <span className="points-label">
+                                                            <span className="points-text">point</span>
+                                                            <svg className="points-star-icon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+                                                                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                                                            </svg>
+                                                        </span>
+                                                    </>
+                                                ) : '••••••'}
+                                            </h1>
+                                            <button 
+                                                className="balance-toggle-btn"
+                                                onClick={() => setBalanceVisible(!balanceVisible)}
+                                                title={balanceVisible ? "Hide balance" : "Show balance"}
+                                            >
+                                                {balanceVisible ? (
+                                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+                                                        <line x1="1" y1="1" x2="23" y2="23"/>
+                                                    </svg>
+                                                ) : (
+                                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                                        <circle cx="12" cy="12" r="3"/>
+                                                    </svg>
+                                                )}
+                                            </button>
                                         </div>
-                                    )}
+                                        {balanceVisible && (
+                                            <div className="balance-vnd-conversion">
+                                                <span className="vnd-label">≈</span>
+                                                <span className="vnd-amount">{currentBalance.toLocaleString('vi-VN')} VND</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                                <div className="balance-description-wrapper">
+                                    <p className="balance-description">
+                                        Points you can withdraw to real money
+                                        <button 
+                                            className="info-btn"
+                                            onClick={() => setShowInfoModal('points')}
+                                        >
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                <circle cx="12" cy="12" r="10"/>
+                                                <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+                                                <line x1="12" y1="17" x2="12.01" y2="17"/>
+                                            </svg>
+                                        </button>
+                                    </p>
                                 </div>
                             </div>
-                            <p className="balance-description">
-                                Points you can withdraw to real money
-                                <button 
-                                    className="info-btn"
-                                    onClick={() => setShowInfoModal('points')}
-                                >
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                        <circle cx="12" cy="12" r="10"/>
-                                        <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
-                                        <line x1="12" y1="17" x2="12.01" y2="17"/>
-                                    </svg>
-                                </button>
-                            </p>
                         </div>
                     </div>
-                    <button className="btn-withdraw" onClick={() => setShowWithdrawModal(true)}>
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                            <polyline points="7 10 12 15 17 10"/>
-                            <line x1="12" y1="15" x2="12" y2="3"/>
-                        </svg>
-                        Withdraw Funds
-                    </button>
+                    <div className="balance-right-section">
+                        {(() => {
+                            const now = new Date();
+                            const currentDay = now.getDate();
+                            const isWithdrawAvailable = currentDay >= 1 && currentDay <= 5;
+                            
+                            // Calculate next available date
+                            const nextAvailableDate = new Date(now);
+                            if (currentDay > 5) {
+                                // If past the 5th, next available is 1st of next month
+                                nextAvailableDate.setMonth(now.getMonth() + 1, 1);
+                            } else {
+                                // If before the 1st, next available is 1st of current month
+                                nextAvailableDate.setDate(1);
+                            }
+                            
+                            const nextAvailableText = nextAvailableDate.toLocaleDateString('en-US', { 
+                                month: 'long', 
+                                day: 'numeric',
+                                year: 'numeric'
+                            });
+                            
+                            return (
+                                <div className="withdraw-section">
+                                    <button 
+                                        className={`btn-withdraw ${!isWithdrawAvailable ? 'disabled' : ''}`}
+                                        onClick={() => {
+                                            if (isWithdrawAvailable) {
+                                                setShowWithdrawModal(true);
+                                            }
+                                        }}
+                                        disabled={!isWithdrawAvailable}
+                                        title={!isWithdrawAvailable ? `Withdraw function will be available from ${nextAvailableText}` : 'Withdraw Funds'}
+                                    >
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                            <polyline points="7 10 12 15 17 10"/>
+                                            <line x1="12" y1="15" x2="12" y2="3"/>
+                                        </svg>
+                                        Withdraw Funds
+                                    </button>
+                                    {!isWithdrawAvailable && (
+                                        <p className="withdraw-lock-message">
+                                            Available: 1st-5th each month<br />
+                                            Next: <strong>{nextAvailableText}</strong>
+                                        </p>
+                                    )}
+                                </div>
+                            );
+                        })()}
+                    </div>
                 </div>
 
                 {/* Bank Account Info Card */}
@@ -1245,6 +1292,9 @@ export default function UserWallet() {
 
                                         <h3>How to Withdraw?</h3>
                                         <p>Click the "Withdraw Funds" button, enter the amount and your bank details. Admin will review your request and process the withdrawal to your bank account within 3-5 business days.</p>
+                                        <p style={{ marginTop: '12px', padding: '12px', background: '#fef3c7', borderRadius: '8px', border: '1px solid #fcd34d' }}>
+                                            <strong>Important:</strong> Withdraw function is only available from the 1st to 5th of each month. Outside this period, the withdraw button will be locked.
+                                        </p>
                                     </>
                                 ) : (
                                     <>

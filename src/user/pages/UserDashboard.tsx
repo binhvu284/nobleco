@@ -1,258 +1,273 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import UserLayout from '../components/UserLayout';
-import AuthFooter from '../../components/AuthFooter';
+import DashboardGrid from '../../admin/components/DashboardGrid';
+import SectionHeader from '../../admin/components/SectionHeader';
+import MetricCard from '../../admin/components/MetricCard';
+import MetricChart from '../../admin/components/MetricChart';
+import SortableTable from '../../admin/components/SortableTable';
+import { IconShoppingCart, IconUsers, IconTrendingUp, IconDollarSign, IconActivity, IconPackage } from '../../admin/components/icons';
+import { getCurrentUser } from '../../auth';
 
-type StatCard = {
-    title: string;
-    value: string | number;
-    change?: string;
-    trend?: 'up' | 'down' | 'neutral';
-    icon: React.ReactNode;
-    color: string;
-};
+type StatTrend = 'up' | 'down' | 'neutral';
 
-type RecentActivity = {
-    id: number;
-    type: 'commission' | 'order' | 'client' | 'withdrawal';
-    description: string;
-    amount?: number;
-    date: string;
-    status?: 'completed' | 'pending' | 'processing';
-};
+interface OrdersMetrics {
+    totalOrders: number;
+    ordersThisMonth: number;
+    ordersLastMonth: number;
+    ordersMonthChange: number;
+    ordersMonthTrend: StatTrend;
+    ordersThisYear: number;
+    ordersLastYear: number;
+    ordersYearChange: number;
+    ordersYearTrend: StatTrend;
+    completedOrders: number;
+    ordersByStatus: Array<{ status: string; count: number; percentage: number }>;
+    revenueTrend: Array<{ date: string; revenue: number }>;
+}
 
-type QuickAction = {
-    title: string;
-    description: string;
-    icon: React.ReactNode;
-    href: string;
-    color: string;
-};
+interface ClientsMetrics {
+    totalClients: number;
+    newClientsThisMonth: number;
+    newClientsLastMonth: number;
+    clientsMonthChange: number;
+    clientsMonthTrend: StatTrend;
+    newClientsThisYear: number;
+    newClientsLastYear: number;
+    clientsYearChange: number;
+    clientsYearTrend: StatTrend;
+    growthTrend: Array<{ month: string; count: number }>;
+}
+
+interface ProductsMetrics {
+    totalProductsSold: number;
+    bestSellers: number[];
+    productsWithOrders: Array<{
+        product_id: number;
+        product_name: string;
+        order_count: number;
+        total_quantity: number;
+        total_revenue: number;
+        name?: string;
+        sku?: string | null;
+        price?: number;
+        status?: string;
+        images?: Array<{ url: string; is_featured: boolean; sort_order: number }>;
+    }>;
+}
+
+interface RevenueMetrics {
+    totalRevenue: number;
+    revenueThisMonth: number;
+    revenueLastMonth: number;
+    revenueMonthChange: number;
+    revenueMonthTrend: StatTrend;
+    revenueThisYear: number;
+    revenueLastYear: number;
+    revenueYearChange: number;
+    revenueYearTrend: StatTrend;
+}
 
 export default function UserDashboard() {
     const [currentTime, setCurrentTime] = useState(new Date());
+    const [userName, setUserName] = useState<string>('');
+    const [ordersMetrics, setOrdersMetrics] = useState<OrdersMetrics | null>(null);
+    const [clientsMetrics, setClientsMetrics] = useState<ClientsMetrics | null>(null);
+    const [productsMetrics, setProductsMetrics] = useState<ProductsMetrics | null>(null);
+    const [revenueMetrics, setRevenueMetrics] = useState<RevenueMetrics | null>(null);
+    const [loading, setLoading] = useState({ orders: false, clients: false, products: false, revenue: false });
+    const [error, setError] = useState<string | null>(null);
+    
+    // Lazy loading refs
+    const ordersRef = useRef<HTMLDivElement>(null);
+    const clientsRef = useRef<HTMLDivElement>(null);
+    const productsRef = useRef<HTMLDivElement>(null);
+    const revenueRef = useRef<HTMLDivElement>(null);
+    const [loadedSections, setLoadedSections] = useState<Set<string>>(new Set());
+    const loadedSectionsRef = useRef<Set<string>>(new Set());
+    
+    // Keep ref in sync with state
+    useEffect(() => {
+        loadedSectionsRef.current = loadedSections;
+    }, [loadedSections]);
 
+    // Update time every second
     useEffect(() => {
         const timer = setInterval(() => setCurrentTime(new Date()), 1000);
         return () => clearInterval(timer);
     }, []);
 
-    // Sample data - will be replaced with real data later
-    const userStats: StatCard[] = [
-        {
-            title: 'Total Earnings',
-            value: '$2,450.00',
-            change: '+12.5%',
-            trend: 'up',
-            icon: (
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-                </svg>
-            ),
-            color: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
-        },
-        {
-            title: 'Available Balance',
-            value: '$1,250.00',
-            change: '+$180',
-            trend: 'up',
-            icon: (
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
-                    <line x1="1" y1="10" x2="23" y2="10"/>
-                </svg>
-            ),
-            color: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)'
-        },
-        {
-            title: 'Total Clients',
-            value: 24,
-            change: '+3',
-            trend: 'up',
-            icon: (
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                    <circle cx="9" cy="7" r="4"/>
-                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-                    <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-                </svg>
-            ),
-            color: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)'
-        },
-        {
-            title: 'Orders This Month',
-            value: 18,
-            change: '+5',
-            trend: 'up',
-            icon: (
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
-                    <line x1="3" y1="6" x2="21" y2="6"/>
-                    <path d="M16 10a4 4 0 0 1-8 0"/>
-                </svg>
-            ),
-            color: 'linear-gradient(135deg, #ffeaa7 0%, #fdcb6e 100%)'
+    // Get user name
+    useEffect(() => {
+        const user = getCurrentUser();
+        if (user?.name) {
+            setUserName(user.name);
         }
-    ];
+    }, []);
 
-    const recentActivities: RecentActivity[] = [
-        {
-            id: 1,
-            type: 'commission',
-            description: 'Commission from order #12345 (Direct)',
-            amount: 50.00,
-            date: '2 hours ago',
-            status: 'completed'
-        },
-        {
-            id: 2,
-            type: 'client',
-            description: 'New client added: Sarah Johnson',
-            date: '4 hours ago',
-            status: 'completed'
-        },
-        {
-            id: 3,
-            type: 'order',
-            description: 'Order #12346 completed',
-            amount: 299.00,
-            date: '6 hours ago',
-            status: 'completed'
-        },
-        {
-            id: 4,
-            type: 'withdrawal',
-            description: 'Withdrawal request submitted',
-            amount: -500.00,
-            date: '1 day ago',
-            status: 'pending'
-        },
-        {
-            id: 5,
-            type: 'commission',
-            description: 'Commission from order #12344 (Level 1)',
-            amount: 20.00,
-            date: '2 days ago',
-            status: 'completed'
+    // Format currency (VND)
+    const formatCurrency = (amount: number): string => {
+        if (amount >= 1000000) {
+            return `${(amount / 1000000).toFixed(1)}M ₫`;
         }
-    ];
-
-    const quickActions: QuickAction[] = [
-        {
-            title: 'Add New Client',
-            description: 'Store client information',
-            icon: (
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                    <circle cx="8.5" cy="7" r="4"/>
-                    <line x1="20" y1="8.-2" x2="20" y2="14"/>
-                    <line x1="23" y1="11" x2="17" y2="11"/>
-                </svg>
-            ),
-            href: '/client',
-            color: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
-        },
-        {
-            title: 'View Orders',
-            description: 'Manage your orders',
-            icon: (
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
-                    <line x1="3" y1="6" x2="21" y2="6"/>
-                    <path d="M16 10a4 4 0 0 1-8 0"/>
-                </svg>
-            ),
-            href: '/orders',
-            color: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)'
-        },
-        {
-            title: 'Withdraw Funds',
-            description: 'Request withdrawal',
-            icon: (
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                    <polyline points="7 10 12 15 17 10"/>
-                    <line x1="12" y1="15" x2="12" y2="3"/>
-                </svg>
-            ),
-            href: '/wallet',
-            color: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)'
-        },
-        {
-            title: 'My Network',
-            description: 'View your members',
-            icon: (
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                    <circle cx="8.5" cy="7" r="4"/>
-                    <path d="M20 8v6"/>
-                    <path d="M23 11h-6"/>
-                </svg>
-            ),
-            href: '/member',
-            color: 'linear-gradient(135deg, #ffeaa7 0%, #fdcb6e 100%)'
+        if (amount >= 1000) {
+            return `${(amount / 1000).toFixed(1)}k ₫`;
         }
-    ];
+        return `${amount.toLocaleString('vi-VN')} ₫`;
+    };
 
-    const getActivityIcon = (type: string) => {
-        switch (type) {
-            case 'commission':
-                return (
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <circle cx="12" cy="12" r="10"/>
-                        <path d="M12 6v6l4 2"/>
-                    </svg>
-                );
-            case 'order':
-                return (
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
-                        <line x1="3" y1="6" x2="21" y2="6"/>
-                        <path d="M16 10a4 4 0 0 1-8 0"/>
-                    </svg>
-                );
-            case 'client':
-                return (
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-                        <circle cx="12" cy="7" r="4"/>
-                    </svg>
-                );
-            case 'withdrawal':
-                return (
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <line x1="12" y1="5" x2="12" y2="19"/>
-                        <polyline points="19 12 12 19 5 12"/>
-                    </svg>
-                );
-            default:
-                return null;
+    // Format number
+    const formatNumber = (num: number): string => {
+        return num.toLocaleString('vi-VN');
+    };
+
+    // Fetch metrics
+    const fetchMetrics = async (section: 'orders' | 'clients' | 'products' | 'revenue') => {
+        if (loadedSections.has(section)) return; // Already loaded
+
+        try {
+            setLoading(prev => ({ ...prev, [section]: true }));
+            const authToken = localStorage.getItem('nobleco_auth_token');
+            
+            const response = await fetch('/api/user/dashboard-metrics', {
+                headers: {
+                    'Authorization': `Bearer ${authToken}`
+                }
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Failed to fetch ${section} metrics: ${response.status} ${errorText}`);
+            }
+
+            const result = await response.json();
+            if (result.success && result.data) {
+                if (result.data.orders) {
+                    setOrdersMetrics(result.data.orders);
+                }
+                if (result.data.clients) {
+                    setClientsMetrics(result.data.clients);
+                }
+                if (result.data.products) {
+                    setProductsMetrics(result.data.products);
+                }
+                if (result.data.revenue) {
+                    setRevenueMetrics(result.data.revenue);
+                }
+                setLoadedSections(prev => new Set([...prev, section]));
+            }
+        } catch (err: any) {
+            console.error(`Error fetching ${section} metrics:`, err);
+            setError(err.message || `Failed to load ${section} metrics`);
+        } finally {
+            setLoading(prev => ({ ...prev, [section]: false }));
         }
     };
 
-    const getActivityColor = (type: string) => {
-        switch (type) {
-            case 'commission':
-                return 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
-            case 'order':
-                return 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)';
-            case 'client':
-                return 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)';
-            case 'withdrawal':
-                return 'linear-gradient(135deg, #ffeaa7 0%, #fdcb6e 100%)';
-            default:
-                return '#e0e0e0';
-        }
-    };
+    // Initial load - orders metrics
+    useEffect(() => {
+        fetchMetrics('orders');
+    }, []);
+
+    // Intersection Observer for lazy loading
+    useEffect(() => {
+        let pendingSections = new Set<string>();
+        let rafId: number | null = null;
+        let isProcessing = false;
+
+        const processPendingSections = () => {
+            if (pendingSections.size > 0 && !isProcessing) {
+                isProcessing = true;
+                const sectionsToLoad = Array.from(pendingSections);
+                pendingSections.clear();
+                
+                const processSection = (section: string) => {
+                    if (!loadedSectionsRef.current.has(section)) {
+                        fetchMetrics(section as 'clients' | 'products' | 'revenue');
+                    }
+                };
+
+                if ('requestIdleCallback' in window) {
+                    sectionsToLoad.forEach((section) => {
+                        requestIdleCallback(() => processSection(section), { timeout: 100 });
+                    });
+                } else {
+                    sectionsToLoad.forEach((section) => processSection(section));
+                }
+                
+                setTimeout(() => {
+                    isProcessing = false;
+                }, 100);
+            }
+            rafId = null;
+        };
+
+        let lastCallbackTime = 0;
+        const THROTTLE_MS = 100;
+
+        const observer = new IntersectionObserver(
+            (entries) => {
+                const now = Date.now();
+                if (now - lastCallbackTime < THROTTLE_MS) {
+                    return;
+                }
+                lastCallbackTime = now;
+
+                entries.forEach((entry) => {
+                    if (entry.isIntersecting) {
+                        const section = entry.target.getAttribute('data-section');
+                        if (section && (section === 'clients' || section === 'products' || section === 'revenue')) {
+                            if (!loadedSectionsRef.current.has(section) && !pendingSections.has(section)) {
+                                pendingSections.add(section);
+                                if (rafId === null) {
+                                    rafId = requestAnimationFrame(processPendingSections);
+                                }
+                            }
+                        }
+                    }
+                });
+            },
+            { 
+                threshold: 0.01,
+                rootMargin: '500px 0px'
+            }
+        );
+
+        if (clientsRef.current) observer.observe(clientsRef.current);
+        if (productsRef.current) observer.observe(productsRef.current);
+        if (revenueRef.current) observer.observe(revenueRef.current);
+
+        return () => {
+            if (rafId !== null) {
+                cancelAnimationFrame(rafId);
+            }
+            observer.disconnect();
+        };
+    }, []);
 
     return (
         <UserLayout title="Dashboard">
-            <div className="user-dashboard">
+            <div className="dashboard-page">
                 {/* Welcome Section */}
-                <div className="dashboard-welcome">
-                    <div className="welcome-content">
-                        <h1>Welcome back!</h1>
-                        <p>Here's what's happening with your business today</p>
-                        <div className="current-time">
+                <div className="dashboard-welcome" style={{ 
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    borderRadius: '12px',
+                    padding: '32px',
+                    marginBottom: '32px',
+                    color: 'white',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    flexWrap: 'wrap',
+                    gap: '24px'
+                }}>
+                    <div className="welcome-content" style={{ flex: 1, minWidth: '250px' }}>
+                        <h1 style={{ margin: '0 0 8px 0', fontSize: '28px', fontWeight: '700' }}>
+                            Welcome back{userName ? `, ${userName}` : ''}!
+                        </h1>
+                        <p style={{ margin: '0 0 16px 0', fontSize: '16px', opacity: 0.9 }}>
+                            Here's what's happening with your business today
+                        </p>
+                        <div className="current-time" style={{ fontSize: '14px', opacity: 0.8 }}>
                             {currentTime.toLocaleString('en-US', {
                                 weekday: 'long',
                                 year: 'numeric',
@@ -263,144 +278,306 @@ export default function UserDashboard() {
                             })}
                         </div>
                     </div>
-                    <div className="welcome-avatar">
-                        <div className="avatar-circle">
-                            <span>JS</span>
-                        </div>
+                    <div className="welcome-avatar" style={{ 
+                        width: '80px', 
+                        height: '80px', 
+                        borderRadius: '50%',
+                        background: 'rgba(255, 255, 255, 0.2)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '32px',
+                        fontWeight: 'bold',
+                        flexShrink: 0
+                    }}>
+                        {userName ? userName.charAt(0).toUpperCase() : 'U'}
                     </div>
                 </div>
 
-                {/* Stats Grid */}
-                <div className="stats-grid">
-                    {userStats.map((stat, index) => (
-                        <div key={index} className="stat-card">
-                            <div className="stat-header">
-                                <div className="stat-icon" style={{ background: stat.color }}>
-                                    {stat.icon}
-                                </div>
-                                <div className="stat-trend">
-                                    {stat.trend === 'up' && (
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                            <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
-                                            <polyline points="17 6 23 6 23 12"/>
-                                        </svg>
-                                    )}
-                                    {stat.trend === 'down' && (
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                            <polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/>
-                                            <polyline points="17 18 23 18 23 12"/>
-                                        </svg>
-                                    )}
-                                    <span className={`trend-${stat.trend}`}>{stat.change}</span>
-                                </div>
-                            </div>
-                            <div className="stat-content">
-                                <h3>{stat.value}</h3>
-                                <p>{stat.title}</p>
-                            </div>
-                        </div>
-                    ))}
+                {/* Orders Section */}
+                <div ref={ordersRef} data-section="orders">
+                    <SectionHeader 
+                        title="Orders" 
+                        description="Your order statistics and trends"
+                    />
+                    {loading.orders ? (
+                        <DashboardGrid>
+                            <div className="skeleton skeleton-card" />
+                            <div className="skeleton skeleton-card" />
+                            <div className="skeleton skeleton-card" />
+                            <div className="skeleton skeleton-card" />
+                            <div className="skeleton skeleton-chart" style={{ gridColumn: 'span 2', gridRow: 'span 2' }} />
+                            <div className="skeleton skeleton-chart" style={{ gridColumn: 'span 2', gridRow: 'span 2' }} />
+                        </DashboardGrid>
+                    ) : error ? (
+                        <div className="error-message">{error}</div>
+                    ) : ordersMetrics ? (
+                        <DashboardGrid>
+                            <MetricCard
+                                title="Total Orders"
+                                value={ordersMetrics.totalOrders}
+                                icon={<IconShoppingCart style={{ width: '24px', height: '24px' }} />}
+                                width={1}
+                                height={1}
+                            />
+                            <MetricCard
+                                title="Orders This Month"
+                                value={ordersMetrics.ordersThisMonth}
+                                trend={ordersMetrics.ordersMonthTrend}
+                                change={ordersMetrics.ordersMonthChange}
+                                icon={<IconShoppingCart style={{ width: '24px', height: '24px' }} />}
+                                width={1}
+                                height={1}
+                            />
+                            <MetricCard
+                                title="Orders This Year"
+                                value={ordersMetrics.ordersThisYear}
+                                trend={ordersMetrics.ordersYearTrend}
+                                change={ordersMetrics.ordersYearChange}
+                                icon={<IconShoppingCart style={{ width: '24px', height: '24px' }} />}
+                                width={1}
+                                height={1}
+                            />
+                            <MetricCard
+                                title="Completed Orders"
+                                value={ordersMetrics.completedOrders}
+                                icon={<IconActivity style={{ width: '24px', height: '24px' }} />}
+                                width={1}
+                                height={1}
+                                className="metric-green"
+                            />
+                            <MetricChart
+                                title="Revenue Trend (Last 30 Days)"
+                                data={ordersMetrics.revenueTrend}
+                                type="line"
+                                dataKey="revenue"
+                                nameKey="date"
+                                width={2}
+                                height={2}
+                            />
+                            <MetricChart
+                                title="Orders by Status"
+                                data={ordersMetrics.ordersByStatus.map(s => ({ 
+                                    name: s.status === 'processing' ? 'Processing' : s.status === 'completed' ? 'Completed' : s.status === 'pending' ? 'Pending' : s.status === 'cancelled' ? 'Cancelled' : s.status, 
+                                    value: s.count 
+                                }))}
+                                type="pie"
+                                dataKey="value"
+                                nameKey="name"
+                                width={2}
+                                height={2}
+                            />
+                        </DashboardGrid>
+                    ) : null}
                 </div>
 
-                {/* Main Content Grid */}
-                <div className="dashboard-grid">
-                    {/* Recent Activities */}
-                    <div className="activity-section">
-                        <div className="section-header">
-                            <h2>Recent Activities</h2>
-                            <button className="view-all-btn">View All</button>
-                        </div>
-                        <div className="activity-list">
-                            {recentActivities.map((activity) => (
-                                <div key={activity.id} className="activity-item">
-                                    <div 
-                                        className="activity-icon"
-                                        style={{ background: getActivityColor(activity.type) }}
-                                    >
-                                        {getActivityIcon(activity.type)}
-                                    </div>
-                                    <div className="activity-content">
-                                        <p className="activity-description">{activity.description}</p>
-                                        <div className="activity-meta">
-                                            <span className="activity-date">{activity.date}</span>
-                                            {activity.amount && (
-                                                <span className={`activity-amount ${activity.amount > 0 ? 'positive' : 'negative'}`}>
-                                                    {activity.amount > 0 ? '+' : ''}${Math.abs(activity.amount).toFixed(2)}
-                                                </span>
+                {/* Revenue Section */}
+                <div ref={revenueRef} data-section="revenue">
+                    <SectionHeader 
+                        title="Revenue" 
+                        description="Your revenue performance and trends"
+                    />
+                    {loading.revenue ? (
+                        <DashboardGrid>
+                            <div className="skeleton skeleton-card" style={{ gridColumn: 'span 2' }} />
+                            <div className="skeleton skeleton-card" />
+                            <div className="skeleton skeleton-card" />
+                            <div className="skeleton skeleton-chart" style={{ gridColumn: 'span 2', gridRow: 'span 2' }} />
+                        </DashboardGrid>
+                    ) : revenueMetrics ? (
+                        <DashboardGrid>
+                            <MetricCard
+                                title="Total Revenue"
+                                value={formatCurrency(revenueMetrics.totalRevenue)}
+                                icon={<IconDollarSign style={{ width: '24px', height: '24px' }} />}
+                                width={2}
+                                height={1}
+                                className={revenueMetrics.totalRevenue > 0 ? 'metric-green' : 'metric-red'}
+                            />
+                            <MetricCard
+                                title="Revenue This Month"
+                                value={formatCurrency(revenueMetrics.revenueThisMonth)}
+                                trend={revenueMetrics.revenueMonthTrend}
+                                change={revenueMetrics.revenueMonthChange}
+                                icon={<IconDollarSign style={{ width: '24px', height: '24px' }} />}
+                                width={1}
+                                height={1}
+                            />
+                            <MetricCard
+                                title="Revenue This Year"
+                                value={formatCurrency(revenueMetrics.revenueThisYear)}
+                                trend={revenueMetrics.revenueYearTrend}
+                                change={revenueMetrics.revenueYearChange}
+                                icon={<IconDollarSign style={{ width: '24px', height: '24px' }} />}
+                                width={1}
+                                height={1}
+                            />
+                            {ordersMetrics && (
+                                <MetricChart
+                                    title="Revenue Trend (Last 30 Days)"
+                                    data={ordersMetrics.revenueTrend}
+                                    type="line"
+                                    dataKey="revenue"
+                                    nameKey="date"
+                                    width={2}
+                                    height={2}
+                                />
+                            )}
+                        </DashboardGrid>
+                    ) : null}
+                </div>
+
+                {/* Clients Section */}
+                <div ref={clientsRef} data-section="clients">
+                    <SectionHeader 
+                        title="Clients" 
+                        description="Your client statistics and growth"
+                    />
+                    {loading.clients ? (
+                        <DashboardGrid>
+                            <div className="skeleton skeleton-card" />
+                            <div className="skeleton skeleton-card" />
+                            <div className="skeleton skeleton-card" />
+                            <div className="skeleton skeleton-chart" style={{ gridColumn: 'span 2', gridRow: 'span 2' }} />
+                        </DashboardGrid>
+                    ) : clientsMetrics ? (
+                        <DashboardGrid>
+                            <MetricCard
+                                title="Total Clients"
+                                value={clientsMetrics.totalClients}
+                                icon={<IconUsers style={{ width: '24px', height: '24px' }} />}
+                                width={1}
+                                height={1}
+                            />
+                            <MetricCard
+                                title="New Clients This Month"
+                                value={clientsMetrics.newClientsThisMonth}
+                                trend={clientsMetrics.clientsMonthTrend}
+                                change={clientsMetrics.clientsMonthChange}
+                                icon={<IconTrendingUp style={{ width: '24px', height: '24px' }} />}
+                                width={1}
+                                height={1}
+                            />
+                            <MetricCard
+                                title="New Clients This Year"
+                                value={clientsMetrics.newClientsThisYear}
+                                trend={clientsMetrics.clientsYearTrend}
+                                change={clientsMetrics.clientsYearChange}
+                                icon={<IconTrendingUp style={{ width: '24px', height: '24px' }} />}
+                                width={1}
+                                height={1}
+                            />
+                            <MetricChart
+                                title="Client Growth Trend (Last 12 Months)"
+                                data={clientsMetrics.growthTrend}
+                                type="line"
+                                dataKey="count"
+                                nameKey="month"
+                                width={2}
+                                height={2}
+                            />
+                        </DashboardGrid>
+                    ) : null}
+                </div>
+
+                {/* Products Section */}
+                <div ref={productsRef} data-section="products">
+                    <SectionHeader 
+                        title="Products" 
+                        description="Your product sales performance and best sellers"
+                    />
+                    {loading.products ? (
+                        <DashboardGrid>
+                            <div className="skeleton skeleton-card" />
+                            <div className="skeleton skeleton-table" style={{ gridColumn: 'span 4' }} />
+                        </DashboardGrid>
+                    ) : productsMetrics ? (
+                        <DashboardGrid>
+                            <MetricCard
+                                title="Products Sold"
+                                value={productsMetrics.totalProductsSold}
+                                icon={<IconPackage style={{ width: '24px', height: '24px' }} />}
+                                width={2}
+                                height={1}
+                            />
+                            <div className="metric-card metric-table" style={{ gridColumn: 'span 4', display: 'flex', flexDirection: 'column' }}>
+                                <div className="widget-header">
+                                    <h3>Products with Orders</h3>
+                                </div>
+                                <div className="table-container" style={{ flex: 1, overflow: 'auto', minHeight: '300px' }}>
+                                    <table className="metric-table-content">
+                                        <thead>
+                                            <tr>
+                                                <th>Product</th>
+                                                <th>SKU</th>
+                                                <th>Orders</th>
+                                                <th>Quantity Sold</th>
+                                                <th>Total Revenue</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {productsMetrics.productsWithOrders.length === 0 ? (
+                                                <tr>
+                                                    <td colSpan={5} className="empty-state">No products with orders yet</td>
+                                                </tr>
+                                            ) : (
+                                                productsMetrics.productsWithOrders.map((product, index) => {
+                                                    const isBestSeller = productsMetrics.bestSellers.includes(product.product_id);
+                                                    return (
+                                                        <tr key={product.product_id}>
+                                                            <td>
+                                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                                    {product.images && product.images.length > 0 && (
+                                                                        <img 
+                                                                            src={product.images[0].url} 
+                                                                            alt={product.name || product.product_name}
+                                                                            style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '4px' }}
+                                                                        />
+                                                                    )}
+                                                                    <div>
+                                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                                            <span>{product.name || product.product_name}</span>
+                                                                            {isBestSeller && (
+                                                                                <span style={{
+                                                                                    background: 'linear-gradient(135deg, #f59e0b 0%, #eab308 100%)',
+                                                                                    color: 'white',
+                                                                                    fontSize: '10px',
+                                                                                    fontWeight: 'bold',
+                                                                                    padding: '2px 6px',
+                                                                                    borderRadius: '4px',
+                                                                                    textTransform: 'uppercase',
+                                                                                    letterSpacing: '0.5px'
+                                                                                }}>
+                                                                                    Best Seller
+                                                                                </span>
+                                                                            )}
+                                                                        </div>
+                                                                        {product.status && (
+                                                                            <span style={{ fontSize: '12px', color: '#64748b' }}>
+                                                                                {product.status}
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            </td>
+                                                            <td>{product.sku || '-'}</td>
+                                                            <td style={index === 0 ? { color: '#f59e0b', fontWeight: 'bold' } : index === 1 ? { color: '#eab308', fontWeight: 'bold' } : {}}>
+                                                                {formatNumber(product.order_count)}
+                                                            </td>
+                                                            <td>{formatNumber(product.total_quantity)}</td>
+                                                            <td>{formatCurrency(product.total_revenue)}</td>
+                                                        </tr>
+                                                    );
+                                                })
                                             )}
-                                        </div>
-                                    </div>
-                                    {activity.status && (
-                                        <div className={`activity-status status-${activity.status}`}>
-                                            {activity.status}
-                                        </div>
-                                    )}
+                                        </tbody>
+                                    </table>
                                 </div>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* Quick Actions */}
-                    <div className="quick-actions-section">
-                        <div className="section-header">
-                            <h2>Quick Actions</h2>
-                        </div>
-                        <div className="quick-actions-grid">
-                            {quickActions.map((action, index) => (
-                                <a key={index} href={action.href} className="quick-action-card">
-                                    <div 
-                                        className="action-icon"
-                                        style={{ background: action.color }}
-                                    >
-                                        {action.icon}
-                                    </div>
-                                    <div className="action-content">
-                                        <h3>{action.title}</h3>
-                                        <p>{action.description}</p>
-                                    </div>
-                                    <div className="action-arrow">
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                            <line x1="5" y1="12" x2="19" y2="12"/>
-                                            <polyline points="12 5 19 12 12 19"/>
-                                        </svg>
-                                    </div>
-                                </a>
-                            ))}
-                        </div>
-                    </div>
-                </div>
-
-                {/* Performance Summary */}
-                <div className="performance-section">
-                    <div className="section-header">
-                        <h2>This Month's Performance</h2>
-                    </div>
-                    <div className="performance-grid">
-                        <div className="performance-card">
-                            <h3>Commission Earned</h3>
-                            <div className="performance-value">$420.00</div>
-                            <div className="performance-change positive">+15% from last month</div>
-                        </div>
-                        <div className="performance-card">
-                            <h3>New Clients</h3>
-                            <div className="performance-value">8</div>
-                            <div className="performance-change positive">+3 from last month</div>
-                        </div>
-                        <div className="performance-card">
-                            <h3>Orders Completed</h3>
-                            <div className="performance-value">18</div>
-                            <div className="performance-change positive">+5 from last month</div>
-                        </div>
-                        <div className="performance-card">
-                            <h3>Network Growth</h3>
-                            <div className="performance-value">12</div>
-                            <div className="performance-change positive">+4 new referrals</div>
-                        </div>
-                    </div>
+                            </div>
+                        </DashboardGrid>
+                    ) : null}
                 </div>
             </div>
-            {/* Temporary footer for proof - will be removed later */}
-            <AuthFooter />
         </UserLayout>
     );
 }

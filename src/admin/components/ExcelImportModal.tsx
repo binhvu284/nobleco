@@ -38,6 +38,7 @@ export default function ExcelImportModal({ open, onClose, onImport, onDownloadTe
     const [analyzing, setAnalyzing] = useState(false);
     const [importing, setImporting] = useState(false);
     const [importProgress, setImportProgress] = useState({ current: 0, total: 0 });
+    const [simulatedProgressPercent, setSimulatedProgressPercent] = useState(0); // Store percentage for smooth display
     const [downloadTemplateLoading, setDownloadTemplateLoading] = useState(false);
     const [duplicateSKUError, setDuplicateSKUError] = useState<DuplicateSKUError | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -48,6 +49,7 @@ export default function ExcelImportModal({ open, onClose, onImport, onDownloadTe
             setSelectedFile(null);
             setFileAnalysis(null);
             setImportProgress({ current: 0, total: 0 });
+            setSimulatedProgressPercent(0);
             setDuplicateSKUError(null);
         }
     }, [open]);
@@ -179,21 +181,29 @@ export default function ExcelImportModal({ open, onClose, onImport, onDownloadTe
         const totalItems = fileAnalysis.estimatedCount || 1;
         // Start with a small initial progress to show the bar immediately
         setImportProgress({ current: 1, total: totalItems });
+        setSimulatedProgressPercent(3); // Start at 3% for smooth display
         setDuplicateSKUError(null);
 
-        // Simulate progress to avoid freezing UI
-        let simulatedProgress = 5; // Start at 5% to show the bar immediately
+        // Simulate progress to avoid freezing UI - smooth and gradual increments
+        let simulatedProgress = 3; // Start at 3% to show the bar immediately
+        
         const progressInterval = setInterval(() => {
             // Gradually increase progress up to 90% while waiting for response
+            // Use smaller increments for smoother progress (0.3% to 0.8% per update)
             if (simulatedProgress < 90) {
-                simulatedProgress = Math.min(90, simulatedProgress + Math.random() * 5 + 2);
+                // Slower, smoother increments
+                const increment = 0.3 + (Math.random() * 0.5); // 0.3% to 0.8% per update
+                simulatedProgress = Math.min(90, simulatedProgress + increment);
                 const currentCount = Math.floor((simulatedProgress / 100) * totalItems);
+                
+                // Update both the count and the percentage for smooth display
                 setImportProgress({ 
                     current: Math.max(1, currentCount), // Ensure at least 1 to show the bar
                     total: totalItems 
                 });
+                setSimulatedProgressPercent(simulatedProgress); // Store percentage for smooth bar display
             }
-        }, 200); // Update every 200ms
+        }, 300); // Update every 300ms for smoother animation
 
         try {
             // Call the import function with progress callback
@@ -202,7 +212,8 @@ export default function ExcelImportModal({ open, onClose, onImport, onDownloadTe
             // Clear the simulation interval
             clearInterval(progressInterval);
             
-            // Set to 100% when complete
+            // Set to 100% when complete - smooth transition
+            setSimulatedProgressPercent(100);
             setImportProgress({ 
                 current: totalItems, 
                 total: totalItems 
@@ -237,6 +248,7 @@ export default function ExcelImportModal({ open, onClose, onImport, onDownloadTe
         } catch (error) {
             console.error('Import error:', error);
             clearInterval(progressInterval);
+            setSimulatedProgressPercent(0); // Reset progress on error
             alert('Failed to import products. Please try again.');
         } finally {
             setImporting(false);
@@ -440,9 +452,7 @@ export default function ExcelImportModal({ open, onClose, onImport, onDownloadTe
                                 <div 
                                     className="progress-bar progress-bar-animated" 
                                     style={{ 
-                                        width: `${fileAnalysis && fileAnalysis.estimatedCount > 0 
-                                            ? Math.max(2, (importProgress.current / fileAnalysis.estimatedCount) * 100)
-                                            : 2}%` 
+                                        width: `${Math.max(2, Math.min(100, simulatedProgressPercent))}%` 
                                     }}
                                 >
                                     <div className="progress-bar-shimmer"></div>
@@ -453,9 +463,7 @@ export default function ExcelImportModal({ open, onClose, onImport, onDownloadTe
                                     {importProgress.current} / {fileAnalysis?.estimatedCount || 0} products imported
                                 </span>
                                 <span className="progress-percentage">
-                                    {fileAnalysis && fileAnalysis.estimatedCount > 0 
-                                        ? Math.round((importProgress.current / fileAnalysis.estimatedCount) * 100)
-                                        : 0}%
+                                    {Math.round(Math.min(100, simulatedProgressPercent))}%
                                 </span>
                             </div>
                         </div>

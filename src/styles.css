@@ -8571,17 +8571,36 @@ input:focus {
     box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
     display: flex;
     justify-content: space-between;
-    align-items: center;
-    gap: 24px;
+    align-items: flex-start;
+    gap: 32px;
     flex-wrap: wrap;
+}
+
+.balance-left-section {
+    flex: 1;
+    min-width: 300px;
+}
+
+.balance-right-section {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 12px;
+    min-width: 200px;
+}
+
+.withdraw-section {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 12px;
+    width: 100%;
 }
 
 .balance-header {
     display: flex;
     gap: 20px;
-    align-items: center;
-    flex: 1;
-    min-width: 300px;
+    align-items: flex-start;
 }
 
 .balance-icon {
@@ -8732,13 +8751,19 @@ input:focus {
     font-weight: 600;
 }
 
+.balance-description-wrapper {
+    margin-top: 12px;
+}
+
 .balance-description {
     font-size: 14px;
-    opacity: 0.85;
+    opacity: 0.95;
     display: flex;
     align-items: center;
     gap: 8px;
     margin: 0;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.95);
 }
 
 .info-btn {
@@ -8784,6 +8809,41 @@ input:focus {
 
 .btn-withdraw:active {
     transform: translateY(0);
+}
+
+.btn-withdraw.disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background: #e5e7eb;
+    color: #9ca3af;
+}
+
+.btn-withdraw.disabled:hover {
+    background: #e5e7eb;
+    transform: none;
+}
+
+.btn-withdraw.disabled:active {
+    transform: none;
+}
+
+.withdraw-lock-message {
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.95) !important;
+    text-align: right;
+    margin: 0;
+    line-height: 1.5;
+    font-weight: 500;
+    background: rgba(255, 255, 255, 0.15);
+    padding: 10px 14px;
+    border-radius: 8px;
+    backdrop-filter: blur(10px);
+    max-width: 100%;
+}
+
+.withdraw-lock-message strong {
+    color: #FCD34D;
+    font-weight: 600;
 }
 
 /* Bank Info Card */
@@ -10065,6 +10125,23 @@ input:focus {
         padding: 24px;
         flex-direction: column;
         align-items: stretch;
+        gap: 20px;
+    }
+
+    .balance-left-section {
+        min-width: 100%;
+        width: 100%;
+    }
+
+    .balance-right-section {
+        min-width: 100%;
+        width: 100%;
+        align-items: stretch;
+    }
+
+    .withdraw-section {
+        width: 100%;
+        align-items: stretch;
     }
 
     .balance-amount-row {
@@ -10083,6 +10160,7 @@ input:focus {
 
     .balance-header {
         min-width: 100%;
+        gap: 16px;
     }
 
     .balance-amount {
@@ -10124,9 +10202,23 @@ input:focus {
         font-size: 14px;
     }
 
+    .balance-description-wrapper {
+        margin-top: 10px;
+    }
+
+    .balance-description {
+        font-size: 13px;
+    }
+
     .btn-withdraw {
         width: 100%;
         justify-content: center;
+    }
+
+    .withdraw-lock-message {
+        text-align: left !important;
+        font-size: 12px;
+        padding: 10px 12px;
     }
 
     .bank-info-card,
@@ -26380,6 +26472,149 @@ input:focus {
     border-radius: 2px;
 }
 
+/* Custom Dropdown Styles for Settings */
+.settings-custom-dropdown {
+    position: relative;
+    width: 100%;
+}
+
+.settings-dropdown-toggle {
+    width: 100%;
+    padding: 10px 16px;
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    background: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-primary);
+    transition: all 0.2s ease;
+    min-height: 44px;
+    box-sizing: border-box;
+    gap: 12px;
+}
+
+.settings-dropdown-toggle:hover {
+    border-color: var(--primary);
+    background: rgba(59, 130, 246, 0.02);
+}
+
+.settings-dropdown-toggle.active {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.settings-dropdown-selected {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+    text-align: left;
+}
+
+.settings-dropdown-selected svg {
+    flex-shrink: 0;
+    color: var(--muted);
+}
+
+.settings-dropdown-selected span {
+    color: var(--text-primary);
+}
+
+.settings-dropdown-arrow {
+    flex-shrink: 0;
+    color: var(--muted);
+    transition: transform 0.2s ease;
+}
+
+.settings-dropdown-arrow.rotated {
+    transform: rotate(180deg);
+}
+
+.settings-dropdown-menu {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    right: 0;
+    width: 100%;
+    background: white;
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1), 0 4px 10px rgba(0, 0, 0, 0.05);
+    z-index: 1000;
+    overflow: hidden;
+    animation: dropdownSlideDown 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.settings-dropdown-item {
+    width: 100%;
+    padding: 12px 16px;
+    border: none;
+    background: white;
+    text-align: left;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-primary);
+    transition: background-color 0.2s ease;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+.settings-dropdown-item:last-child {
+    border-bottom: none;
+}
+
+.settings-dropdown-item:hover {
+    background: var(--bg-secondary);
+}
+
+.settings-dropdown-item.selected {
+    background: rgba(59, 130, 246, 0.08);
+    color: var(--primary);
+    font-weight: 600;
+}
+
+.settings-dropdown-item.selected:hover {
+    background: rgba(59, 130, 246, 0.12);
+}
+
+.settings-dropdown-item svg:first-child {
+    flex-shrink: 0;
+    color: var(--muted);
+}
+
+.settings-dropdown-item.selected svg:first-child {
+    color: var(--primary);
+}
+
+.settings-dropdown-item span {
+    flex: 1;
+    min-width: 0;
+}
+
+.settings-dropdown-item svg:last-child {
+    flex-shrink: 0;
+    color: var(--primary);
+    margin-left: auto;
+}
+
+@keyframes dropdownSlideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
 /* Display and edit fields */
 .settings-display-field {
     display: flex;
@@ -29594,19 +29829,28 @@ input:focus {
 
 .progress-bar {
     height: 100%;
-    background: linear-gradient(90deg, var(--primary), var(--primary-dark));
+    background: linear-gradient(90deg, #3b82f6, #2563eb, #1d4ed8);
     border-radius: 6px;
-    transition: width 0.3s ease;
+    transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
     overflow: hidden;
     min-width: 2%; /* Ensure bar is visible even at low percentages */
+    box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
 }
 
 .progress-bar-animated {
-    background: linear-gradient(90deg, var(--primary), var(--primary-dark), var(--primary));
+    background: linear-gradient(
+        90deg,
+        #3b82f6 0%,
+        #2563eb 25%,
+        #60a5fa 50%,
+        #2563eb 75%,
+        #3b82f6 100%
+    );
     background-size: 200% 100%;
-    animation: progressSlide 2s linear infinite;
+    animation: progressSlide 3s linear infinite;
     min-width: 2%; /* Ensure animated bar is visible */
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4);
 }
 
 .progress-bar-shimmer {
@@ -29618,10 +29862,13 @@ input:focus {
     background: linear-gradient(
         90deg,
         transparent,
-        rgba(255, 255, 255, 0.3),
+        rgba(255, 255, 255, 0.4),
+        rgba(255, 255, 255, 0.6),
+        rgba(255, 255, 255, 0.4),
         transparent
     );
-    animation: shimmer 1.5s infinite;
+    animation: shimmer 2s infinite;
+    width: 50%;
 }
 
 @keyframes progressSlide {
@@ -31908,6 +32155,275 @@ input:focus {
     
     .products-grid.mobile-cols-3 {
         grid-template-columns: repeat(3, 1fr) !important;
+    }
+}
+
+/* Coming Soon Component Styles */
+.coming-soon-container {
+    min-height: calc(100vh - 200px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    position: relative;
+    overflow: hidden;
+}
+
+.coming-soon-content {
+    text-align: center;
+    max-width: 800px;
+    width: 100%;
+    position: relative;
+    z-index: 1;
+}
+
+.coming-soon-icon-wrapper {
+    position: relative;
+    display: inline-block;
+    margin-bottom: 32px;
+}
+
+.icon-pulse {
+    position: relative;
+    z-index: 2;
+    color: var(--primary);
+    animation: pulse 2s ease-in-out infinite;
+}
+
+.icon-ring {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    border: 2px solid var(--primary);
+    border-radius: 50%;
+    opacity: 0;
+}
+
+.icon-ring.ring-1 {
+    width: 120px;
+    height: 120px;
+    animation: ripple 3s ease-out infinite;
+}
+
+.icon-ring.ring-2 {
+    width: 160px;
+    height: 160px;
+    animation: ripple 3s ease-out infinite 0.5s;
+}
+
+.icon-ring.ring-3 {
+    width: 200px;
+    height: 200px;
+    animation: ripple 3s ease-out infinite 1s;
+}
+
+.coming-soon-title {
+    font-size: 48px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 16px;
+    animation: fadeInUp 0.6s ease-out;
+}
+
+.coming-soon-description {
+    font-size: 18px;
+    color: var(--muted);
+    margin-bottom: 48px;
+    line-height: 1.6;
+    animation: fadeInUp 0.6s ease-out 0.2s both;
+}
+
+.progress-container {
+    margin-bottom: 48px;
+    animation: fadeInUp 0.6s ease-out 0.4s both;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 8px;
+    background: var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 12px;
+    position: relative;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary), var(--primary-dark));
+    border-radius: 4px;
+    width: 65%;
+    animation: progressAnimation 2s ease-in-out infinite;
+    position: relative;
+    overflow: hidden;
+}
+
+.progress-fill::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 255, 255, 0.3),
+        transparent
+    );
+    animation: shimmer 2s infinite;
+}
+
+.progress-text {
+    font-size: 14px;
+    color: var(--muted);
+    font-weight: 500;
+}
+
+.coming-soon-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 24px;
+    margin-top: 48px;
+    animation: fadeInUp 0.6s ease-out 0.6s both;
+}
+
+.stat-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+}
+
+.stat-value {
+    font-size: 36px;
+    font-weight: 700;
+    color: var(--primary);
+    margin-bottom: 8px;
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 4px;
+}
+
+.stat-suffix {
+    font-size: 20px;
+    color: var(--muted);
+}
+
+.stat-label {
+    font-size: 14px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.particles {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 0;
+}
+
+.particle {
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    background: var(--primary);
+    border-radius: 50%;
+    opacity: 0.3;
+    animation: float linear infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.1);
+        opacity: 0.8;
+    }
+}
+
+@keyframes ripple {
+    0% {
+        transform: translate(-50%, -50%) scale(0.8);
+        opacity: 0.6;
+    }
+    100% {
+        transform: translate(-50%, -50%) scale(1.5);
+        opacity: 0;
+    }
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes progressAnimation {
+    0% {
+        width: 60%;
+    }
+    50% {
+        width: 70%;
+    }
+    100% {
+        width: 65%;
+    }
+}
+
+@keyframes float {
+    0% {
+        transform: translateY(100vh) rotate(0deg);
+        opacity: 0;
+    }
+    10% {
+        opacity: 0.3;
+    }
+    90% {
+        opacity: 0.3;
+    }
+    100% {
+        transform: translateY(-100px) rotate(360deg);
+        opacity: 0;
+    }
+}
+
+@media (max-width: 768px) {
+    .coming-soon-title {
+        font-size: 36px;
+    }
+    
+    .coming-soon-description {
+        font-size: 16px;
+    }
+    
+    .coming-soon-stats {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+    
+    .stat-value {
+        font-size: 28px;
     }
 }
 
