@@ -1061,7 +1061,7 @@ export default function AdminRequest() {
                                         <span className={selectedLevels.length > 0 ? 'has-selection' : ''}>
                                             {selectedLevels.length === 0
                                                 ? t('adminWithdraw.allLevels')
-                                                : t('adminWithdraw.levelsSelected', { count: selectedLevels.length })}
+                                                : `${selectedLevels.length} ${selectedLevels.length === 1 ? t('adminWithdraw.level') : t('adminWithdraw.levels')} ${t('adminWithdraw.selected')}`}
                                         </span>
                                         <IconChevronDown />
                                     </button>
@@ -1115,7 +1115,7 @@ export default function AdminRequest() {
                                         <span className={selectedStatuses.length > 0 ? 'has-selection' : ''}>
                                             {selectedStatuses.length === 0
                                                 ? t('adminWithdraw.allStatuses')
-                                                : t('adminWithdraw.statusesSelected', { count: selectedStatuses.length })}
+                                                : `${selectedStatuses.length} ${selectedStatuses.length === 1 ? t('adminWithdraw.status') : t('adminWithdraw.statuses')} ${t('adminWithdraw.selected')}`}
                                         </span>
                                         <IconChevronDown />
                                     </button>
