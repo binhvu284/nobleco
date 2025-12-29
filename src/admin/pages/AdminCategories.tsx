@@ -15,6 +15,7 @@ import {
   IconPackage,
   IconX
 } from '../components/icons';
+import { useTranslation } from '../../shared/contexts/TranslationContext';
 
 // Category interface
 interface Category {
@@ -33,6 +34,7 @@ interface Category {
 }
 
 export default function AdminCategories() {
+  const { t } = useTranslation();
   const [categoryType, setCategoryType] = useState<'jewelry' | 'centerstone'>('jewelry');
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
@@ -195,7 +197,7 @@ export default function AdminCategories() {
       // Show success notification
       setNotification({
         type: 'success',
-        message: 'Category deleted successfully'
+        message: t('adminCategories.categoryDeleted')
       });
 
       // Auto-hide notification after 3 seconds
@@ -209,7 +211,7 @@ export default function AdminCategories() {
       console.error('Error deleting category:', err);
       setNotification({
         type: 'error',
-        message: err instanceof Error ? err.message : 'Failed to delete category'
+        message: err instanceof Error ? err.message : t('adminCategories.failedDeleteCategory')
       });
 
       // Auto-hide notification after 3 seconds
@@ -252,7 +254,7 @@ export default function AdminCategories() {
     if (!formData.name.trim()) {
       setNotification({
         type: 'error',
-        message: 'Category name is required'
+        message: t('adminCategories.categoryNameRequired')
       });
       setTimeout(() => setNotification(null), 3000);
       return;
@@ -263,7 +265,7 @@ export default function AdminCategories() {
     if (!hexColorRegex.test(formData.color)) {
       setNotification({
         type: 'error',
-        message: 'Please enter a valid hex color (e.g., #3B82F6)'
+        message: t('adminCategories.invalidHexColor')
       });
       setTimeout(() => setNotification(null), 3000);
       return;
@@ -331,7 +333,7 @@ export default function AdminCategories() {
       // Show success notification
       setNotification({
         type: 'success',
-        message: isEditMode ? 'Category updated successfully' : 'Category created successfully'
+        message: isEditMode ? t('adminCategories.categoryUpdated') : t('adminCategories.categoryCreated')
       });
       setTimeout(() => setNotification(null), 3000);
 
@@ -348,7 +350,7 @@ export default function AdminCategories() {
       console.error(`Error ${isEditMode ? 'updating' : 'creating'} category:`, err);
       setNotification({
         type: 'error',
-        message: err instanceof Error ? err.message : (isEditMode ? 'Failed to update category' : 'Failed to create category')
+        message: err instanceof Error ? err.message : (isEditMode ? t('adminCategories.failedUpdateCategory') : t('adminCategories.failedCreateCategory'))
       });
       setTimeout(() => setNotification(null), 3000);
     } finally {
@@ -399,7 +401,7 @@ export default function AdminCategories() {
   }, [activeDropdown]);
 
   return (
-    <AdminLayout title="Categories Management">
+    <AdminLayout title={t('adminCategories.title')}>
       <div className="admin-categories-page">
         {/* Navigation Tabs */}
         <div className="product-type-tabs">
@@ -410,7 +412,7 @@ export default function AdminCategories() {
               setSearchTerm('');
             }}
           >
-            Jewelry
+            {t('adminCategories.jewelryCategories')}
           </button>
           <button
             className={`tab-button ${categoryType === 'centerstone' ? 'active' : ''}`}
@@ -419,7 +421,7 @@ export default function AdminCategories() {
               setSearchTerm('');
             }}
           >
-            Center Stone
+            {t('adminCategories.centerstoneCategories')}
           </button>
         </div>
 
@@ -430,13 +432,13 @@ export default function AdminCategories() {
               <IconSearch className="search-icon" />
               <input
                 type="text"
-                placeholder="Search categories..."
+                placeholder={t('adminCategories.searchPlaceholder')}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="search-input"
               />
             </div>
-            <button className="btn-filter" title="Filter">
+            <button className="btn-filter" title={t('adminCategories.filter')}>
               <IconFilter />
             </button>
           </div>
@@ -446,14 +448,14 @@ export default function AdminCategories() {
               onClick={handleAddCategory}
             >
               <IconPlus />
-              <span>Add Category</span>
+              <span>{t('adminCategories.createCategory')}</span>
             </button>
             {/* Desktop view toggle */}
             <div className="view-toggle desktop-only">
               <button
                 className={`view-btn ${viewMode === 'table' ? 'active' : ''}`}
                 onClick={() => !isMobile && setViewMode('table')}
-                title="Table view"
+                title={t('adminCategories.tableView')}
                 disabled={isMobile}
               >
                 <IconList />
@@ -461,7 +463,7 @@ export default function AdminCategories() {
               <button
                 className={`view-btn ${viewMode === 'card' ? 'active' : ''}`}
                 onClick={() => setViewMode('card')}
-                title="Card view"
+                title={t('adminCategories.cardView')}
               >
                 <IconGrid />
               </button>
@@ -476,7 +478,7 @@ export default function AdminCategories() {
         {/* Loading State */}
         {loading && (
           <div className="loading-state">
-            <p>Loading categories...</p>
+            <p>{t('adminCategories.loading')}</p>
           </div>
         )}
 
@@ -484,7 +486,7 @@ export default function AdminCategories() {
         {error && (
           <div className="error-state">
             <p>{error}</p>
-            <button onClick={fetchCategories}>Try Again</button>
+            <button onClick={fetchCategories}>{t('common.retry')}</button>
           </div>
         )}
 
@@ -494,11 +496,11 @@ export default function AdminCategories() {
             <table className="categories-table">
               <thead>
                 <tr>
-                  <th>Category</th>
-                  <th>Description</th>
-                  <th>Products</th>
-                  <th>Created</th>
-                  <th>Actions</th>
+                  <th>{t('adminCategories.name')}</th>
+                  <th>{t('adminCategories.description')}</th>
+                  <th>{t('adminCategories.productCount')}</th>
+                  <th>{t('adminCategories.createdAt')}</th>
+                  <th>{t('adminCategories.actions')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -537,7 +539,7 @@ export default function AdminCategories() {
                             e.stopPropagation();
                             handleMoreClick(category.id, e);
                           }}
-                          title="More Actions"
+                          title={t('adminCategories.moreActions')}
                         >
                           <IconMoreVertical />
                         </button>
@@ -545,15 +547,15 @@ export default function AdminCategories() {
                           <div className="unified-dropdown-menu" onClick={(e) => e.stopPropagation()}>
                             <button className="unified-dropdown-item" onClick={() => handleSeeDetail(category)}>
                               <IconEye />
-                              See Detail
+                              {t('adminCategories.viewDetails')}
                             </button>
                             <button className="unified-dropdown-item" onClick={() => handleEdit(category)}>
                               <IconEdit />
-                              Edit
+                              {t('common.edit')}
                             </button>
                             <button className="unified-dropdown-item danger" onClick={() => handleDeleteClick(category)}>
                               <IconTrash2 />
-                              Delete
+                              {t('common.delete')}
                             </button>
                           </div>
                         )}
@@ -585,7 +587,7 @@ export default function AdminCategories() {
                     <div className={`unified-dropdown ${activeDropdown === category.id ? 'active' : ''}`}>
                       <button 
                         className="unified-more-btn" 
-                        title="More options"
+                        title={t('adminCategories.moreOptions')}
                         onClick={(e) => handleMoreClick(category.id, e)}
                       >
                         <IconMoreVertical />
@@ -594,11 +596,11 @@ export default function AdminCategories() {
                         <div className="unified-dropdown-menu">
                           <button className="unified-dropdown-item" onClick={() => handleSeeDetail(category)}>
                             <IconEye />
-                            See Detail
+                            {t('adminCategories.viewDetails')}
                           </button>
                           <button className="unified-dropdown-item" onClick={() => handleEdit(category)}>
                             <IconEdit />
-                            Edit
+                            {t('common.edit')}
                           </button>
                           <button className="unified-dropdown-item danger" onClick={() => handleDeleteClick(category)}>
                             <IconTrash2 />
@@ -610,9 +612,9 @@ export default function AdminCategories() {
                   </div>
                 </div>
                 <div className="card-body">
-                  <p className="description">{category.description || 'No description'}</p>
+                  <p className="description">{category.description || t('adminCategories.noDescription')}</p>
                   <div className="card-stats">
-                    <span className="product-count">{category.product_count} products</span>
+                    <span className="product-count">{category.product_count} {t('adminCategories.products')}</span>
                     <span className="created-date">{new Date(category.created_at).toLocaleDateString()}</span>
                   </div>
                 </div>
@@ -624,8 +626,8 @@ export default function AdminCategories() {
         {/* Empty state */}
         {!loading && !error && filteredCategories.length === 0 && (
           <div className="empty-state">
-            <h3>No categories found</h3>
-            <p>Try adjusting your search or create a new category</p>
+            <h3>{t('adminCategories.noCategoriesFound')}</h3>
+            <p>{t('adminCategories.tryAdjustingSearch')}</p>
           </div>
         )}
 
@@ -644,7 +646,7 @@ export default function AdminCategories() {
               onClick={(e) => e.stopPropagation()}
             >
               <div className="category-modal-header">
-                <h2>{isEditMode ? 'Edit Category' : 'Add New Category'}</h2>
+                <h2>{isEditMode ? t('adminCategories.editCategory') : t('adminCategories.addNewCategory')}</h2>
                 <button 
                   className="category-modal-close"
                   onClick={() => handleCloseRequest(() => {
@@ -661,31 +663,31 @@ export default function AdminCategories() {
                 <div className="category-modal-body">
                   <div className="form-group">
                     <label htmlFor="category-name">
-                      Category Name <span className="required">*</span>
+                      {t('adminCategories.name')} <span className="required">*</span>
                     </label>
                     <input
                       id="category-name"
                       type="text"
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      placeholder="Enter category name"
+                      placeholder={t('adminCategories.enterCategoryName')}
                       required
                     />
                   </div>
 
                   <div className="form-group">
-                    <label htmlFor="category-description">Description</label>
+                    <label htmlFor="category-description">{t('adminCategories.description')}</label>
                     <textarea
                       id="category-description"
                       value={formData.description}
                       onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                      placeholder="Enter category description (optional)"
+                      placeholder={t('adminCategories.enterCategoryDescription')}
                       rows={4}
                     />
                   </div>
 
                   <div className="form-group">
-                    <label htmlFor="category-color">Color</label>
+                    <label htmlFor="category-color">{t('adminCategories.color')}</label>
                     <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                       <input
                         id="category-color"
@@ -716,7 +718,7 @@ export default function AdminCategories() {
                     })}
                     disabled={submitting}
                   >
-                    Cancel
+                    {t('common.cancel')}
                   </button>
                   <button
                     type="submit"
@@ -724,8 +726,8 @@ export default function AdminCategories() {
                     disabled={submitting}
                   >
                     {submitting 
-                      ? (isEditMode ? 'Saving...' : 'Creating...') 
-                      : (isEditMode ? 'Save Category' : 'Create Category')}
+                      ? (isEditMode ? t('common.saving') : t('common.creating')) 
+                      : (isEditMode ? t('adminCategories.saveCategory') : t('adminCategories.createCategory'))}
                   </button>
                 </div>
               </form>
@@ -746,14 +748,10 @@ export default function AdminCategories() {
           open={showDeleteConfirm}
           onClose={handleDeleteCancel}
           onConfirm={handleDeleteConfirm}
-          title="Delete Category"
-          message={`Are you sure you want to delete "${categoryToDelete?.name}"? ${
-            categoryToDelete?.product_count && categoryToDelete.product_count > 0
-              ? `This category has ${categoryToDelete.product_count} product${categoryToDelete.product_count > 1 ? 's' : ''}. `
-              : ''
-          }This action cannot be undone.`}
-          confirmText="Delete"
-          cancelText="Cancel"
+          title={t('adminCategories.deleteCategory')}
+          message={t('adminCategories.deleteConfirm').replace('{{name}}', categoryToDelete?.name || '').replace('{{products}}', categoryToDelete?.product_count && categoryToDelete.product_count > 0 ? t('adminCategories.deleteConfirmProducts').replace('{{count}}', categoryToDelete.product_count.toString()).replace(/{{count, plural, one \{\} other \{s\}\}}/g, categoryToDelete.product_count > 1 ? 's' : '') : '')}
+          confirmText={t('common.delete')}
+          cancelText={t('common.cancel')}
           type="danger"
           loading={deleteLoading}
         />
@@ -763,10 +761,10 @@ export default function AdminCategories() {
           open={showUnsavedConfirm}
           onClose={handleCancelDiscard}
           onConfirm={handleDiscardChanges}
-          title="Unsaved Changes"
-          message="You have unsaved changes. Are you sure you want to discard them?"
-          confirmText="Discard Changes"
-          cancelText="Go Back"
+          title={t('adminCategories.unsavedChanges')}
+          message={t('adminCategories.unsavedChangesMessage')}
+          confirmText={t('adminCategories.discardChanges')}
+          cancelText={t('adminCategories.goBack')}
           type="warning"
           loading={false}
         />

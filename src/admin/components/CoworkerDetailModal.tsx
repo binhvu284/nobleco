@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { getAvatarInitial, getAvatarColor, getAvatarViewportStyles } from '../../utils/avatarUtils';
 import { IconX, IconSettings, IconPlay, IconPause, IconLoader } from './icons';
+import { useTranslation } from '../../shared/contexts/TranslationContext';
 
 interface CoworkerDetailModalProps {
     open: boolean;
@@ -25,6 +26,7 @@ export default function CoworkerDetailModal({
     onStatusToggle,
     onEditPermissions 
 }: CoworkerDetailModalProps) {
+    const { t } = useTranslation();
     const [isLoading, setIsLoading] = useState(false);
     const [avatar, setAvatar] = useState<{ url: string; viewport_x?: number | null; viewport_y?: number | null; viewport_size?: number | null; width?: number | null; height?: number | null } | null>(null);
     const [showAvatarExpanded, setShowAvatarExpanded] = useState(false);
@@ -106,8 +108,8 @@ export default function CoworkerDetailModal({
             <div className="modal-overlay" onClick={onClose} />
             <div className="profile-modal-card" role="dialog" aria-modal="true" style={{ maxWidth: '900px', width: '90%' }}>
                 <div className="modal-header">
-                    <span>Co-worker Details</span>
-                    <button className="modal-close" aria-label="Close" onClick={onClose}>✕</button>
+                    <span>{t('adminAdminUsers.coworkerDetails')}</span>
+                    <button className="modal-close" aria-label={t('common.close')} onClick={onClose}>✕</button>
                 </div>
                 
                 {isLoading ? (
@@ -117,7 +119,7 @@ export default function CoworkerDetailModal({
                             <div className="spinner-ring"></div>
                             <div className="spinner-ring"></div>
                         </div>
-                        <p>Loading profile...</p>
+                        <p>{t('adminAdminUsers.loadingProfile')}</p>
                     </div>
                 ) : (
                     <div className="profile-content">
@@ -161,7 +163,7 @@ export default function CoworkerDetailModal({
                                             flexShrink: 0
                                         }}
                                     >
-                                        {getAvatarInitial(coworker.name || 'Co-worker')}
+                                        {getAvatarInitial(coworker.name || t('adminAdminUsers.coworkers'))}
                                     </div>
                                 )}
                                 {hasAvatar && isHoveringAvatar && (
@@ -198,7 +200,7 @@ export default function CoworkerDetailModal({
                                             <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
                                             <circle cx="12" cy="12" r="3" />
                                         </svg>
-                                        View
+                                        {t('common.view')}
                                     </button>
                                 )}
                             </div>
@@ -208,22 +210,22 @@ export default function CoworkerDetailModal({
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginTop: '24px' }}>
                             {/* Account Information - Left Side */}
                             <div className="profile-section">
-                                <h3 className="profile-section-title">Account Information</h3>
+                                <h3 className="profile-section-title">{t('profile.accountInformation')}</h3>
                                 <div className="profile-fields">
                                     <div className="profile-field">
-                                        <label>Name</label>
-                                        <div className="profile-field-value">{coworker.name || 'Not set'}</div>
+                                        <label>{t('users.name')}</label>
+                                        <div className="profile-field-value">{coworker.name || t('settings.notSet')}</div>
                                     </div>
                                     <div className="profile-field">
-                                        <label>Email</label>
+                                        <label>{t('profile.email')}</label>
                                         <div className="profile-field-value email-display">{coworker.email}</div>
                                     </div>
                                     <div className="profile-field">
-                                        <label>Phone Number</label>
-                                        <div className="profile-field-value email-display">{coworker.phone || 'Not set'}</div>
+                                        <label>{t('profile.phoneNumber')}</label>
+                                        <div className="profile-field-value email-display">{coworker.phone || t('settings.notSet')}</div>
                                     </div>
                                     <div className="profile-field">
-                                        <label>Status</label>
+                                        <label>{t('users.status')}</label>
                                         <div className="profile-field-value" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                                             <span className={`status-badge ${statusDisplay}`}>
                                                 {statusDisplay}
@@ -251,19 +253,19 @@ export default function CoworkerDetailModal({
                                                     {statusUpdating ? (
                                                         <>
                                                             <IconLoader className="animate-spin" style={{ width: '14px', height: '14px' }} />
-                                                            Updating...
+                                                            {t('common.updating')}
                                                         </>
                                                     ) : (
                                                         <>
                                                             {statusDisplay === 'active' ? (
                                                                 <>
                                                                     <IconPause style={{ width: '14px', height: '14px' }} />
-                                                                    Deactivate
+                                                                    {t('adminUsers.deactivate')}
                                                                 </>
                                                             ) : (
                                                                 <>
                                                                     <IconPlay style={{ width: '14px', height: '14px' }} />
-                                                                    Activate
+                                                                    {t('adminUsers.activate')}
                                                                 </>
                                                             )}
                                                         </>
@@ -274,7 +276,7 @@ export default function CoworkerDetailModal({
                                     </div>
                                     {coworker.created_at && (
                                         <div className="profile-field">
-                                            <label>Created At</label>
+                                            <label>{t('adminAdminUsers.createdAt')}</label>
                                             <div className="profile-field-value">
                                                 {new Date(coworker.created_at).toLocaleDateString('en-US', {
                                                     year: 'numeric',
@@ -292,7 +294,7 @@ export default function CoworkerDetailModal({
                             {/* Permissions - Right Side */}
                             <div className="profile-section">
                                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-                                    <h3 className="profile-section-title" style={{ margin: 0 }}>Current Permissions</h3>
+                                    <h3 className="profile-section-title" style={{ margin: 0 }}>{t('adminAdminUsers.currentPermissions')}</h3>
                                     {onEditPermissions && (
                                         <button
                                             onClick={() => {
@@ -321,7 +323,7 @@ export default function CoworkerDetailModal({
                                             }}
                                         >
                                             <IconSettings style={{ width: '14px', height: '14px' }} />
-                                            Edit
+                                            {t('common.edit')}
                                         </button>
                                     )}
                                 </div>
@@ -329,11 +331,11 @@ export default function CoworkerDetailModal({
                                     {loadingPermissions ? (
                                         <div style={{ padding: '20px', textAlign: 'center', color: 'var(--muted)' }}>
                                             <IconLoader className="animate-spin" style={{ width: '20px', height: '20px', marginBottom: '8px' }} />
-                                            <div>Loading permissions...</div>
+                                            <div>{t('adminAdminUsers.loadingPermissions')}</div>
                                         </div>
                                     ) : permissions.length === 0 ? (
                                         <div style={{ padding: '20px', textAlign: 'center', color: 'var(--muted)' }}>
-                                            No permissions assigned
+                                            {t('adminAdminUsers.noPermissionsAssigned')}
                                         </div>
                                     ) : (
                                         <div style={{ 
@@ -373,7 +375,7 @@ export default function CoworkerDetailModal({
                 <div className="modal-overlay personal-id-expanded-overlay" onClick={() => setShowAvatarExpanded(false)}>
                     <div className="personal-id-expanded-modal" onClick={(e) => e.stopPropagation()}>
                         <div className="personal-id-expanded-header">
-                            <h3>Avatar</h3>
+                            <h3>{t('profile.avatar')}</h3>
                             <button className="modal-close" onClick={() => setShowAvatarExpanded(false)}>
                                 <IconX />
                             </button>

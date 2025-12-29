@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import AdminLayout from '../components/AdminLayout';
+import { useTranslation } from '../../shared/contexts/TranslationContext';
 import ConfirmModal from '../components/ConfirmModal';
 import { 
     IconPlus,
@@ -33,6 +34,7 @@ interface DiscountCode {
 }
 
 export default function AdminDiscount() {
+    const { t } = useTranslation();
     const [discountCodes, setDiscountCodes] = useState<DiscountCode[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -76,7 +78,7 @@ export default function AdminDiscount() {
                 
                 const authToken = localStorage.getItem('nobleco_auth_token');
                 if (!authToken) {
-                    throw new Error('Authentication token not found. Please log in again.');
+                    throw new Error(t('common.authTokenNotFound'));
                 }
 
                 const response = await fetch('/api/discount-codes', {
@@ -88,14 +90,14 @@ export default function AdminDiscount() {
 
                 if (!response.ok) {
                     const errorData = await response.json().catch(() => ({ error: 'Failed to fetch discount codes' }));
-                    throw new Error(errorData.error || `Failed to fetch discount codes (${response.status})`);
+                    throw new Error(errorData.error || t('adminDiscount.failedFetchDiscountCodes'));
                 }
 
                 const data = await response.json();
                 setDiscountCodes(Array.isArray(data) ? data : []);
             } catch (err) {
                 console.error('Error fetching discount codes:', err);
-                setError(err instanceof Error ? err.message : 'Failed to load discount codes');
+                setError(err instanceof Error ? err.message : t('adminDiscount.failedLoadDiscountCodes'));
             } finally {
                 setLoading(false);
             }
@@ -192,7 +194,7 @@ export default function AdminDiscount() {
         try {
             const authToken = localStorage.getItem('nobleco_auth_token');
             if (!authToken) {
-                throw new Error('Authentication token not found');
+                    throw new Error(t('common.authTokenNotFound'));
             }
 
             const response = await fetch(`/api/discount-codes?id=${discountToDelete.id}`, {
@@ -205,17 +207,17 @@ export default function AdminDiscount() {
 
             if (!response.ok) {
                 const error = await response.json();
-                throw new Error(error.error || 'Failed to delete discount code');
+                throw new Error(error.error || t('adminDiscount.failedDeleteDiscount'));
             }
 
             setDiscountCodes(discountCodes.filter(d => d.id !== discountToDelete.id));
             setShowDeleteConfirm(false);
             setDiscountToDelete(null);
-            setSuccessMessage('Discount code deleted successfully');
+            setSuccessMessage(t('adminDiscount.discountDeleted'));
             setTimeout(() => setSuccessMessage(null), 3000);
         } catch (err) {
             console.error('Error deleting discount code:', err);
-            setError(err instanceof Error ? err.message : 'Failed to delete discount code');
+            setError(err instanceof Error ? err.message : t('adminDiscount.failedDeleteDiscount'));
             setTimeout(() => setError(null), 5000);
         } finally {
             setDeleteLoading(false);
@@ -229,7 +231,7 @@ export default function AdminDiscount() {
         try {
             const authToken = localStorage.getItem('nobleco_auth_token');
             if (!authToken) {
-                throw new Error('Authentication token not found');
+                    throw new Error(t('common.authTokenNotFound'));
             }
 
             const response = await fetch(`/api/discount-codes?id=${discountToToggle.id}`, {
@@ -243,7 +245,7 @@ export default function AdminDiscount() {
 
             if (!response.ok) {
                 const error = await response.json();
-                throw new Error(error.error || 'Failed to toggle discount code status');
+                throw new Error(error.error || t('adminDiscount.failedUpdateStatus'));
             }
 
             const updated = await response.json();
@@ -252,11 +254,11 @@ export default function AdminDiscount() {
             ));
             setShowStatusConfirm(false);
             setDiscountToToggle(null);
-            setSuccessMessage(`Discount code ${updated.status === 'active' ? 'activated' : 'deactivated'} successfully`);
+            setSuccessMessage(updated.status === 'active' ? t('adminDiscount.discountStatusUpdatedActivated') : t('adminDiscount.discountStatusUpdatedDeactivated'));
             setTimeout(() => setSuccessMessage(null), 3000);
         } catch (err) {
             console.error('Error toggling discount code status:', err);
-            setError(err instanceof Error ? err.message : 'Failed to toggle status');
+            setError(err instanceof Error ? err.message : t('adminDiscount.failedUpdateStatus'));
             setTimeout(() => setError(null), 5000);
         } finally {
             setStatusLoading(false);
@@ -280,32 +282,32 @@ export default function AdminDiscount() {
         
         // Validate form before submitting
         if (!formData.code || formData.code.trim() === '') {
-            setError('Discount code is required');
+            setError(t('adminDiscount.discountCodeRequired'));
             setTimeout(() => setError(null), 5000);
             return;
         }
         
         if (!formData.discount_rate || formData.discount_rate.trim() === '' || isNaN(parseFloat(formData.discount_rate)) || parseFloat(formData.discount_rate) <= 0 || parseFloat(formData.discount_rate) > 100) {
-            setError('Please enter a valid discount rate between 0.01 and 100');
+            setError(t('adminDiscount.invalidDiscountRate'));
             setTimeout(() => setError(null), 5000);
             return;
         }
         
         if (formData.max_usage_type === 'limited' && (!formData.max_usage || formData.max_usage.trim() === '' || isNaN(parseInt(formData.max_usage)) || parseInt(formData.max_usage) <= 0)) {
-            setError('Please enter a valid maximum usage limit');
+            setError(t('adminDiscount.invalidMaxUsage'));
             setTimeout(() => setError(null), 5000);
             return;
         }
         
         if (formData.valid_from && formData.valid_until && formData.valid_until_type !== 'unlimited' && new Date(formData.valid_from) > new Date(formData.valid_until)) {
-            setError('Valid From date must be before Valid Until date');
+            setError(t('adminDiscount.validFromBeforeUntil'));
             setTimeout(() => setError(null), 5000);
             return;
         }
         
         // Check for duplicate code before submitting
         if (codeDuplicateError) {
-            setError('Please fix the duplicate code error before submitting');
+            setError(t('adminDiscount.fixDuplicateCodeError'));
             setTimeout(() => setError(null), 5000);
             return;
         }
@@ -313,8 +315,8 @@ export default function AdminDiscount() {
         // Additional duplicate check on submit (in case user bypassed the onChange check)
         const duplicate = discountCodes.find(d => d.code === formData.code.trim() && (!isEditMode || d.id !== editingDiscount?.id));
         if (duplicate) {
-            setError('This discount code already exists. Please choose a different code.');
-            setCodeDuplicateError('This discount code already exists');
+            setError(t('adminDiscount.codeExistsChooseDifferent'));
+            setCodeDuplicateError(t('adminDiscount.codeDuplicateError'));
             setTimeout(() => {
                 setError(null);
                 setCodeDuplicateError(null);
@@ -366,7 +368,7 @@ export default function AdminDiscount() {
 
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({ error: `Failed to ${isEditMode ? 'update' : 'create'} discount code` }));
-                throw new Error(errorData.error || `Failed to ${isEditMode ? 'update' : 'create'} discount code (${response.status})`);
+                throw new Error(errorData.error || (isEditMode ? t('adminDiscount.failedUpdateDiscount') : t('adminDiscount.failedCreateDiscount')));
             }
 
             const savedDiscount = await response.json();
@@ -375,10 +377,10 @@ export default function AdminDiscount() {
                 setDiscountCodes(discountCodes.map(d => 
                     d.id === editingDiscount.id ? savedDiscount : d
                 ));
-                setSuccessMessage('Discount code updated successfully');
+                setSuccessMessage(t('adminDiscount.discountUpdated'));
             } else {
                 setDiscountCodes([savedDiscount, ...discountCodes]);
-                setSuccessMessage('Discount code created successfully');
+                setSuccessMessage(t('adminDiscount.discountCreated'));
             }
             
             setTimeout(() => setSuccessMessage(null), 3000);
@@ -427,7 +429,7 @@ export default function AdminDiscount() {
     };
 
     return (
-        <AdminLayout title="Discount Codes">
+        <AdminLayout title={t('adminDiscount.title')}>
             <div className="admin-discount-page">
                 {/* Toolbar */}
                 <div className="orders-toolbar">
@@ -437,12 +439,12 @@ export default function AdminDiscount() {
                             <input
                                 type="text"
                                 className="search-input"
-                                placeholder="Search discount codes..."
+                                placeholder={t('adminDiscount.searchPlaceholder')}
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                             />
                         </div>
-                        <button className="btn-filter" title="Filter">
+                        <button className="btn-filter" title={t('common.filter')}>
                             <IconFilter />
                         </button>
                     </div>
@@ -450,13 +452,13 @@ export default function AdminDiscount() {
                         <button
                             className="btn-view-toggle"
                             onClick={() => setViewMode(viewMode === 'table' ? 'card' : 'table')}
-                            title={`Switch to ${viewMode === 'table' ? 'card' : 'table'} view`}
+                            title={viewMode === 'table' ? t('common.cardView') : t('common.tableView')}
                         >
                             {viewMode === 'table' ? <IconGrid /> : <IconList />}
                         </button>
                         <button className="btn-primary" onClick={handleCreate}>
                             <IconPlus />
-                            <span>Create Discount Code</span>
+                            <span>{t('adminDiscount.createDiscountCode')}</span>
                         </button>
                     </div>
                 </div>
@@ -465,7 +467,7 @@ export default function AdminDiscount() {
                 {loading && (
                     <div className="loading-state">
                         <div className="loading-spinner"></div>
-                        <p>Loading discount codes...</p>
+                        <p>{t('adminDiscount.loadingDiscountCodes')}</p>
                     </div>
                 )}
 
@@ -511,14 +513,14 @@ export default function AdminDiscount() {
                         <table className="orders-table">
                             <thead>
                                 <tr>
-                                    <th>Code</th>
-                                    <th>Discount Rate</th>
-                                    <th>Status</th>
-                                    <th>Usage</th>
-                                    <th>Valid Period</th>
-                                    <th>Description</th>
-                                    <th>Created</th>
-                                    <th>Actions</th>
+                                    <th>{t('adminDiscount.code')}</th>
+                                    <th>{t('adminDiscount.discountRate')}</th>
+                                    <th>{t('adminDiscount.status')}</th>
+                                    <th>{t('adminDiscount.usage')}</th>
+                                    <th>{t('adminDiscount.validPeriod')}</th>
+                                    <th>{t('adminDiscount.description')}</th>
+                                    <th>{t('adminDiscount.created')}</th>
+                                    <th>{t('adminDiscount.actions')}</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -526,8 +528,8 @@ export default function AdminDiscount() {
                                     <tr>
                                         <td colSpan={8} className="empty-state">
                                             <div className="empty-icon">🎫</div>
-                                            <h3>No discount codes found</h3>
-                                            <p>Create your first discount code to get started.</p>
+                                            <h3>{t('adminDiscount.noDiscountCodesFound')}</h3>
+                                            <p>{t('adminDiscount.createFirstDiscountCode')}</p>
                                         </td>
                                     </tr>
                                 ) : (
@@ -547,12 +549,12 @@ export default function AdminDiscount() {
                                                     {discount.status === 'active' ? (
                                                         <>
                                                             <IconCheck style={{ width: '12px', height: '12px' }} />
-                                                            Active
+                                                            {t('adminDiscount.active')}
                                                         </>
                                                     ) : (
                                                         <>
                                                             <IconX style={{ width: '12px', height: '12px' }} />
-                                                            Inactive
+                                                            {t('adminDiscount.inactive')}
                                                         </>
                                                     )}
                                                 </span>
@@ -595,7 +597,7 @@ export default function AdminDiscount() {
                                             </td>
                                             <td>
                                                 <span className="description-cell" title={discount.description || ''}>
-                                                    {discount.description || 'N/A'}
+                                                    {discount.description || t('common.notAvailable')}
                                                 </span>
                                             </td>
                                             <td>{formatDateTime(discount.created_at)}</td>
@@ -604,7 +606,7 @@ export default function AdminDiscount() {
                                                     <button
                                                         className="unified-more-btn"
                                                         onClick={() => setActiveDropdown(activeDropdown === discount.id ? null : discount.id)}
-                                                        title="More Actions"
+                                                        title={t('adminDiscount.moreActions')}
                                                     >
                                                         <IconMoreVertical />
                                                     </button>
@@ -615,21 +617,21 @@ export default function AdminDiscount() {
                                                                 onClick={() => handleEdit(discount)}
                                                             >
                                                                 <IconEdit />
-                                                                Edit
+                                                                {t('common.edit')}
                                                             </button>
                                                             <button
                                                                 className="unified-dropdown-item"
                                                                 onClick={() => handleToggleStatus(discount)}
                                                             >
                                                                 <IconPower />
-                                                                {discount.status === 'active' ? 'Deactivate' : 'Activate'}
+                                                                {discount.status === 'active' ? t('adminDiscount.deactivate') : t('adminDiscount.activate')}
                                                             </button>
                                                             <button
                                                                 className="unified-dropdown-item danger"
                                                                 onClick={() => handleDelete(discount)}
                                                             >
                                                                 <IconTrash2 />
-                                                                Delete
+                                                                {t('common.delete')}
                                                             </button>
                                                         </div>
                                                     )}
@@ -649,8 +651,8 @@ export default function AdminDiscount() {
                         {filteredDiscountCodes.length === 0 ? (
                             <div className="empty-state">
                                 <div className="empty-icon">🎫</div>
-                                <h3>No discount codes found</h3>
-                                <p>Create your first discount code to get started.</p>
+                                <h3>{t('adminDiscount.noDiscountCodesFound')}</h3>
+                                <p>{t('adminDiscount.createFirstDiscountCode')}</p>
                             </div>
                         ) : (
                             filteredDiscountCodes.map((discount) => (
@@ -697,27 +699,27 @@ export default function AdminDiscount() {
                                     </div>
                                     <div className="card-body">
                                         <div className="card-row">
-                                            <span className="label">Discount Rate:</span>
+                                            <span className="label">{t('adminDiscount.discountRate')}:</span>
                                             <span className="value discount-rate">{discount.discount_rate}%</span>
                                         </div>
                                         <div className="card-row">
-                                            <span className="label">Status:</span>
+                                            <span className="label">{t('adminDiscount.status')}:</span>
                                             <span className={`status-badge ${discount.status}`}>
                                                 {discount.status === 'active' ? (
                                                     <>
                                                         <IconCheck style={{ width: '12px', height: '12px' }} />
-                                                        Active
+                                                        {t('adminDiscount.active')}
                                                     </>
                                                 ) : (
                                                     <>
                                                         <IconX style={{ width: '12px', height: '12px' }} />
-                                                        Inactive
+                                                        {t('adminDiscount.inactive')}
                                                     </>
                                                 )}
                                             </span>
                                         </div>
                                         <div className="card-row">
-                                            <span className="label">Usage:</span>
+                                            <span className="label">{t('adminDiscount.usage')}:</span>
                                             <div style={{ flex: 1 }}>
                                                 <span className="value">
                                                     {discount.usage_count}
@@ -748,18 +750,18 @@ export default function AdminDiscount() {
                                         </div>
                                         {discount.description && (
                                             <div className="card-row">
-                                                <span className="label">Description:</span>
+                                                <span className="label">{t('adminDiscount.description')}:</span>
                                                 <span className="value">{discount.description}</span>
                                             </div>
                                         )}
                                         <div className="card-row">
-                                            <span className="label">Valid Period:</span>
+                                            <span className="label">{t('adminDiscount.validPeriod')}:</span>
                                             <span className="value">
                                                 {formatDate(discount.valid_from)} → {formatDate(discount.valid_until)}
                                             </span>
                                         </div>
                                         <div className="card-row">
-                                            <span className="label">Created:</span>
+                                            <span className="label">{t('adminDiscount.created')}:</span>
                                             <span className="value">{formatDateTime(discount.created_at)}</span>
                                         </div>
                                     </div>
@@ -807,7 +809,7 @@ export default function AdminDiscount() {
                                 alignItems: 'center'
                             }}>
                                 <h2 style={{ margin: 0, fontSize: '20px', fontWeight: '600', color: '#111827' }}>
-                                    {isEditMode ? 'Edit Discount Code' : 'Create Discount Code'}
+                                    {isEditMode ? t('adminDiscount.editDiscountTitle') : t('adminDiscount.createDiscountTitle')}
                                 </h2>
                                 <button
                                     className="modal-close"
@@ -863,7 +865,7 @@ export default function AdminDiscount() {
                             }}>
                                 <div className="form-group">
                                     <label>
-                                        Discount Code <span className="required">*</span>
+                                        {t('adminDiscount.code')} <span className="required">*</span>
                                     </label>
                                     <input
                                         type="text"
@@ -877,11 +879,11 @@ export default function AdminDiscount() {
                                             if (newCode.trim() && (!isEditMode || newCode !== editingDiscount?.code)) {
                                                 const duplicate = discountCodes.find(d => d.code === newCode.trim());
                                                 if (duplicate) {
-                                                    setCodeDuplicateError('This discount code already exists');
+                                                    setCodeDuplicateError(t('adminDiscount.codeDuplicateError'));
                                                 }
                                             }
                                         }}
-                                        placeholder="e.g., WELCOME10"
+                                        placeholder={t('adminDiscount.codePlaceholder')}
                                         required
                                         maxLength={50}
                                         style={{
@@ -901,14 +903,14 @@ export default function AdminDiscount() {
                                 </div>
                                 <div className="form-group">
                                     <label>
-                                        Discount Rate (%) <span className="required">*</span>
+                                        {t('adminDiscount.discountRate')} (%) <span className="required">*</span>
                                     </label>
                                     <div style={{ position: 'relative' }}>
                                         <input
                                             type="number"
                                             value={formData.discount_rate}
                                             onChange={(e) => setFormData({ ...formData, discount_rate: e.target.value })}
-                                            placeholder="Enter discount rate"
+                                            placeholder={t('adminDiscount.enterDiscountRate')}
                                             required
                                             min="0.01"
                                             max="100"
@@ -930,20 +932,20 @@ export default function AdminDiscount() {
                                         )}
                                     </div>
                                     <small style={{ color: '#6c757d', marginTop: '4px', display: 'block' }}>
-                                        Enter a value between 0.01 and 100
+                                        {t('adminDiscount.discountRateHint')}
                                     </small>
                                 </div>
                                 <div className="form-group">
-                                    <label>Description</label>
+                                    <label>{t('adminDiscount.description')}</label>
                                     <textarea
                                         value={formData.description}
                                         onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                        placeholder="Enter description (optional)"
+                                        placeholder={t('adminDiscount.enterDescription')}
                                         rows={3}
                                     />
                                 </div>
                                 <div className="form-group">
-                                    <label>Max Usage</label>
+                                    <label>{t('adminDiscount.maxUsageType')}</label>
                                     <div style={{ display: 'flex', gap: '12px', marginBottom: '8px' }}>
                                         <button
                                             type="button"
@@ -959,7 +961,7 @@ export default function AdminDiscount() {
                                                 transition: 'all 0.2s'
                                             }}
                                         >
-                                            Unlimited
+                                            {t('adminDiscount.unlimited')}
                                         </button>
                                         <button
                                             type="button"
@@ -975,7 +977,7 @@ export default function AdminDiscount() {
                                                 transition: 'all 0.2s'
                                             }}
                                         >
-                                            Limited
+                                            {t('adminDiscount.limited')}
                                         </button>
                                     </div>
                                     {formData.max_usage_type === 'limited' && (
@@ -983,20 +985,20 @@ export default function AdminDiscount() {
                                             type="number"
                                             value={formData.max_usage}
                                             onChange={(e) => setFormData({ ...formData, max_usage: e.target.value })}
-                                            placeholder="Enter maximum usage count"
+                                            placeholder={t('adminDiscount.enterMaxUsage')}
                                             min="1"
                                             required={formData.max_usage_type === 'limited'}
                                         />
                                     )}
                                     <small style={{ color: '#6c757d', marginTop: '4px', display: 'block' }}>
                                         {formData.max_usage_type === 'unlimited' 
-                                            ? 'No limit on how many times this code can be used'
-                                            : 'Enter the maximum number of times this code can be used'}
+                                            ? t('adminDiscount.unlimitedUsageHint')
+                                            : t('adminDiscount.limitedUsageHint')}
                                     </small>
                                 </div>
                                 <div className="form-row">
                                     <div className="form-group">
-                                        <label>Valid From</label>
+                                        <label>{t('adminDiscount.validFrom')}</label>
                                         <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
                                             <input
                                                 type="datetime-local"
@@ -1033,15 +1035,15 @@ export default function AdminDiscount() {
                                                     e.currentTarget.style.backgroundColor = '#fff';
                                                 }}
                                             >
-                                                Today
+                                                {t('adminDiscount.today')}
                                             </button>
                                         </div>
                                         <small style={{ color: '#6c757d', marginTop: '4px', display: 'block' }}>
-                                            When the code becomes active
+                                            {t('adminDiscount.validFromHint')}
                                         </small>
                                     </div>
                                     <div className="form-group">
-                                        <label>Valid Until</label>
+                                        <label>{t('adminDiscount.validUntilType')}</label>
                                         <div style={{ marginBottom: '8px' }}>
                                             <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
                                                 <button
@@ -1059,7 +1061,7 @@ export default function AdminDiscount() {
                                                         transition: 'all 0.2s'
                                                     }}
                                                 >
-                                                    Unlimited
+                                                    {t('adminDiscount.unlimited')}
                                                 </button>
                                                 <button
                                                     type="button"
@@ -1076,7 +1078,7 @@ export default function AdminDiscount() {
                                                         transition: 'all 0.2s'
                                                     }}
                                                 >
-                                                    Custom Date
+                                                    {t('adminDiscount.custom')}
                                                 </button>
                                             </div>
                                             {formData.valid_until_type === 'custom' && (
@@ -1119,7 +1121,7 @@ export default function AdminDiscount() {
                                                                 e.currentTarget.style.backgroundColor = '#fff';
                                                             }}
                                                         >
-                                                            A Week Later
+                                                            {t('adminDiscount.aWeekLater')}
                                                         </button>
                                                         <button
                                                             type="button"
@@ -1151,7 +1153,7 @@ export default function AdminDiscount() {
                                                                 e.currentTarget.style.backgroundColor = '#fff';
                                                             }}
                                                         >
-                                                            A Month Later
+                                                            {t('adminDiscount.aMonthLater')}
                                                         </button>
                                                         <button
                                                             type="button"
@@ -1183,7 +1185,7 @@ export default function AdminDiscount() {
                                                                 e.currentTarget.style.backgroundColor = '#fff';
                                                             }}
                                                         >
-                                                            3 Months Later
+                                                            {t('adminDiscount.threeMonthsLater')}
                                                         </button>
                                                         <button
                                                             type="button"
@@ -1215,7 +1217,7 @@ export default function AdminDiscount() {
                                                                 e.currentTarget.style.backgroundColor = '#fff';
                                                             }}
                                                         >
-                                                            A Year Later
+                                                            {t('adminDiscount.aYearLater')}
                                                         </button>
                                                     </div>
                                                 </>
@@ -1223,8 +1225,8 @@ export default function AdminDiscount() {
                                         </div>
                                         <small style={{ color: '#6c757d', marginTop: '4px', display: 'block' }}>
                                             {formData.valid_until_type === 'unlimited' 
-                                                ? 'Code will never expire'
-                                                : 'When the code expires'}
+                                                ? t('adminDiscount.codeNeverExpires')
+                                                : t('adminDiscount.whenCodeExpires')}
                                         </small>
                                     </div>
                                 </div>
@@ -1238,7 +1240,7 @@ export default function AdminDiscount() {
                                         marginTop: '8px',
                                         border: '1px solid #ffeaa7'
                                     }}>
-                                        ⚠️ Valid From date must be before Valid Until date
+                                        ⚠️ {t('adminDiscount.validFromBeforeUntil')}
                                     </div>
                                 )}
                             </form>
@@ -1305,7 +1307,7 @@ export default function AdminDiscount() {
                                         }
                                     }}
                                 >
-                                    Cancel
+                                    {t('common.cancel')}
                                 </button>
                                 <button 
                                     type="button"
@@ -1379,12 +1381,12 @@ export default function AdminDiscount() {
                                                     animation: 'spin 0.6s linear infinite',
                                                     display: 'inline-block'
                                                 }} />
-                                                <span>{isEditMode ? 'Updating...' : 'Creating...'}</span>
+                                                <span>{isEditMode ? t('adminDiscount.updating') : t('adminDiscount.creating')}</span>
                                             </>
                                         ) : (
                                             <>
                                                 <IconCheck style={{ width: '18px', height: '18px' }} />
-                                                <span>{isEditMode ? 'Update Discount Code' : 'Create Discount Code'}</span>
+                                                <span>{isEditMode ? t('adminDiscount.updateDiscountCode') : t('adminDiscount.createDiscountCode')}</span>
                                             </>
                                         )}
                                     </button>
@@ -1434,7 +1436,7 @@ export default function AdminDiscount() {
                                                 fontSize: '18px',
                                                 fontWeight: '600'
                                             }}>
-                                                {isEditMode ? 'Updating Discount Code...' : 'Creating Discount Code...'}
+                                                {isEditMode ? t('adminDiscount.updatingDiscountCode') : t('adminDiscount.creatingDiscountCode')}
                                             </span>
                                             <span style={{
                                                 color: '#6b7280',
@@ -1442,7 +1444,7 @@ export default function AdminDiscount() {
                                                 textAlign: 'center',
                                                 maxWidth: '300px'
                                             }}>
-                                                Please wait, this may take a moment on slower connections
+                                                {t('adminDiscount.pleaseWait')}
                                             </span>
                                         </div>
                                     </div>
@@ -1461,10 +1463,10 @@ export default function AdminDiscount() {
                             setDiscountToDelete(null);
                         }}
                         onConfirm={confirmDelete}
-                        title="Delete Discount Code"
-                        message={`Are you sure you want to delete the discount code "${discountToDelete.code}"? This action cannot be undone.`}
-                        confirmText="Delete"
-                        cancelText="Cancel"
+                        title={t('adminDiscount.deleteConfirm')}
+                        message={t('adminDiscount.deleteConfirmMessage').replace('{{code}}', discountToDelete.code)}
+                        confirmText={t('common.delete')}
+                        cancelText={t('common.cancel')}
                         type="danger"
                         loading={deleteLoading}
                     />
@@ -1479,10 +1481,12 @@ export default function AdminDiscount() {
                             setDiscountToToggle(null);
                         }}
                         onConfirm={confirmToggleStatus}
-                        title={discountToToggle.status === 'active' ? 'Deactivate Discount Code' : 'Activate Discount Code'}
-                        message={`Are you sure you want to ${discountToToggle.status === 'active' ? 'deactivate' : 'activate'} the discount code "${discountToToggle.code}"?`}
-                        confirmText={discountToToggle.status === 'active' ? 'Deactivate' : 'Activate'}
-                        cancelText="Cancel"
+                        title={discountToToggle.status === 'active' ? t('adminDiscount.deactivateDiscountTitle') : t('adminDiscount.activateDiscountTitle')}
+                        message={discountToToggle.status === 'active' 
+                            ? t('adminDiscount.toggleStatusConfirmDeactivate').replace('{{code}}', discountToToggle.code)
+                            : t('adminDiscount.toggleStatusConfirmActivate').replace('{{code}}', discountToToggle.code)}
+                        confirmText={discountToToggle.status === 'active' ? t('adminDiscount.deactivate') : t('adminDiscount.activate')}
+                        cancelText={t('common.cancel')}
                         type={discountToToggle.status === 'active' ? 'warning' : 'info'}
                         loading={statusLoading}
                     />

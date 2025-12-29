@@ -6,6 +6,7 @@ import AdminDetailModal from '../components/AdminDetailModal';
 import CoworkerDetailModal from '../components/CoworkerDetailModal';
 import { getAvatarInitial, getAvatarColor, getAvatarViewportStyles } from '../../utils/avatarUtils';
 import { getCurrentUser } from '../../auth';
+import { useTranslation } from '../../shared/contexts/TranslationContext';
 
 interface AdminUser {
     id: number;
@@ -30,6 +31,7 @@ interface UserAvatarData {
 }
 
 export default function AdminAdminUsers() {
+    const { t } = useTranslation();
     const [adminUsers, setAdminUsers] = useState<AdminUser[]>([]);
     const [coworkers, setCoworkers] = useState<AdminUser[]>([]);
     const [loading, setLoading] = useState(true);
@@ -222,8 +224,8 @@ export default function AdminAdminUsers() {
             });
 
             if (!response.ok) {
-                const errorData = await response.json().catch(() => ({ error: 'Failed to delete coworker' }));
-                throw new Error(errorData.error || 'Failed to delete coworker');
+                const errorData = await response.json().catch(() => ({ error: t('adminAdminUsers.failedDeleteCoworker') }));
+                throw new Error(errorData.error || t('adminAdminUsers.failedDeleteCoworker'));
             }
 
             // Refresh coworkers list from database
@@ -232,7 +234,7 @@ export default function AdminAdminUsers() {
             setUserToDelete(null);
         } catch (error) {
             console.error('Error deleting coworker:', error);
-            alert((error as Error).message || 'Failed to delete coworker');
+            alert((error as Error).message || t('adminAdminUsers.failedDeleteCoworker'));
         } finally {
             setDeleteCoworkerLoading(false);
         }
@@ -249,27 +251,27 @@ export default function AdminAdminUsers() {
 
         // Validation
         if (!formData.name.trim()) {
-            setCreateError('Name is required');
+            setCreateError(t('adminAdminUsers.nameRequired'));
             return;
         }
         if (!formData.email.trim()) {
-            setCreateError('Email is required');
+            setCreateError(t('adminAdminUsers.emailRequired'));
             return;
         }
         if (!formData.phone.trim()) {
-            setCreateError('Phone number is required');
+            setCreateError(t('adminAdminUsers.phoneRequired'));
             return;
         }
         if (!formData.password) {
-            setCreateError('Password is required');
+            setCreateError(t('adminAdminUsers.passwordRequired'));
             return;
         }
         if (formData.password.length < 6) {
-            setCreateError('Password must be at least 6 characters');
+            setCreateError(t('adminAdminUsers.passwordMinLength'));
             return;
         }
         if (formData.password !== formData.confirmPassword) {
-            setCreateError('Passwords do not match');
+            setCreateError(t('adminAdminUsers.passwordsDoNotMatch'));
             return;
         }
 
@@ -290,8 +292,8 @@ export default function AdminAdminUsers() {
             });
 
             if (!response.ok) {
-                const errorData = await response.json().catch(() => ({ error: 'Failed to create admin user' }));
-                throw new Error(errorData.error || 'Failed to create admin user');
+                const errorData = await response.json().catch(() => ({ error: t('adminAdminUsers.failedCreateAdmin') }));
+                throw new Error(errorData.error || t('adminAdminUsers.failedCreateAdmin'));
             }
 
             // Reset form and close modal
@@ -309,7 +311,7 @@ export default function AdminAdminUsers() {
             await fetchAdminUsers();
         } catch (error) {
             console.error('Error creating admin user:', error);
-            setCreateError(error instanceof Error ? error.message : 'Failed to create admin user');
+            setCreateError(error instanceof Error ? error.message : t('adminAdminUsers.failedCreateAdmin'));
         } finally {
             setCreateLoading(false);
         }
@@ -333,27 +335,27 @@ export default function AdminAdminUsers() {
 
         // Validation
         if (!coworkerFormData.name.trim()) {
-            setCreateCoworkerError('Name is required');
+            setCreateCoworkerError(t('adminAdminUsers.nameRequired'));
             return;
         }
         if (!coworkerFormData.email.trim()) {
-            setCreateCoworkerError('Email is required');
+            setCreateCoworkerError(t('adminAdminUsers.emailRequired'));
             return;
         }
         if (!coworkerFormData.phone.trim()) {
-            setCreateCoworkerError('Phone number is required');
+            setCreateCoworkerError(t('adminAdminUsers.phoneRequired'));
             return;
         }
         if (!coworkerFormData.password) {
-            setCreateCoworkerError('Password is required');
+            setCreateCoworkerError(t('adminAdminUsers.passwordRequired'));
             return;
         }
         if (coworkerFormData.password.length < 6) {
-            setCreateCoworkerError('Password must be at least 6 characters');
+            setCreateCoworkerError(t('adminAdminUsers.passwordMinLength'));
             return;
         }
         if (coworkerFormData.password !== coworkerFormData.confirmPassword) {
-            setCreateCoworkerError('Passwords do not match');
+            setCreateCoworkerError(t('adminAdminUsers.passwordsDoNotMatch'));
             return;
         }
 
@@ -374,8 +376,8 @@ export default function AdminAdminUsers() {
             });
 
             if (!response.ok) {
-                const errorData = await response.json().catch(() => ({ error: 'Failed to create coworker' }));
-                throw new Error(errorData.error || 'Failed to create coworker');
+                const errorData = await response.json().catch(() => ({ error: t('adminAdminUsers.failedCreateCoworker') }));
+                throw new Error(errorData.error || t('adminAdminUsers.failedCreateCoworker'));
             }
 
             // Reset form and close modal
@@ -393,7 +395,7 @@ export default function AdminAdminUsers() {
             await fetchCoworkers();
         } catch (error) {
             console.error('Error creating coworker:', error);
-            setCreateCoworkerError(error instanceof Error ? error.message : 'Failed to create coworker');
+            setCreateCoworkerError(error instanceof Error ? error.message : t('adminAdminUsers.failedCreateCoworker'));
         } finally {
             setCreateCoworkerLoading(false);
         }
@@ -504,8 +506,8 @@ export default function AdminAdminUsers() {
             });
 
             if (!response.ok) {
-                const errorData = await response.json().catch(() => ({ error: 'Failed to save permissions' }));
-                throw new Error(errorData.error || 'Failed to save permissions');
+                const errorData = await response.json().catch(() => ({ error: t('adminAdminUsers.failedSavePermissions') }));
+                throw new Error(errorData.error || t('adminAdminUsers.failedSavePermissions'));
             }
 
             // Refresh coworkers list
@@ -513,7 +515,7 @@ export default function AdminAdminUsers() {
             handlePermissionClose();
         } catch (error) {
             console.error('Error saving permissions:', error);
-            alert((error as Error).message || 'Failed to save permissions');
+            alert((error as Error).message || t('adminAdminUsers.failedSavePermissions'));
         } finally {
             setPermissionSaving(false);
         }
@@ -606,8 +608,8 @@ export default function AdminAdminUsers() {
             });
 
             if (!response.ok) {
-                const errorData = await response.json().catch(() => ({ error: 'Failed to delete admin' }));
-                throw new Error(errorData.error || 'Failed to delete admin');
+                const errorData = await response.json().catch(() => ({ error: t('adminAdminUsers.failedDeleteAdmin') }));
+                throw new Error(errorData.error || t('adminAdminUsers.failedDeleteAdmin'));
             }
 
             // Refresh admin users list from database
@@ -616,7 +618,7 @@ export default function AdminAdminUsers() {
             setAdminToDelete(null);
         } catch (error) {
             console.error('Error deleting admin:', error);
-            alert((error as Error).message || 'Failed to delete admin');
+            alert((error as Error).message || t('adminAdminUsers.failedDeleteAdmin'));
         } finally {
             setDeleteAdminLoading(false);
         }
@@ -669,7 +671,7 @@ export default function AdminAdminUsers() {
     }, [activeDropdown, activeAdminDropdown]);
 
     return (
-        <AdminLayout title="Admin Users">
+        <AdminLayout title={t('adminAdminUsers.title')}>
             <div className="admin-users-page">
 
                 {/* Administrator Section */}
@@ -677,8 +679,8 @@ export default function AdminAdminUsers() {
                     <div className="section-header">
                         <div className="section-title">
                             <IconCrown />
-                            <h2>Administrator</h2>
-                            <span className="role-badge admin">Highest Authority</span>
+                            <h2>{t('adminAdminUsers.administrator')}</h2>
+                            <span className="role-badge admin">{t('adminAdminUsers.highestAuthority')}</span>
                         </div>
                         <button 
                             className="btn-primary create-btn"
@@ -686,11 +688,11 @@ export default function AdminAdminUsers() {
                             style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
                         >
                             <IconPlus />
-                            <span>Add</span>
+                            <span>{t('common.add')}</span>
                         </button>
                     </div>
                     <div className="section-description">
-                        <p>Administrators have complete control over the entire system. They can access all features, manage all users, and perform any administrative action without restrictions.</p>
+                        <p>{t('adminAdminUsers.administratorDescription')}</p>
                     </div>
                     
                     <div className="administrator-list">
@@ -713,17 +715,17 @@ export default function AdminAdminUsers() {
                         ) : error ? (
                             <div className="error-state">
                                 <div className="error-icon">⚠️</div>
-                                <h3>Error loading administrators</h3>
+                                <h3>{t('adminAdminUsers.errorLoadingAdministrators')}</h3>
                                 <p>{error}</p>
                                 <button className="btn-primary" onClick={fetchAdminUsers}>
-                                    Try Again
+                                    {t('common.retry')}
                                 </button>
                             </div>
                         ) : administrators.length === 0 ? (
                             <div className="empty-state">
                                 <div className="empty-icon">👑</div>
-                                <h3>No administrators found</h3>
-                                <p>There are currently no administrators in the system.</p>
+                                <h3>{t('adminAdminUsers.noAdministratorsFound')}</h3>
+                                <p>{t('adminAdminUsers.noAdministratorsDescription')}</p>
                             </div>
                         ) : (
                             administrators.map((admin) => {
@@ -777,14 +779,14 @@ export default function AdminAdminUsers() {
                                         <h3 className="admin-name">
                                             {admin.name}
                                             {currentUserId !== null && admin.id === currentUserId && (
-                                                <span style={{ marginLeft: '8px', color: 'var(--primary)', fontWeight: '500', fontSize: '0.9em' }}>(me)</span>
+                                                <span style={{ marginLeft: '8px', color: 'var(--primary)', fontWeight: '500', fontSize: '0.9em' }}>({t('adminAdminUsers.me')})</span>
                                             )}
                                         </h3>
                                         <p className="admin-email">{admin.email}</p>
                                     </div>
                                     <div className="admin-badge">
                                         <IconCrown />
-                                        <span>Administrator</span>
+                                        <span>{t('adminAdminUsers.administrator')}</span>
                                     </div>
                                     <div 
                                         className={`admin-dropdown unified-dropdown ${activeAdminDropdown === admin.id ? 'active' : ''}`}
@@ -793,7 +795,7 @@ export default function AdminAdminUsers() {
                                         <button 
                                             className="unified-more-btn"
                                             onClick={() => handleAdminDropdownToggle(admin.id)}
-                                            title="More Actions"
+                                            title={t('adminAdminUsers.moreActions')}
                                         >
                                             <IconMoreHorizontal />
                                         </button>
@@ -804,7 +806,7 @@ export default function AdminAdminUsers() {
                                                     onClick={() => handleAdminDetailClick(admin)}
                                                 >
                                                     <IconEye />
-                                                    Detail
+                                                    {t('adminAdminUsers.detail')}
                                                 </button>
                                                 {administrators.length > 1 && currentUserId !== null && admin.id !== currentUserId && (
                                                     <button 
@@ -812,7 +814,7 @@ export default function AdminAdminUsers() {
                                                         onClick={() => handleAdminDeleteClick(admin)}
                                                     >
                                                         <IconTrash2 />
-                                                        Delete
+                                                        {t('common.delete')}
                                                     </button>
                                                 )}
                                             </div>
@@ -830,10 +832,10 @@ export default function AdminAdminUsers() {
                     <div className="section-header">
                         <div className="section-title">
                             <IconShield />
-                            <h2>Co-workers</h2>
-                            <span className="role-badge coworker">Limited Access</span>
+                            <h2>{t('adminAdminUsers.coworkers')}</h2>
+                            <span className="role-badge coworker">{t('adminAdminUsers.limitedAccess')}</span>
                             <span className="section-stats" style={{ marginLeft: '12px', fontSize: '0.9rem', color: 'var(--muted)' }}>
-                                {coworkers.length} co-worker{coworkers.length !== 1 ? 's' : ''}
+                                {coworkers.length} {t('adminAdminUsers.coworker')}{coworkers.length !== 1 ? 's' : ''}
                             </span>
                         </div>
                         <button 
@@ -842,11 +844,11 @@ export default function AdminAdminUsers() {
                             style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
                         >
                             <IconPlus />
-                            <span>Add</span>
+                            <span>{t('common.add')}</span>
                         </button>
                     </div>
                     <div className="section-description">
-                        <p>Co-workers have restricted access to specific features. You can manage their permissions, control what they can access, and remove their admin privileges when needed.</p>
+                        <p>{t('adminAdminUsers.coworkerDescription')}</p>
                     </div>
 
                     <div className="coworker-table-container">
@@ -855,10 +857,10 @@ export default function AdminAdminUsers() {
                             <table className="coworker-table">
                                 <thead>
                                     <tr>
-                                        <th>Name</th>
-                                        <th>Email</th>
-                                        <th>Status</th>
-                                        <th>Actions</th>
+                                        <th>{t('users.name')}</th>
+                                        <th>{t('users.email')}</th>
+                                        <th>{t('users.status')}</th>
+                                        <th>{t('adminAdminUsers.actions')}</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -881,10 +883,10 @@ export default function AdminAdminUsers() {
                                         <tr>
                                             <td colSpan={4} className="error-state">
                                                 <div className="error-icon">⚠️</div>
-                                                <h3>Error loading coworkers</h3>
+                                                <h3>{t('adminAdminUsers.errorLoadingCoworkers')}</h3>
                                                 <p>{coworkersError}</p>
                                                 <button className="btn-primary" onClick={fetchCoworkers}>
-                                                    Try Again
+                                                    {t('common.retry')}
                                                 </button>
                                             </td>
                                         </tr>
@@ -892,8 +894,8 @@ export default function AdminAdminUsers() {
                                         <tr>
                                             <td colSpan={4} className="empty-state">
                                                 <div className="empty-icon">👥</div>
-                                                <h3>No co-workers found</h3>
-                                                <p>There are currently no co-workers in the system.</p>
+                                                <h3>{t('adminAdminUsers.noCoworkersFound')}</h3>
+                                                <p>{t('adminAdminUsers.noCoworkersDescription')}</p>
                                             </td>
                                         </tr>
                                     ) : (
@@ -961,7 +963,7 @@ export default function AdminAdminUsers() {
                                                         <button 
                                                             className="unified-more-btn"
                                                             onClick={() => handleDropdownToggle(user.id)}
-                                                            title="More Actions"
+                                                            title={t('adminAdminUsers.moreActions')}
                                                         >
                                                             <IconMoreHorizontal />
                                                         </button>
@@ -974,7 +976,7 @@ export default function AdminAdminUsers() {
                                                                     }}
                                                                 >
                                                                     <IconEye />
-                                                                    Detail
+                                                                    {t('adminAdminUsers.detail')}
                                                                 </button>
                                                                 <button 
                                                                     className="unified-dropdown-item"
@@ -984,7 +986,7 @@ export default function AdminAdminUsers() {
                                                                     }}
                                                                 >
                                                                     <IconSettings />
-                                                                    Permissions
+                                                                    {t('adminAdminUsers.permissions')}
                                                                 </button>
                                                                 <button 
                                                                     className="unified-dropdown-item"
@@ -999,7 +1001,7 @@ export default function AdminAdminUsers() {
                                                                     ) : (
                                                                         user.status === 'active' ? <IconPause /> : <IconPlay />
                                                                     )}
-                                                                    {statusUpdating === user.id ? 'Updating...' : (user.status === 'active' ? 'Deactivate' : 'Activate')}
+                                                                    {statusUpdating === user.id ? t('common.updating') : (user.status === 'active' ? t('adminUsers.deactivate') : t('adminUsers.activate'))}
                                                                 </button>
                                                                 <button 
                                                                     className="unified-dropdown-item danger"
@@ -1009,7 +1011,7 @@ export default function AdminAdminUsers() {
                                                                     }}
                                                                 >
                                                                     <IconTrash2 />
-                                                                    Delete
+                                                                    {t('common.delete')}
                                                                 </button>
                                                             </div>
                                                         )}
@@ -1045,10 +1047,10 @@ export default function AdminAdminUsers() {
                             ) : coworkersError ? (
                                 <div className="error-state">
                                     <div className="error-icon">⚠️</div>
-                                    <h3>Error loading coworkers</h3>
+                                    <h3>{t('adminAdminUsers.errorLoadingCoworkers')}</h3>
                                     <p>{coworkersError}</p>
                                     <button className="btn-primary" onClick={fetchCoworkers}>
-                                        Try Again
+                                        {t('common.retry')}
                                     </button>
                                 </div>
                             ) : coworkers.length === 0 ? (
@@ -1080,7 +1082,7 @@ export default function AdminAdminUsers() {
                                                 <button 
                                                     className="unified-more-btn"
                                                     onClick={() => handleDropdownToggle(user.id)}
-                                                    title="More Actions"
+                                                    title={t('adminAdminUsers.moreActions')}
                                                 >
                                                     <IconMoreHorizontal />
                                                 </button>
@@ -1093,7 +1095,7 @@ export default function AdminAdminUsers() {
                                                             }}
                                                         >
                                                             <IconEye />
-                                                            Detail
+                                                            {t('adminAdminUsers.detail')}
                                                         </button>
                                                         <button 
                                                             className="unified-dropdown-item"
@@ -1128,7 +1130,7 @@ export default function AdminAdminUsers() {
                                                             }}
                                                         >
                                                             <IconTrash2 />
-                                                            Delete
+                                                            {t('common.delete')}
                                                         </button>
                                                     </div>
                                                 )}
@@ -1193,7 +1195,7 @@ export default function AdminAdminUsers() {
                     <div className="modal-overlay" onClick={handleDeleteCancel}>
                         <div className="modal-content delete-modal" onClick={(e) => e.stopPropagation()}>
                             <div className="modal-header">
-                                <h2>Delete Co-worker</h2>
+                                <h2>{t('adminAdminUsers.deleteCoworker')}</h2>
                                 <button 
                                     className="modal-close"
                                     onClick={handleDeleteCancel}
@@ -1203,8 +1205,8 @@ export default function AdminAdminUsers() {
                                 </button>
                             </div>
                             <div className="modal-body">
-                                <p>Are you sure you want to delete <strong>{userToDelete.name}</strong>?</p>
-                                <p className="warning-text">This action cannot be undone and will revoke all admin access.</p>
+                                <p>{t('adminAdminUsers.confirmDeleteCoworker').replace('{{name}}', userToDelete.name)}</p>
+                                <p className="warning-text">{t('adminAdminUsers.deleteWarning')}</p>
                             </div>
                             <div className="modal-footer">
                                 <button 
@@ -1212,7 +1214,7 @@ export default function AdminAdminUsers() {
                                     onClick={handleDeleteCancel}
                                     disabled={deleteCoworkerLoading}
                                 >
-                                    Cancel
+                                    {t('common.cancel')}
                                 </button>
                                 <button 
                                     className="btn-danger"
@@ -1238,7 +1240,7 @@ export default function AdminAdminUsers() {
                     <div className="modal-overlay" onClick={handleAddAdminCancel}>
                         <div className="modal-content add-admin-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '500px', display: 'flex', flexDirection: 'column', maxHeight: '90vh' }}>
                             <div className="modal-header" style={{ flexShrink: 0 }}>
-                                <h2>Add Administrator</h2>
+                                <h2>{t('adminAdminUsers.addAdministrator')}</h2>
                                 <button 
                                     className="modal-close"
                                     onClick={handleAddAdminCancel}
@@ -1262,7 +1264,7 @@ export default function AdminAdminUsers() {
                                         </div>
                                     )}
                                     <div className="form-group" style={{ marginBottom: '20px' }}>
-                                        <label className="form-label">Name *</label>
+                                        <label className="form-label">{t('users.name')} *</label>
                                         <input
                                             type="text"
                                             className="form-input"
@@ -1283,7 +1285,7 @@ export default function AdminAdminUsers() {
                                         />
                                     </div>
                                     <div className="form-group" style={{ marginBottom: '20px' }}>
-                                        <label className="form-label">Email *</label>
+                                        <label className="form-label">{t('users.email')} *</label>
                                         <input
                                             type="email"
                                             className="form-input"
@@ -1304,7 +1306,7 @@ export default function AdminAdminUsers() {
                                         />
                                     </div>
                                     <div className="form-group" style={{ marginBottom: '20px' }}>
-                                        <label className="form-label">Phone Number *</label>
+                                        <label className="form-label">{t('adminAdminUsers.phoneNumber')} *</label>
                                         <input
                                             type="tel"
                                             className="form-input"
@@ -1316,7 +1318,7 @@ export default function AdminAdminUsers() {
                                         />
                                     </div>
                                     <div className="form-group" style={{ marginBottom: '20px' }}>
-                                        <label className="form-label">Password *</label>
+                                        <label className="form-label">{t('settings.password')} *</label>
                                         <input
                                             type="password"
                                             className="form-input"
@@ -1329,7 +1331,7 @@ export default function AdminAdminUsers() {
                                         />
                                     </div>
                                     <div className="form-group" style={{ marginBottom: '20px' }}>
-                                        <label className="form-label">Confirm Password *</label>
+                                        <label className="form-label">{t('adminAdminUsers.confirmPassword')} *</label>
                                         <input
                                             type="password"
                                             className="form-input"
@@ -1348,7 +1350,7 @@ export default function AdminAdminUsers() {
                                         onClick={handleAddAdminCancel}
                                         disabled={createLoading}
                                     >
-                                        Cancel
+                                        {t('common.cancel')}
                                     </button>
                                     <button 
                                         type="submit"
@@ -1358,10 +1360,10 @@ export default function AdminAdminUsers() {
                                         {createLoading ? (
                                             <>
                                                 <IconLoader className="animate-spin" style={{ marginRight: '8px' }} />
-                                                Creating...
+                                                {t('adminAdminUsers.creating')}
                                             </>
                                         ) : (
-                                            'Create Administrator'
+                                            t('adminAdminUsers.createAdministrator')
                                         )}
                                     </button>
                                 </div>
@@ -1375,7 +1377,7 @@ export default function AdminAdminUsers() {
                     <div className="modal-overlay" onClick={handlePermissionClose}>
                         <div className="modal-content permission-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '700px', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
                             <div className="modal-header" style={{ flexShrink: 0 }}>
-                                <h2>Permission Settings</h2>
+                                <h2>{t('adminAdminUsers.permissionSettings')}</h2>
                                 <button 
                                     className="modal-close"
                                     onClick={handlePermissionClose}
@@ -1388,16 +1390,17 @@ export default function AdminAdminUsers() {
                                 {permissionLoading ? (
                                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px' }}>
                                         <IconLoader className="animate-spin" style={{ width: '24px', height: '24px', color: 'var(--primary)' }} />
-                                        <span style={{ marginLeft: '12px', color: 'var(--muted)' }}>Loading permissions...</span>
+                                        <span style={{ marginLeft: '12px', color: 'var(--muted)' }}>{t('adminAdminUsers.loadingPermissions')}</span>
                                     </div>
                                 ) : (
                                     <div className="permission-settings">
                                         <div style={{ marginBottom: '24px' }}>
                                             <h3 style={{ fontSize: '18px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '8px' }}>
-                                                Edit permissions for <span style={{ color: 'var(--primary)' }}>{userToEdit.name}</span>
+                                                {t('adminAdminUsers.editPermissionsFor').replace('{{name}}', '')}
+                                                <span style={{ color: 'var(--primary)' }}>{userToEdit.name}</span>
                                             </h3>
                                             <p style={{ fontSize: '14px', color: 'var(--muted)', margin: 0 }}>
-                                                Select the pages this coworker can access. Changes will take effect immediately after saving.
+                                                {t('adminAdminUsers.selectPagesDescription')}
                                             </p>
                                         </div>
 
@@ -1416,7 +1419,7 @@ export default function AdminAdminUsers() {
                                                     letterSpacing: '0.5px',
                                                     lineHeight: '1.4'
                                                 }}>
-                                                    Dashboard
+                                                    {t('adminAdminUsers.dashboard')}
                                                 </h4>
                                             </div>
                                             <div className="permission-options" style={{ paddingLeft: '4px' }}>
@@ -1494,7 +1497,7 @@ export default function AdminAdminUsers() {
                                                     letterSpacing: '0.5px',
                                                     lineHeight: '1.4'
                                                 }}>
-                                                    Users
+                                                    {t('adminAdminUsers.users')}
                                                 </h4>
                                             </div>
                                             <div className="permission-options" style={{ paddingLeft: '4px' }}>
@@ -1572,7 +1575,7 @@ export default function AdminAdminUsers() {
                                                     letterSpacing: '0.5px',
                                                     lineHeight: '1.4'
                                                 }}>
-                                                    Products
+                                                    {t('adminAdminUsers.products')}
                                                 </h4>
                                             </div>
                                             <div className="permission-options" style={{ paddingLeft: '4px' }}>
@@ -1650,7 +1653,7 @@ export default function AdminAdminUsers() {
                                                     letterSpacing: '0.5px',
                                                     lineHeight: '1.4'
                                                 }}>
-                                                    Payment
+                                                    {t('adminAdminUsers.payment')}
                                                 </h4>
                                             </div>
                                             <div className="permission-options" style={{ paddingLeft: '4px' }}>
@@ -1721,7 +1724,7 @@ export default function AdminAdminUsers() {
                                     onClick={handlePermissionClose}
                                     disabled={permissionSaving}
                                 >
-                                    Cancel
+                                    {t('common.cancel')}
                                 </button>
                                 <button 
                                     className="btn-primary"
@@ -1731,10 +1734,10 @@ export default function AdminAdminUsers() {
                                     {permissionSaving ? (
                                         <>
                                             <IconLoader className="animate-spin" style={{ marginRight: '8px' }} />
-                                            Saving...
+                                            {t('common.saving')}
                                         </>
                                     ) : (
-                                        'Save Changes'
+                                        t('common.saveChanges')
                                     )}
                                 </button>
                             </div>
@@ -1767,7 +1770,7 @@ export default function AdminAdminUsers() {
                             <div className="modal-overlay" onClick={handleAddCoworkerCancel}>
                                 <div className="modal-content add-admin-modal add-coworker-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '500px', display: 'flex', flexDirection: 'column', maxHeight: '90vh' }}>
                                     <div className="modal-header" style={{ flexShrink: 0 }}>
-                                        <h2>Add Co-worker</h2>
+                                        <h2>{t('adminAdminUsers.addCoworker')}</h2>
                                         <button 
                                             className="modal-close"
                                             onClick={handleAddCoworkerCancel}
@@ -1791,7 +1794,7 @@ export default function AdminAdminUsers() {
                                                 </div>
                                             )}
                                             <div className="form-group" style={{ marginBottom: '20px' }}>
-                                                <label className="form-label">Name *</label>
+                                                <label className="form-label">{t('users.name')} *</label>
                                                 <input
                                                     type="text"
                                                     className="form-input"
@@ -1806,13 +1809,13 @@ export default function AdminAdminUsers() {
                                                         ).join(' ');
                                                         setCoworkerFormData({ ...coworkerFormData, name: capitalized });
                                                     }}
-                                                    placeholder="Enter full name"
+                                                    placeholder={t('adminAdminUsers.enterFullName')}
                                                     required
                                                     disabled={createCoworkerLoading}
                                                 />
                                             </div>
                                             <div className="form-group" style={{ marginBottom: '20px' }}>
-                                                <label className="form-label">Email *</label>
+                                                <label className="form-label">{t('users.email')} *</label>
                                                 <input
                                                     type="email"
                                                     className="form-input"
@@ -1822,7 +1825,7 @@ export default function AdminAdminUsers() {
                                                         const normalizedEmail = e.target.value.toLowerCase();
                                                         setCoworkerFormData({ ...coworkerFormData, email: normalizedEmail });
                                                     }}
-                                                    placeholder="Enter email address"
+                                                    placeholder={t('adminAdminUsers.enterEmailAddress')}
                                                     required
                                                     disabled={createCoworkerLoading}
                                                     autoCapitalize="off"
@@ -1833,38 +1836,38 @@ export default function AdminAdminUsers() {
                                                 />
                                             </div>
                                             <div className="form-group" style={{ marginBottom: '20px' }}>
-                                                <label className="form-label">Phone Number *</label>
+                                                <label className="form-label">{t('adminAdminUsers.phoneNumber')} *</label>
                                                 <input
                                                     type="tel"
                                                     className="form-input"
                                                     value={coworkerFormData.phone}
                                                     onChange={(e) => setCoworkerFormData({ ...coworkerFormData, phone: e.target.value })}
-                                                    placeholder="Enter phone number"
+                                                    placeholder={t('adminAdminUsers.enterPhoneNumber')}
                                                     required
                                                     disabled={createCoworkerLoading}
                                                 />
                                             </div>
                                             <div className="form-group" style={{ marginBottom: '20px' }}>
-                                                <label className="form-label">Password *</label>
+                                                <label className="form-label">{t('settings.password')} *</label>
                                                 <input
                                                     type="password"
                                                     className="form-input"
                                                     value={coworkerFormData.password}
                                                     onChange={(e) => setCoworkerFormData({ ...coworkerFormData, password: e.target.value })}
-                                                    placeholder="Enter password (min 6 characters)"
+                                                    placeholder={t('adminAdminUsers.enterPassword')}
                                                     required
                                                     disabled={createCoworkerLoading}
                                                     minLength={6}
                                                 />
                                             </div>
                                             <div className="form-group" style={{ marginBottom: '20px' }}>
-                                                <label className="form-label">Confirm Password *</label>
+                                                <label className="form-label">{t('adminAdminUsers.confirmPassword')} *</label>
                                                 <input
                                                     type="password"
                                                     className="form-input"
                                                     value={coworkerFormData.confirmPassword}
                                                     onChange={(e) => setCoworkerFormData({ ...coworkerFormData, confirmPassword: e.target.value })}
-                                                    placeholder="Confirm password"
+                                                    placeholder={t('adminAdminUsers.confirmPasswordPlaceholder')}
                                                     required
                                                     disabled={createCoworkerLoading}
                                                     minLength={6}
@@ -1879,7 +1882,7 @@ export default function AdminAdminUsers() {
                                                 disabled={createCoworkerLoading}
                                                 style={{ marginRight: '12px' }}
                                             >
-                                                Cancel
+                                                {t('common.cancel')}
                                             </button>
                                             <button 
                                                 type="submit"
@@ -1889,10 +1892,10 @@ export default function AdminAdminUsers() {
                                                 {createCoworkerLoading ? (
                                                     <>
                                                         <IconLoader className="animate-spin" style={{ marginRight: '8px' }} />
-                                                        Creating...
+                                                        {t('adminAdminUsers.creating')}
                                                     </>
                                                 ) : (
-                                                    'Create Co-worker'
+                                                    t('adminAdminUsers.createCoworker')
                                                 )}
                                             </button>
                                         </div>
@@ -1928,7 +1931,7 @@ export default function AdminAdminUsers() {
                     <div className="modal-overlay" onClick={handleAdminDeleteCancel}>
                         <div className="modal-content delete-modal" onClick={(e) => e.stopPropagation()}>
                             <div className="modal-header">
-                                <h2>Delete Administrator</h2>
+                                <h2>{t('adminAdminUsers.deleteAdministrator')}</h2>
                                 <button 
                                     className="modal-close"
                                     onClick={handleAdminDeleteCancel}
@@ -1938,8 +1941,8 @@ export default function AdminAdminUsers() {
                                 </button>
                             </div>
                             <div className="modal-body">
-                                <p>Are you sure you want to delete <strong>{adminToDelete.name}</strong>?</p>
-                                <p className="warning-text">This action cannot be undone and will permanently revoke all administrator access.</p>
+                                <p>{t('adminAdminUsers.confirmDeleteAdministrator').replace('{{name}}', adminToDelete.name)}</p>
+                                <p className="warning-text">{t('adminAdminUsers.deleteAdminWarning')}</p>
                             </div>
                             <div className="modal-footer">
                                 <button 
@@ -1947,7 +1950,7 @@ export default function AdminAdminUsers() {
                                     onClick={handleAdminDeleteCancel}
                                     disabled={deleteAdminLoading}
                                 >
-                                    Cancel
+                                    {t('common.cancel')}
                                 </button>
                                 <button 
                                     className="btn-danger"

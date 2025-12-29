@@ -9,6 +9,7 @@ import MetricProgress from '../components/MetricProgress';
 import MetricTable from '../components/MetricTable';
 import SortableTable from '../components/SortableTable';
 import { IconUsers, IconAdmin, IconTrendingUp, IconDollarSign, IconShoppingCart, IconActivity } from '../components/icons';
+import { useTranslation } from '../../shared/contexts/TranslationContext';
 
 type StatTrend = 'up' | 'down' | 'neutral';
 
@@ -81,6 +82,7 @@ interface ProductMetrics {
 }
 
 export default function AdminDashboard() {
+    const { t } = useTranslation();
     const navigate = useNavigate();
     const [systemMetrics, setSystemMetrics] = useState<SystemMetrics | null>(null);
     const [businessMetrics, setBusinessMetrics] = useState<BusinessMetrics | null>(null);
@@ -269,13 +271,13 @@ export default function AdminDashboard() {
     };
 
     return (
-        <AdminLayout title="Dashboard">
+        <AdminLayout title={t('dashboard.title')}>
             <div className="dashboard-page">
                 {/* System Section */}
                 <div ref={systemRef} data-section="system">
                     <SectionHeader 
-                        title="System Metrics" 
-                        description="Overview of user accounts and system statistics"
+                        title={t('adminDashboard.systemMetrics')} 
+                        description={t('adminDashboard.systemMetricsDescription')}
                     />
                     {loading.system ? (
                         <DashboardGrid>
@@ -294,7 +296,7 @@ export default function AdminDashboard() {
                         <DashboardGrid>
                             {/* Row 1: Total Users, Admin Users, Coworker Users, Associate Users */}
                             <MetricCard
-                                title="Total Users"
+                                title={t('adminDashboard.totalUsers')}
                                 value={systemMetrics.totalUsers}
                                 trend={systemMetrics.newUsersMonthTrend}
                                 change={systemMetrics.newUsersMonthChange}
@@ -303,7 +305,7 @@ export default function AdminDashboard() {
                                 height={1}
                             />
                             <MetricCard
-                                title="Administrator"
+                                title={t('adminDashboard.administrator')}
                                 value={systemMetrics.adminUsers}
                                 icon={<IconAdmin style={{ width: '24px', height: '24px' }} />}
                                 width={1}
@@ -311,7 +313,7 @@ export default function AdminDashboard() {
                                 className="metric-blue"
                             />
                             <MetricCard
-                                title="Coworker"
+                                title={t('adminDashboard.coworker')}
                                 value={systemMetrics.coworkerUsers}
                                 icon={<IconUsers style={{ width: '24px', height: '24px' }} />}
                                 width={1}
@@ -319,7 +321,7 @@ export default function AdminDashboard() {
                                 className="metric-blue"
                             />
                             <MetricCard
-                                title="Associate User"
+                                title={t('adminDashboard.associateUser')}
                                 value={systemMetrics.associateUsers}
                                 icon={<IconUsers style={{ width: '24px', height: '24px' }} />}
                                 width={1}
@@ -328,7 +330,7 @@ export default function AdminDashboard() {
                             />
                             {/* Row 2: Active Users, Inactive Users, New Users This Month, New Users This Year */}
                             <MetricCard
-                                title="Active User"
+                                title={t('adminDashboard.activeUser')}
                                 value={systemMetrics.activeUsers}
                                 icon={<IconActivity style={{ width: '24px', height: '24px' }} />}
                                 width={1}
@@ -336,7 +338,7 @@ export default function AdminDashboard() {
                                 className="metric-green"
                             />
                             <MetricCard
-                                title="Inactive User"
+                                title={t('adminDashboard.inactiveUser')}
                                 value={systemMetrics.inactiveUsers}
                                 icon={<IconUsers style={{ width: '24px', height: '24px' }} />}
                                 width={1}
@@ -344,7 +346,7 @@ export default function AdminDashboard() {
                                 className="metric-red"
                             />
                             <MetricCard
-                                title="New Users This Month"
+                                title={t('adminDashboard.newUsersThisMonth')}
                                 value={systemMetrics.newUsersThisMonth}
                                 trend={systemMetrics.newUsersMonthTrend}
                                 change={systemMetrics.newUsersMonthChange}
@@ -353,7 +355,7 @@ export default function AdminDashboard() {
                                 height={1}
                             />
                             <MetricCard
-                                title="New Users This Year"
+                                title={t('adminDashboard.newUsersThisYear')}
                                 value={systemMetrics.newUsersThisYear}
                                 trend={systemMetrics.newUsersYearTrend}
                                 change={systemMetrics.newUsersYearChange}
@@ -368,8 +370,8 @@ export default function AdminDashboard() {
                 {/* Business Analytics Section */}
                 <div ref={businessRef} data-section="business">
                     <SectionHeader 
-                        title="Business Analytics" 
-                        description="Revenue, orders, and business performance metrics"
+                        title={t('adminDashboard.businessAnalytics')} 
+                        description={t('adminDashboard.businessAnalyticsDescription')}
                     />
                     {loading.business ? (
                         <DashboardGrid>
@@ -389,7 +391,7 @@ export default function AdminDashboard() {
                         <DashboardGrid>
                             {/* Row 1: Total Revenue (2x1), Revenue This Month (1x1), Revenue This Year (1x1) */}
                             <MetricCard
-                                title="Total Revenue"
+                                title={t('adminDashboard.totalRevenue')}
                                 value={formatCurrency(businessMetrics.totalRevenue)}
                                 icon={<IconDollarSign style={{ width: '24px', height: '24px' }} />}
                                 width={2}
@@ -397,7 +399,7 @@ export default function AdminDashboard() {
                                 className={businessMetrics.totalRevenue > 0 ? 'metric-green' : 'metric-red'}
                             />
                             <MetricCard
-                                title="Revenue This Month"
+                                title={t('adminDashboard.revenueThisMonth')}
                                 value={formatCurrency(businessMetrics.revenueThisMonth)}
                                 trend={businessMetrics.revenueMonthTrend}
                                 change={businessMetrics.revenueMonthChange}
@@ -406,7 +408,7 @@ export default function AdminDashboard() {
                                 height={1}
                             />
                             <MetricCard
-                                title="Revenue This Year"
+                                title={t('adminDashboard.revenueThisYear')}
                                 value={formatCurrency(businessMetrics.revenueThisYear)}
                                 trend={businessMetrics.revenueYearTrend}
                                 change={businessMetrics.revenueYearChange}
@@ -417,7 +419,7 @@ export default function AdminDashboard() {
                             
                             {/* Row 2: Revenue Trend (2x2), Total Orders (1x1), Orders This Month (1x1), Orders This Year (1x1), Average Order Value (1x1) */}
                             <MetricChart
-                                title="Revenue Trend (Last 30 Days)"
+                                title={t('adminDashboard.revenueTrend')}
                                 data={businessMetrics.revenueTrend}
                                 type="line"
                                 dataKey="revenue"
@@ -426,14 +428,14 @@ export default function AdminDashboard() {
                                 height={2}
                             />
                             <MetricCard
-                                title="Total Orders"
+                                title={t('adminDashboard.totalOrders')}
                                 value={businessMetrics.totalOrders}
                                 icon={<IconShoppingCart style={{ width: '24px', height: '24px' }} />}
                                 width={1}
                                 height={1}
                             />
                             <MetricCard
-                                title="Orders This Month"
+                                title={t('adminDashboard.ordersThisMonth')}
                                 value={businessMetrics.ordersThisMonth}
                                 trend={businessMetrics.ordersMonthTrend}
                                 change={businessMetrics.ordersMonthChange}
@@ -442,7 +444,7 @@ export default function AdminDashboard() {
                                 height={1}
                             />
                             <MetricCard
-                                title="Orders This Year"
+                                title={t('adminDashboard.ordersThisYear')}
                                 value={businessMetrics.ordersThisYear}
                                 trend={businessMetrics.ordersYearTrend}
                                 change={businessMetrics.ordersYearChange}
@@ -451,7 +453,7 @@ export default function AdminDashboard() {
                                 height={1}
                             />
                             <MetricCard
-                                title="Average Order Value"
+                                title={t('adminDashboard.averageOrderValue')}
                                 value={formatCurrency(businessMetrics.averageOrderValue)}
                                 icon={<IconDollarSign style={{ width: '24px', height: '24px' }} />}
                                 width={1}
@@ -470,9 +472,9 @@ export default function AdminDashboard() {
                             })()}
                             {/* #endregion */}
                             <MetricChart
-                                title="Orders by Status"
+                                title={t('adminDashboard.ordersByStatus')}
                                 data={businessMetrics.ordersByStatus.map(s => ({ 
-                                    name: s.status === 'processing' ? 'Processing' : s.status === 'completed' ? 'Completed' : s.status, 
+                                    name: s.status === 'processing' ? t('orders.processing') : s.status === 'completed' ? t('orders.completed') : s.status, 
                                     value: s.count 
                                 }))}
                                 type="pie"
@@ -484,23 +486,23 @@ export default function AdminDashboard() {
                             {/* Orders by Country Table (2x2) */}
                             <div className="metric-card metric-table" style={{ gridColumn: 'span 2', gridRow: 'span 2', display: 'flex', flexDirection: 'column' }}>
                         <div className="widget-header">
-                                    <h3>Orders by Country</h3>
+                                    <h3>{t('adminDashboard.ordersByCountry')}</h3>
                                 </div>
                                 <div className="table-container" style={{ flex: 1, overflow: 'auto', minHeight: '300px' }}>
                                     <table className="metric-table-content">
                                         <thead>
                                             <tr>
-                                                <th>Country</th>
-                                                <th>Orders</th>
-                                                <th>Revenue</th>
-                                                <th>% Orders</th>
-                                                <th>% Revenue</th>
+                                                <th>{t('adminDashboard.country')}</th>
+                                                <th>{t('adminDashboard.orders')}</th>
+                                                <th>{t('adminDashboard.revenue')}</th>
+                                                <th>{t('adminDashboard.percentOrders')}</th>
+                                                <th>{t('adminDashboard.percentRevenue')}</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             {businessMetrics.ordersByCountry.length === 0 ? (
                                                 <tr>
-                                                    <td colSpan={5} className="empty-state">No data available</td>
+                                                    <td colSpan={5} className="empty-state">{t('common.loading')}</td>
                                                 </tr>
                                             ) : (
                                                 businessMetrics.ordersByCountry.map((row, index) => {
@@ -529,8 +531,8 @@ export default function AdminDashboard() {
                 {/* User Analytics Section */}
                 <div ref={usersRef} data-section="users">
                     <SectionHeader 
-                        title="User Analytics" 
-                        description="User levels, top performers, and growth trends"
+                        title={t('adminDashboard.userAnalytics')} 
+                        description={t('adminDashboard.userAnalyticsDescription')}
                     />
                     {loading.users ? (
                         <DashboardGrid>
@@ -557,7 +559,7 @@ export default function AdminDashboard() {
                                 fetch('http://127.0.0.1:7242/ingest/3da31dfe-5721-4e1a-a160-93fd6dd15ec4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminDashboard.tsx:525',message:'All level items with colors',data:{levelItems},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
                                 return (
                                     <MetricProgress
-                                        title="User Level Distribution"
+                                        title={t('adminDashboard.userLevelDistribution')}
                                         items={levelItems}
                                         width={2}
                                         height={2}
@@ -566,15 +568,15 @@ export default function AdminDashboard() {
                             })()}
                             <div className="metric-card metric-table" style={{ gridColumn: 'span 2', gridRow: 'span 2', display: 'flex', flexDirection: 'column' }}>
                                 <div className="widget-header">
-                                    <h3>Top Users by Points</h3>
+                                    <h3>{t('adminDashboard.topUsersByPoints')}</h3>
                                 </div>
                                 <div className="table-container" style={{ flex: 1, overflowY: 'auto', maxHeight: '300px' }}>
                                     <table className="metric-table-content">
                                         <thead>
                                             <tr>
-                                                <th>Name</th>
-                                                <th>Level</th>
-                                                <th>Points</th>
+                                                <th>{t('users.name')}</th>
+                                                <th>{t('users.level')}</th>
+                                                <th>{t('adminUsers.points')}</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -605,10 +607,10 @@ export default function AdminDashboard() {
                             
                             {/* Row 2: Top Users by Order and Value (2x2), User Growth Trend (2x2) */}
                             <SortableTable
-                                title="Top Users by Order and Value"
+                                title={t('adminDashboard.topUsersByOrderAndValue')}
                                 columns={[
-                                    { key: 'name', label: 'Name' },
-                                    { key: 'level', label: 'Level' },
+                                    { key: 'name', label: t('users.name') },
+                                    { key: 'level', label: t('users.level') },
                                     { key: 'orderCount', label: 'Orders', sortable: true, render: (val, row) => {
                                         const sortedByOrders = [...userMetrics.topUsersByOrders].sort((a, b) => b.orderCount - a.orderCount);
                                         const index = sortedByOrders.findIndex(u => u.id === row.id);
@@ -616,7 +618,7 @@ export default function AdminDashboard() {
                                                      index === 1 ? { color: '#eab308', fontWeight: 'bold' } : {};
                                         return <span style={style}>{val}</span>;
                                     }},
-                                    { key: 'totalValue', label: 'Total Value', sortable: true, render: (val, row) => {
+                                    { key: 'totalValue', label: t('adminDashboard.totalRevenue'), sortable: true, render: (val, row) => {
                                         const sortedByValue = [...userMetrics.topUsersByValue].sort((a, b) => b.totalValue - a.totalValue);
                                         const index = sortedByValue.findIndex(u => u.id === row.id);
                                         const style = index === 0 ? { color: '#f59e0b', fontWeight: 'bold' } : 
@@ -629,7 +631,7 @@ export default function AdminDashboard() {
                                 height={2}
                             />
                             <MetricChart
-                                title="User Growth Trend (Last 12 Months)"
+                                title={t('adminDashboard.userGrowthTrend')}
                                 data={userMetrics.growthTrend}
                                 type="line"
                                 dataKey="count"
@@ -644,8 +646,8 @@ export default function AdminDashboard() {
                 {/* Product Analytics Section */}
                 <div ref={productsRef} data-section="products">
                     <SectionHeader 
-                        title="Product Analytics" 
-                        description="Product sales performance and best sellers"
+                        title={t('adminDashboard.productAnalytics')} 
+                        description={t('adminDashboard.productAnalyticsDescription')}
                     />
                     {loading.products ? (
                         <DashboardGrid>
@@ -657,14 +659,14 @@ export default function AdminDashboard() {
                         <DashboardGrid>
                             {/* Row 1: Total Products with Orders, Total Completed Orders */}
                             <MetricCard
-                                title="Products with Completed Orders"
+                                title={t('adminDashboard.productsWithCompletedOrders')}
                                 value={productMetrics.totalProductsWithOrders}
                                 icon={<IconShoppingCart style={{ width: '24px', height: '24px' }} />}
                                 width={2}
                                 height={1}
                             />
                             <MetricCard
-                                title="Total Completed Orders"
+                                title={t('adminDashboard.totalCompletedOrders')}
                                 value={productMetrics.totalCompletedOrders}
                                 icon={<IconActivity style={{ width: '24px', height: '24px' }} />}
                                 width={2}
@@ -674,23 +676,23 @@ export default function AdminDashboard() {
                             {/* Row 2: Products Table */}
                             <div className="metric-card metric-table" style={{ gridColumn: 'span 4', display: 'flex', flexDirection: 'column' }}>
                                 <div className="widget-header">
-                                    <h3>Products with Completed Orders</h3>
+                                    <h3>{t('adminDashboard.productsWithCompletedOrders')}</h3>
                                 </div>
                                 <div className="table-container" style={{ flex: 1, overflow: 'auto', minHeight: '300px' }}>
                                     <table className="metric-table-content">
                                         <thead>
                                             <tr>
-                                                <th>Product</th>
-                                                <th>SKU</th>
-                                                <th>Orders</th>
-                                                <th>Quantity Sold</th>
-                                                <th>Total Revenue</th>
+                                                <th>{t('adminDashboard.product')}</th>
+                                                <th>{t('products.sku')}</th>
+                                                <th>{t('adminDashboard.orders')}</th>
+                                                <th>{t('adminDashboard.quantitySold')}</th>
+                                                <th>{t('adminDashboard.totalRevenue')}</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             {productMetrics.productsWithOrders.length === 0 ? (
                                                 <tr>
-                                                    <td colSpan={5} className="empty-state">No products with completed orders yet</td>
+                                                    <td colSpan={5} className="empty-state">{t('common.loading')}</td>
                                                 </tr>
                                             ) : (
                                                 productMetrics.productsWithOrders.map((product, index) => {
@@ -720,7 +722,7 @@ export default function AdminDashboard() {
                                                                                     textTransform: 'uppercase',
                                                                                     letterSpacing: '0.5px'
                                                                                 }}>
-                                                                                    Best Seller
+                                                                                    {t('adminDashboard.bestSeller')}
                                                                                 </span>
                                                                             )}
                                                                         </div>

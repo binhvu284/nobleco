@@ -500,7 +500,7 @@ export default function AdminProducts() {
             // Show success notification
             setNotification({
                 type: 'success',
-                message: `Product "${productToDelete.name}" has been successfully deleted.`
+                message: t('adminProducts.productDeletedSuccess').replace('{{name}}', productToDelete.name)
             });
             
             // Refresh products list
@@ -517,7 +517,7 @@ export default function AdminProducts() {
             
             setNotification({
                 type: 'error',
-                message: err instanceof Error ? err.message : 'Failed to delete product. Please try again.'
+                message: err instanceof Error ? err.message : t('adminProducts.deleteFailed')
             });
             
             // Hide error notification after 5 seconds
@@ -713,7 +713,7 @@ export default function AdminProducts() {
                             setSearchTerm('');
                         }}
                     >
-                        Jewelry
+                        {t('products.jewelry')}
                     </button>
                     <button
                         className={`tab-button ${productType === 'centerstone' ? 'active' : ''}`}
@@ -723,7 +723,7 @@ export default function AdminProducts() {
                             setSearchTerm('');
                         }}
                     >
-                        Center Stone
+                        {t('products.centerStone')}
                     </button>
                 </div>
 
@@ -742,14 +742,14 @@ export default function AdminProducts() {
                         </div>
                         <button 
                             className="btn-filter" 
-                            title="Filter products"
+                            title={t('adminProducts.filterProducts')}
                             onClick={() => setShowFilterPopup(true)}
                         >
                             <IconFilter />
                         </button>
                         <button 
                             className="btn-activity-log" 
-                            title="View Activity Log"
+                            title={t('adminProducts.viewActivityLog')}
                             onClick={() => setShowActivityLog(true)}
                         >
                             <IconHistory />
@@ -781,14 +781,14 @@ export default function AdminProducts() {
                             <button
                                 className={`view-btn ${viewMode === 'table' ? 'active' : ''}`}
                                 onClick={() => setViewMode('table')}
-                                title="Table view"
+                                title={t('adminProducts.tableView')}
                             >
                                 <IconList />
                             </button>
                             <button
                                 className={`view-btn ${viewMode === 'card' ? 'active' : ''}`}
                                 onClick={() => setViewMode('card')}
-                                title="Card view"
+                                title={t('adminProducts.cardView')}
                             >
                                 <IconGrid />
                             </button>
@@ -799,7 +799,7 @@ export default function AdminProducts() {
                             <button
                                 className="column-toggle-btn"
                                 onClick={() => setShowColumnDropdown(!showColumnDropdown)}
-                                title="Choose products per row"
+                                title={t('adminProducts.chooseProductsPerRow')}
                             >
                                 <IconLayout />
                                 <span className="column-count">{mobileColumns}</span>
@@ -924,8 +924,8 @@ export default function AdminProducts() {
                 {/* Error State */}
                 {error && (
                     <div style={{ textAlign: 'center', padding: '40px', color: 'red' }}>
-                        <p>Error: {error}</p>
-                        <button onClick={fetchProducts} style={{ marginTop: '10px' }}>Retry</button>
+                        <p>{t('common.error')}: {error}</p>
+                        <button onClick={fetchProducts} style={{ marginTop: '10px' }}>{t('common.retry')}</button>
                     </div>
                 )}
 
@@ -1033,7 +1033,7 @@ export default function AdminProducts() {
                                 {sortedProducts.length === 0 ? (
                                     <tr>
                                         <td colSpan={7} style={{ textAlign: 'center', padding: '40px' }}>
-                                            No products found
+                                            {t('adminProducts.noProductsFound')}
                                         </td>
                                     </tr>
                                 ) : (
@@ -1071,7 +1071,7 @@ export default function AdminProducts() {
                                                                 letterSpacing: '0.5px',
                                                                 whiteSpace: 'nowrap'
                                                             }}>
-                                                                Best Seller
+                                                                {t('adminProducts.bestSeller')}
                                                             </span>
                                                         )}
                                                     </h4>
@@ -1096,7 +1096,7 @@ export default function AdminProducts() {
                                                 ))}
                                                 {product.categories.length === 0 && (
                                                     <span className="category-badge" style={{ opacity: 0.5 }}>
-                                                        Uncategorized
+                                                        {t('adminProducts.uncategorized')}
                                                     </span>
                                                 )}
                                             </div>
@@ -1128,7 +1128,7 @@ export default function AdminProducts() {
                                                         e.stopPropagation();
                                                         setActiveDropdown(activeDropdown === product.id ? null : product.id);
                                                     }}
-                                                    title="More Actions"
+                                                    title={t('adminProducts.moreActions')}
                                                 >
                                                     <IconMoreVertical />
                                                 </button>
@@ -1139,7 +1139,7 @@ export default function AdminProducts() {
                                                             onClick={() => handleViewDetail(product)}
                                                         >
                                                             <IconEye />
-                                                            View Details
+                                                            {t('adminProducts.viewDetails')}
                                                         </button>
                                                         <button 
                                                             className="unified-dropdown-item"
@@ -1173,7 +1173,7 @@ export default function AdminProducts() {
                                                             onClick={() => handleDeleteClick(product.id, product.name)}
                                                         >
                                                             <IconTrash2 />
-                                                            Delete
+                                                            {t('common.delete')}
                                                         </button>
                                                     </div>
                                                 )}
@@ -1336,7 +1336,7 @@ export default function AdminProducts() {
                 {!loading && !error && filteredProducts.length === 0 && (
                     <div className="empty-state">
                         <div>📦</div>
-                        <h3>No products found</h3>
+                        <h3>{t('adminProducts.noProductsFound')}</h3>
                         <p>Try adjusting your search or create a new product.</p>
                     </div>
                 )}
@@ -1404,7 +1404,7 @@ export default function AdminProducts() {
                     }} />
                     <div className={`filter-popup ${showFilterPopup ? 'active' : ''}`}>
                         <div className="filter-popup-header">
-                            <h3 className="filter-popup-title">Filters</h3>
+                            <h3 className="filter-popup-title">{t('common.filter')}</h3>
                             <button className="filter-popup-close" onClick={() => {
                                 setShowFilterPopup(false);
                                 setShowCategoryDropdown(false);
@@ -1412,7 +1412,7 @@ export default function AdminProducts() {
                         </div>
                         <div className="filter-popup-body">
                             <div className="filter-popup-group">
-                                <label className="filter-popup-label">Categories</label>
+                                <label className="filter-popup-label">{t('adminProducts.filterByCategory')}</label>
                                 <div className="filter-category-selector">
                                     <button
                                         type="button"
@@ -1421,15 +1421,15 @@ export default function AdminProducts() {
                                     >
                                         <span>
                                             {selectedCategoryNames.length > 0
-                                                ? `${selectedCategoryNames.length} categor${selectedCategoryNames.length === 1 ? 'y' : 'ies'} selected`
-                                                : 'Select categories'}
+                                                ? t('adminProducts.categoriesSelected').replace('{{count}}', selectedCategoryNames.length.toString())
+                                                : t('adminProducts.selectCategories')}
                                         </span>
                                         <span className="dropdown-arrow">▼</span>
                                     </button>
                                     {showCategoryDropdown && (
                                         <div className="filter-category-dropdown-menu">
                                             {availableCategories.length === 0 ? (
-                                                <div className="dropdown-empty">No categories available</div>
+                                                <div className="dropdown-empty">{t('adminProducts.noCategoriesAvailable')}</div>
                                             ) : (
                                                 availableCategories.map(category => {
                                                     const isSelected = selectedCategories.includes(category.id);
@@ -1467,25 +1467,25 @@ export default function AdminProducts() {
                                 </div>
                             </div>
                             <div className="filter-popup-group">
-                                <label className="filter-popup-label">Price Range</label>
+                                <label className="filter-popup-label">{t('adminProducts.filterByPrice')}</label>
                                 <div className="filter-price-range">
                                     <div className="filter-price-input-wrapper">
                                         <span className="filter-price-prefix">₫</span>
                                         <input
                                             type="number"
                                             className="filter-price-input"
-                                            placeholder="Min price"
+                                            placeholder={t('adminProducts.minPrice')}
                                             value={priceRange.min}
                                             onChange={(e) => setPriceRange({ ...priceRange, min: e.target.value })}
                                         />
                                     </div>
-                                    <div className="filter-price-separator">to</div>
+                                        <div className="filter-price-separator">{t('common.to')}</div>
                                     <div className="filter-price-input-wrapper">
                                         <span className="filter-price-prefix">₫</span>
                                         <input
                                             type="number"
                                             className="filter-price-input"
-                                            placeholder="Max price"
+                                            placeholder={t('adminProducts.maxPrice')}
                                             value={priceRange.max}
                                             onChange={(e) => setPriceRange({ ...priceRange, max: e.target.value })}
                                         />
@@ -1493,7 +1493,7 @@ export default function AdminProducts() {
                                 </div>
                             </div>
                             <div className="filter-popup-group">
-                                <label className="filter-popup-label">Status</label>
+                                <label className="filter-popup-label">{t('adminProducts.filterByStatus')}</label>
                                 <div className="filter-status-group">
                                     <label className={`filter-status-item ${filterStatus === 'all' ? 'active' : ''}`}>
                                         <input
@@ -1503,7 +1503,7 @@ export default function AdminProducts() {
                                             checked={filterStatus === 'all'}
                                             onChange={(e) => setFilterStatus(e.target.value as 'all' | 'active' | 'inactive')}
                                         />
-                                        <span className="filter-status-label">All</span>
+                                        <span className="filter-status-label">{t('adminProducts.all')}</span>
                                     </label>
                                     <label className={`filter-status-item ${filterStatus === 'active' ? 'active' : ''}`}>
                                         <input
@@ -1544,7 +1544,7 @@ export default function AdminProducts() {
                                     setShowCategoryDropdown(false);
                                 }}
                             >
-                                Clear All
+                                {t('adminProducts.clearFilters')}
                             </button>
                             <button
                                 className="btn-primary"
@@ -1553,7 +1553,7 @@ export default function AdminProducts() {
                                     setShowCategoryDropdown(false);
                                 }}
                             >
-                                Apply Filters
+                                {t('adminProducts.applyFilters')}
                             </button>
                         </div>
                     </div>
@@ -1571,10 +1571,10 @@ export default function AdminProducts() {
                 open={showDeleteConfirm}
                 onClose={handleDeleteCancel}
                 onConfirm={handleDeleteConfirm}
-                title="Delete Product"
-                message={`Are you sure you want to delete "${productToDelete?.name}"? This will also remove all category associations for this product. This action cannot be undone.`}
-                confirmText="Delete"
-                cancelText="Cancel"
+                title={t('adminProducts.deleteProduct')}
+                message={t('adminProducts.deleteConfirm').replace('{{name}}', productToDelete?.name || '').replace('{{additional}}', t('adminProducts.deleteConfirmAdditional'))}
+                confirmText={t('common.delete')}
+                cancelText={t('common.cancel')}
                 type="danger"
                 loading={deleteLoading}
             />

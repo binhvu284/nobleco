@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { getAvatarInitial, getAvatarColor, getAvatarViewportStyles } from '../../utils/avatarUtils';
+import { useTranslation } from '../../shared/contexts/TranslationContext';
 
 interface AdminDetailModalProps {
     open: boolean;
@@ -16,6 +17,7 @@ interface AdminDetailModalProps {
 }
 
 export default function AdminDetailModal({ open, onClose, admin }: AdminDetailModalProps) {
+    const { t } = useTranslation();
     const [isLoading, setIsLoading] = useState(false);
     const [avatar, setAvatar] = useState<{ url: string; viewport_x?: number | null; viewport_y?: number | null; viewport_size?: number | null; width?: number | null; height?: number | null } | null>(null);
     const [showAvatarExpanded, setShowAvatarExpanded] = useState(false);
@@ -49,7 +51,7 @@ export default function AdminDetailModal({ open, onClose, admin }: AdminDetailMo
     if (!open || !admin) return null;
 
     const hasAvatar = avatar && avatar.url;
-    const roleDisplay = admin.role === 'admin' ? 'Administrator' : 'Co-worker';
+    const roleDisplay = admin.role === 'admin' ? t('adminAdminUsers.administrator') : t('adminAdminUsers.coworkers');
     const statusDisplay = admin.status || 'active';
 
     return (
@@ -57,8 +59,8 @@ export default function AdminDetailModal({ open, onClose, admin }: AdminDetailMo
             <div className="modal-overlay" onClick={onClose} />
             <div className="profile-modal-card" role="dialog" aria-modal="true">
                 <div className="modal-header">
-                    <span>Admin Details</span>
-                    <button className="modal-close" aria-label="Close" onClick={onClose}>✕</button>
+                    <span>{t('adminAdminUsers.adminDetails')}</span>
+                    <button className="modal-close" aria-label={t('common.close')} onClick={onClose}>✕</button>
                 </div>
                 
                 {isLoading ? (
@@ -68,7 +70,7 @@ export default function AdminDetailModal({ open, onClose, admin }: AdminDetailMo
                             <div className="spinner-ring"></div>
                             <div className="spinner-ring"></div>
                         </div>
-                        <p>Loading profile...</p>
+                        <p>{t('adminAdminUsers.loadingProfile')}</p>
                     </div>
                 ) : (
                     <div className="profile-content">
@@ -112,7 +114,7 @@ export default function AdminDetailModal({ open, onClose, admin }: AdminDetailMo
                                             flexShrink: 0
                                         }}
                                     >
-                                        {getAvatarInitial(admin.name || 'Admin')}
+                                        {getAvatarInitial(admin.name || t('adminAdminUsers.administrator'))}
                                     </div>
                                 )}
                                 {hasAvatar && isHoveringAvatar && (
@@ -149,7 +151,7 @@ export default function AdminDetailModal({ open, onClose, admin }: AdminDetailMo
                                             <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
                                             <circle cx="12" cy="12" r="3" />
                                         </svg>
-                                        View
+                                        {t('common.view')}
                                     </button>
                                 )}
                             </div>
@@ -159,34 +161,34 @@ export default function AdminDetailModal({ open, onClose, admin }: AdminDetailMo
                         <div className="profile-info-grid">
                             {/* Account Information */}
                             <div className="profile-section">
-                                <h3 className="profile-section-title">Account Information</h3>
+                                <h3 className="profile-section-title">{t('profile.accountInformation')}</h3>
                                 <div className="profile-fields">
                                     <div className="profile-field">
-                                        <label>Email</label>
+                                        <label>{t('profile.email')}</label>
                                         <div className="profile-field-value email-display">{admin.email}</div>
                                     </div>
                                     <div className="profile-field">
-                                        <label>Phone Number</label>
-                                        <div className="profile-field-value email-display">{admin.phone || 'Not set'}</div>
+                                        <label>{t('profile.phoneNumber')}</label>
+                                        <div className="profile-field-value email-display">{admin.phone || t('settings.notSet')}</div>
                                     </div>
                                 </div>
                             </div>
 
                             {/* Personal Information */}
                             <div className="profile-section">
-                                <h3 className="profile-section-title">Personal Information</h3>
+                                <h3 className="profile-section-title">{t('profile.personalInformation')}</h3>
                                 <div className="profile-fields">
                                     <div className="profile-field">
-                                        <label>Name</label>
-                                        <div className="profile-field-value">{admin.name || 'Not set'}</div>
+                                        <label>{t('users.name')}</label>
+                                        <div className="profile-field-value">{admin.name || t('settings.notSet')}</div>
                                     </div>
                                     <div className="profile-field">
-                                        <label>Role</label>
+                                        <label>{t('adminAdminUsers.role')}</label>
                                         <div className="profile-field-value role-display">{roleDisplay}</div>
                                     </div>
                                     {admin.status && (
                                         <div className="profile-field">
-                                            <label>Status</label>
+                                            <label>{t('users.status')}</label>
                                             <div className="profile-field-value">
                                                 <span className={`status-badge ${statusDisplay}`}>
                                                     {statusDisplay}
@@ -196,7 +198,7 @@ export default function AdminDetailModal({ open, onClose, admin }: AdminDetailMo
                                     )}
                                     {admin.created_at && (
                                         <div className="profile-field">
-                                            <label>Created At</label>
+                                            <label>{t('adminAdminUsers.createdAt')}</label>
                                             <div className="profile-field-value">
                                                 {new Date(admin.created_at).toLocaleDateString('en-US', {
                                                     year: 'numeric',
@@ -218,7 +220,7 @@ export default function AdminDetailModal({ open, onClose, admin }: AdminDetailMo
                 <div className="modal-overlay personal-id-expanded-overlay" onClick={() => setShowAvatarExpanded(false)}>
                     <div className="personal-id-expanded-modal" onClick={(e) => e.stopPropagation()}>
                         <div className="personal-id-expanded-header">
-                            <h3>Avatar</h3>
+                            <h3>{t('profile.avatar')}</h3>
                             <button className="modal-close" onClick={() => setShowAvatarExpanded(false)}>
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                     <line x1="18" y1="6" x2="6" y2="18" />

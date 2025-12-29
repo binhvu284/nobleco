@@ -12,6 +12,7 @@ import {
     IconChevronDown
 } from '../components/icons';
 import { getAvatarInitial, getAvatarColor } from '../../utils/avatarUtils';
+import { useTranslation } from '../../shared/contexts/TranslationContext';
 
 type User = {
     id: string | number;
@@ -44,6 +45,7 @@ type Row = {
 };
 
 export default function AdminUsers() {
+    const { t } = useTranslation();
     const [users, setUsers] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -293,12 +295,16 @@ export default function AdminUsers() {
 
     const getLevelLabel = (level: Level): string => {
         const labels: Record<Level, string> = {
-            'guest': 'Guest',
-            'member': 'Member',
-            'unit manager': 'Unit Manager',
-            'brand manager': 'Brand Manager'
+            'guest': t('adminUsers.guest'),
+            'member': t('adminUsers.member'),
+            'unit manager': t('adminUsers.unitManager'),
+            'brand manager': t('adminUsers.brandManager')
         };
         return labels[level];
+    };
+
+    const getStatusLabel = (status: Status): string => {
+        return status === 'active' ? t('adminUsers.active') : t('adminUsers.inactive');
     };
 
     const getLevelColor = (level: Level): string => {
@@ -653,7 +659,7 @@ export default function AdminUsers() {
     }, [users, searchQuery, filterLevel, filterStatus, filterDateFrom, filterDateTo, filterPointsMin, filterPointsMax, sortColumn, sortDirection]);
 
     return (
-        <AdminLayout title="User Management">
+        <AdminLayout title={t('adminUsers.title')}>
             <div className="admin-users">
                 {/* Clean Toolbar */}
                 <div className="categories-toolbar">
@@ -662,7 +668,7 @@ export default function AdminUsers() {
                             <IconSearch className="search-icon" />
                             <input
                                 type="text"
-                                placeholder="Search users..."
+                                placeholder={t('adminUsers.searchPlaceholder')}
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 className="search-input"
@@ -670,7 +676,7 @@ export default function AdminUsers() {
                         </div>
                         <button 
                             className="btn-filter" 
-                            title="Filter"
+                            title={t('adminUsers.filter')}
                             onClick={() => setFilterPopupOpen(true)}
                         >
                             <IconFilter />
@@ -682,7 +688,7 @@ export default function AdminUsers() {
                             <button
                                 className={`view-btn ${viewMode === 'table' ? 'active' : ''}`}
                                 onClick={() => !isMobile && setViewMode('table')}
-                                title="Table view"
+                                title={t('adminUsers.tableView')}
                                 disabled={isMobile}
                             >
                                 <IconList />
@@ -690,7 +696,7 @@ export default function AdminUsers() {
                             <button
                                 className={`view-btn ${viewMode === 'card' ? 'active' : ''}`}
                                 onClick={() => setViewMode('card')}
-                                title="Card view"
+                                title={t('adminUsers.cardView')}
                             >
                                 <IconGrid />
                             </button>
@@ -699,14 +705,6 @@ export default function AdminUsers() {
                         {/* Mobile column selector - hidden on users since it's not needed */}
                         <div className="mobile-column-selector mobile-only" style={{ display: 'none' }}>
                         </div>
-                        
-                        <button 
-                            className="create-btn"
-                            title="Create User"
-                        >
-                            <IconPlus />
-                            <span className="desktop-only">Create User</span>
-                        </button>
                     </div>
                 </div>
 
@@ -721,7 +719,7 @@ export default function AdminUsers() {
                                     onClick={() => handleSort('name')}
                                 >
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                        Name
+                                        {t('users.name')}
                                         {sortColumn === 'name' && (
                                             sortDirection === 'asc' ? <IconChevronUp width={14} height={14} /> : <IconChevronDown width={14} height={14} />
                                         )}
@@ -732,7 +730,7 @@ export default function AdminUsers() {
                                     onClick={() => handleSort('email')}
                                 >
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                        Email
+                                        {t('users.email')}
                                         {sortColumn === 'email' && (
                                             sortDirection === 'asc' ? <IconChevronUp width={14} height={14} /> : <IconChevronDown width={14} height={14} />
                                         )}
@@ -743,19 +741,19 @@ export default function AdminUsers() {
                                     onClick={() => handleSort('phone')}
                                 >
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                        Phone
+                                        {t('users.phone')}
                                         {sortColumn === 'phone' && (
                                             sortDirection === 'asc' ? <IconChevronUp width={14} height={14} /> : <IconChevronDown width={14} height={14} />
                                         )}
                                     </div>
                                 </th>
-                                <th style={{ width: 150 }}>Level</th>
+                                <th style={{ width: 150 }}>{t('users.level')}</th>
                                 <th 
                                     style={{ width: 90, cursor: 'pointer', userSelect: 'none' }}
                                     onClick={() => handleSort('points')}
                                 >
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                        Points
+                                        {t('adminUsers.points')}
                                         {sortColumn === 'points' && (
                                             sortDirection === 'asc' ? <IconChevronUp width={14} height={14} /> : <IconChevronDown width={14} height={14} />
                                         )}
@@ -766,7 +764,7 @@ export default function AdminUsers() {
                                     onClick={() => handleSort('status')}
                                 >
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                        Status
+                                        {t('users.status')}
                                         {sortColumn === 'status' && (
                                             sortDirection === 'asc' ? <IconChevronUp width={14} height={14} /> : <IconChevronDown width={14} height={14} />
                                         )}
@@ -777,7 +775,7 @@ export default function AdminUsers() {
                                     onClick={() => handleSort('createdAt')}
                                 >
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                        Created at
+                                        {t('adminUsers.createdAt')}
                                         {sortColumn === 'createdAt' && (
                                             sortDirection === 'asc' ? <IconChevronUp width={14} height={14} /> : <IconChevronDown width={14} height={14} />
                                         )}
@@ -803,7 +801,7 @@ export default function AdminUsers() {
                                     ))
                                 ) : filteredRows.length === 0 ? (
                                     <tr>
-                                        <td colSpan={8} className="muted">No users found</td>
+                                        <td colSpan={8} className="muted">{t('adminUsers.noUsersFound')}</td>
                                     </tr>
                                 ) : (
                                     filteredRows.map((r) => {
@@ -879,19 +877,19 @@ export default function AdminUsers() {
                                                 <td>{r.email}</td>
                                                 <td>{user?.phone || 'N/A'}</td>
                                                 <td>
-                                                    <span className={`badge ${`badge-level-${r.level.replace(/\s+/g, '-')}`}`}>{
-                                                        r.level === 'unit manager' ? 'Unit Manager' : r.level === 'brand manager' ? 'Brand Manager' : r.level === 'member' ? 'Member' : 'Guest'
-                                                    }</span>
+                                                    <span className={`badge ${`badge-level-${r.level.replace(/\s+/g, '-')}`}`}>
+                                                        {getLevelLabel(r.level)}
+                                                    </span>
                                                 </td>
                                                 <td className="points-value">{r.points}</td>
                                                 <td>
-                                                    <span className={`badge ${r.status === 'active' ? 'badge-success' : 'badge-muted'}`}>{r.status}</span>
+                                                    <span className={`badge ${r.status === 'active' ? 'badge-success' : 'badge-muted'}`}>{getStatusLabel(r.status)}</span>
                                                 </td>
                                                 <td>{r.createdAt}</td>
                                                 <td className="row-actions">
                                                     <button
                                                         className="more-btn"
-                                                        aria-label="More actions"
+                                                        aria-label={t('adminUsers.moreActions')}
                                                         onClick={(e) => {
                                                             e.stopPropagation();
                                                             setMenuOpenId((prev) => prev === r.id ? null : r.id);
@@ -914,7 +912,7 @@ export default function AdminUsers() {
                                                                 <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
                                                                 <circle cx="12" cy="12" r="3" />
                                                             </svg>
-                                                            View Detail
+                                                            {t('adminUsers.viewDetails')}
                                                         </button>
                                                         <button 
                                                             className="menu-item" 
@@ -924,7 +922,7 @@ export default function AdminUsers() {
                                                                 <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
                                                                 <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
                                                             </svg>
-                                                            Edit Level
+                                                            {t('adminUsers.editLevel')}
                                                         </button>
                                                         <button 
                                                             className="menu-item" 
@@ -936,7 +934,7 @@ export default function AdminUsers() {
                                                                 <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
                                                                 <path d="M16 3.13a4 4 0 0 1 0 7.75" />
                                                             </svg>
-                                                            Edit Referrer
+                                                            {t('adminUsers.editSeniorConsultant')}
                                                         </button>
                                                         <button 
                                                             className="menu-item" 
@@ -950,13 +948,13 @@ export default function AdminUsers() {
                                                                     <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14M22 4L12 14.01l-3-3" />
                                                                 )}
                                                             </svg>
-                                                            {r.status === 'active' ? 'Deactivate' : 'Activate'}
+                                                            {r.status === 'active' ? t('adminUsers.inactive') : t('adminUsers.active')}
                                                         </button>
                                                         <button className="menu-item danger" onClick={() => openDeleteModal(r.id, r.email)}>
                                                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                                                 <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6" />
                                                             </svg>
-                                                            Delete
+                                                            {t('adminUsers.deleteUser')}
                                                         </button>
                                                     </div>
                                                 )}
@@ -1065,7 +1063,7 @@ export default function AdminUsers() {
                                                 <p className="user-phone" style={{ fontSize: '0.875rem', color: 'var(--muted)', marginTop: '4px' }}>{user?.phone || 'N/A'}</p>
                                             </div>
                                             <div className="card-meta">
-                                                <span className={`badge ${r.status === 'active' ? 'badge-success' : 'badge-muted'}`}>{r.status}</span>
+                                                <span className={`badge ${r.status === 'active' ? 'badge-success' : 'badge-muted'}`}>{getStatusLabel(r.status)}</span>
                                                 <span className="created-date">{r.createdAt}</span>
                                             </div>
                                             <div className="unified-dropdown">
@@ -1103,7 +1101,7 @@ export default function AdminUsers() {
                                                                 <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
                                                                 <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
                                                             </svg>
-                                                            Edit Level
+                                                            {t('adminUsers.editLevel')}
                                                         </button>
                                                         <button 
                                                             className="unified-dropdown-item" 
@@ -1115,7 +1113,7 @@ export default function AdminUsers() {
                                                                 <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
                                                                 <path d="M16 3.13a4 4 0 0 1 0 7.75" />
                                                             </svg>
-                                                            Edit Referrer
+                                                            {t('adminUsers.editReferrer')}
                                                         </button>
                                                         {r.status === 'active' ? (
                                                             <button 
@@ -1127,7 +1125,7 @@ export default function AdminUsers() {
                                                                     <circle cx="12" cy="12" r="10" />
                                                                     <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
                                                                 </svg>
-                                                                Deactivate
+                                                                {t('adminUsers.deactivate')}
                                                             </button>
                                                         ) : (
                                                             <button 
@@ -1138,7 +1136,7 @@ export default function AdminUsers() {
                                                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                                                     <polyline points="20 6 9 17 4 12" />
                                                                 </svg>
-                                                                Activate
+                                                                {t('adminUsers.activate')}
                                                             </button>
                                                         )}
                                                         <button 
@@ -1163,7 +1161,7 @@ export default function AdminUsers() {
                                             <div className="card-detail">
                                                 <span className="detail-label">Level:</span>
                                                 <span className={`badge ${`badge-level-${r.level.replace(/\s+/g, '-')}`}`}>
-                                                    {r.level === 'unit manager' ? 'Unit Manager' : r.level === 'brand manager' ? 'Brand Manager' : r.level === 'member' ? 'Member' : 'Guest'}
+                                                    {getLevelLabel(r.level)}
                                                 </span>
                                             </div>
                                             <div className="card-detail">
@@ -1184,7 +1182,7 @@ export default function AdminUsers() {
                 <div className="modal-overlay" onClick={closeDeleteModal}>
                     <div className="modal-content" onClick={(e) => e.stopPropagation()}>
                         <div className="modal-header">
-                            <h3 className="modal-title">Confirm Delete</h3>
+                            <h3 className="modal-title">{t('adminUsers.confirmDelete')}</h3>
                             <button className="modal-close" onClick={closeDeleteModal}>×</button>
                         </div>
                         <div className="modal-body">
@@ -1196,16 +1194,16 @@ export default function AdminUsers() {
                                 </svg>
                             </div>
                             <p className="modal-message">
-                                Are you sure you want to delete <strong>{deleteModal.userEmail}</strong>?
+                                {t('adminUsers.deleteConfirm')} <strong>{deleteModal.userEmail}</strong>?
                             </p>
-                            <p className="modal-submessage">This action cannot be undone.</p>
+                            <p className="modal-submessage">{t('adminUsers.deleteConfirmMessage')}</p>
                         </div>
                         <div className="modal-footer">
                             <button className="btn-secondary" onClick={closeDeleteModal} disabled={isDeleting}>
-                                Cancel
+                                {t('common.cancel')}
                             </button>
                             <button className="btn-danger" onClick={confirmDelete} disabled={isDeleting}>
-                                {isDeleting ? 'Deleting...' : 'Delete User'}
+                                {isDeleting ? t('adminUsers.deleting') : t('adminUsers.deleteUser')}
                             </button>
                         </div>
                     </div>
@@ -1243,39 +1241,39 @@ export default function AdminUsers() {
                     <div className="filter-popup-overlay active" onClick={() => setFilterPopupOpen(false)} />
                     <div className={`filter-popup ${filterPopupOpen ? 'active' : ''}`}>
                         <div className="filter-popup-header">
-                            <h3 className="filter-popup-title">Filters</h3>
+                            <h3 className="filter-popup-title">{t('common.filter')}</h3>
                             <button className="filter-popup-close" onClick={() => setFilterPopupOpen(false)}>×</button>
                         </div>
                         <div className="filter-popup-body">
                             <div className="filter-popup-group">
-                                <label className="filter-popup-label">Level</label>
+                                <label className="filter-popup-label">{t('users.level')}</label>
                                 <select
                                     value={filterLevel}
                                     onChange={(e) => setFilterLevel(e.target.value as Level | 'all')}
                                     className="filter-select"
                                 >
-                                    <option value="all">All Levels</option>
-                                    <option value="guest">Guest</option>
-                                    <option value="member">Member</option>
-                                    <option value="unit manager">Unit Manager</option>
-                                    <option value="brand manager">Brand Manager</option>
+                                    <option value="all">{t('adminUsers.allLevels')}</option>
+                                    <option value="guest">{t('adminUsers.guest')}</option>
+                                    <option value="member">{t('adminUsers.member')}</option>
+                                    <option value="unit manager">{t('adminUsers.unitManager')}</option>
+                                    <option value="brand manager">{t('adminUsers.brandManager')}</option>
                                 </select>
                             </div>
                             <div className="filter-popup-group">
-                                <label className="filter-popup-label">Points Range</label>
+                                <label className="filter-popup-label">{t('adminUsers.pointsRange')}</label>
                                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                                     <input
                                         type="number"
-                                        placeholder="Min"
+                                        placeholder={t('adminUsers.min')}
                                         value={filterPointsMin}
                                         onChange={(e) => setFilterPointsMin(e.target.value)}
                                         className="filter-price-input"
                                         style={{ flex: 1 }}
                                     />
-                                    <span style={{ color: '#6b7280' }}>to</span>
+                                    <span style={{ color: '#6b7280' }}>{t('common.or')}</span>
                                     <input
                                         type="number"
-                                        placeholder="Max"
+                                        placeholder={t('adminUsers.max')}
                                         value={filterPointsMax}
                                         onChange={(e) => setFilterPointsMax(e.target.value)}
                                         className="filter-price-input"
@@ -1284,22 +1282,22 @@ export default function AdminUsers() {
                                 </div>
                             </div>
                             <div className="filter-popup-group">
-                                <label className="filter-popup-label">Status</label>
+                                <label className="filter-popup-label">{t('users.status')}</label>
                                 <select
                                     value={filterStatus}
                                     onChange={(e) => setFilterStatus(e.target.value as Status | 'all')}
                                     className="filter-select"
                                 >
-                                    <option value="all">All Status</option>
-                                    <option value="active">Active</option>
-                                    <option value="inactive">Inactive</option>
+                                    <option value="all">{t('adminUsers.filterByStatus')}</option>
+                                    <option value="active">{t('adminUsers.active')}</option>
+                                    <option value="inactive">{t('adminUsers.inactive')}</option>
                                 </select>
                             </div>
                             <div className="filter-popup-group">
-                                <label className="filter-popup-label">Created Date Range</label>
+                                <label className="filter-popup-label">{t('adminUsers.dateRange')}</label>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                                     <div>
-                                        <label style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px', display: 'block' }}>From</label>
+                                        <label style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px', display: 'block' }}>{t('adminUsers.from')}</label>
                                         <input
                                             type="date"
                                             value={filterDateFrom}
@@ -1308,7 +1306,7 @@ export default function AdminUsers() {
                                         />
                                     </div>
                                     <div>
-                                        <label style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px', display: 'block' }}>To</label>
+                                        <label style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px', display: 'block' }}>{t('adminUsers.to')}</label>
                                         <input
                                             type="date"
                                             value={filterDateTo}
@@ -1331,13 +1329,13 @@ export default function AdminUsers() {
                                     setFilterPointsMax('');
                                 }}
                             >
-                                Clear All
+                                {t('adminUsers.clearFilters')}
                             </button>
                             <button 
                                 className="btn-primary"
                                 onClick={() => setFilterPopupOpen(false)}
                             >
-                                Apply
+                                {t('adminUsers.applyFilters')}
                             </button>
                         </div>
                     </div>
@@ -1349,15 +1347,15 @@ export default function AdminUsers() {
                 <div className="modal-overlay" onClick={closeEditLevelModal}>
                     <div className="modal-content" onClick={(e) => e.stopPropagation()}>
                         <div className="modal-header">
-                            <h3 className="modal-title">Edit User Level</h3>
+                            <h3 className="modal-title">{t('adminUsers.editLevelTitle')}</h3>
                             <button className="modal-close" onClick={closeEditLevelModal}>×</button>
                         </div>
                         <div className="modal-body">
                             <p className="modal-message" style={{ marginBottom: '20px' }}>
-                                Select a new level for <strong>{editLevelModal.userName || 'this user'}</strong>
+                                {t('adminUsers.selectLevel')} <strong>{editLevelModal.userName || t('common.user')}</strong>
                             </p>
                             <div className="form-group">
-                                <label className="form-label">User Level</label>
+                                <label className="form-label">{t('users.level')}</label>
                                 <div className="user-level-custom-dropdown">
                                     <button
                                         ref={dropdownToggleRef}
@@ -1429,21 +1427,19 @@ export default function AdminUsers() {
                             </div>
                             {editLevelModal.currentLevel && (
                                 <div style={{ marginTop: '12px', padding: '12px', background: '#f3f4f6', borderRadius: '8px' }}>
-                                    <span style={{ fontSize: '0.875rem', color: '#6b7280' }}>Current Level: </span>
+                                    <span style={{ fontSize: '0.875rem', color: '#6b7280' }}>{t('adminUsers.currentLevel')}: </span>
                                     <span style={{ fontSize: '0.875rem', fontWeight: '500', color: '#1d2939' }}>
-                                        {editLevelModal.currentLevel === 'unit manager' ? 'Unit Manager' : 
-                                         editLevelModal.currentLevel === 'brand manager' ? 'Brand Manager' : 
-                                         editLevelModal.currentLevel === 'member' ? 'Member' : 'Guest'}
+                                        {getLevelLabel(editLevelModal.currentLevel as Level)}
                                     </span>
                                 </div>
                             )}
                         </div>
                         <div className="modal-footer">
                             <button className="btn-secondary" onClick={closeEditLevelModal} disabled={isUpdatingLevel}>
-                                Cancel
+                                {t('common.cancel')}
                             </button>
                             <button className="btn-primary" onClick={updateUserLevel} disabled={isUpdatingLevel}>
-                                {isUpdatingLevel ? 'Updating...' : 'Save Changes'}
+                                {isUpdatingLevel ? t('common.loading') : t('adminUsers.updateLevel')}
                             </button>
                         </div>
                     </div>
@@ -1455,12 +1451,12 @@ export default function AdminUsers() {
                 <div className="modal-overlay" onClick={closeEditSeniorConsultantModal}>
                     <div className="modal-content" onClick={(e) => e.stopPropagation()}>
                         <div className="modal-header">
-                            <h3 className="modal-title">Edit Referrer</h3>
+                            <h3 className="modal-title">{t('adminUsers.editReferrerTitle')}</h3>
                             <button className="modal-close" onClick={closeEditSeniorConsultantModal}>×</button>
                         </div>
                         <div className="modal-body">
                             <p className="modal-message" style={{ marginBottom: '20px' }}>
-                                Manage referrer for <strong>{editSeniorConsultantModal.userName || 'this user'}</strong>
+                                {t('adminUsers.editSeniorConsultantTitle')} <strong>{editSeniorConsultantModal.userName || t('common.user')}</strong>
                             </p>
                             
                             {isLoadingReferrerInfo ? (
@@ -1481,7 +1477,7 @@ export default function AdminUsers() {
                                         borderRadius: '50%',
                                         animation: 'spin 1s linear infinite'
                                     }}></div>
-                                    <p style={{ color: '#6b7280', fontSize: '0.875rem' }}>Loading referrer information...</p>
+                                    <p style={{ color: '#6b7280', fontSize: '0.875rem' }}>{t('adminUsers.loadingReferrerInfo')}</p>
                                 </div>
                             ) : editSeniorConsultantModal.currentSeniorConsultantId ? (
                                 // User has a referrer - show current referrer with avatar and both remove/change options
@@ -1497,7 +1493,7 @@ export default function AdminUsers() {
                                             color: '#6b7280',
                                             marginBottom: '12px'
                                         }}>
-                                            Current Referrer:
+                                            {t('adminUsers.currentReferrer')}
                                         </div>
                                         <div style={{ 
                                             display: 'flex',
@@ -1553,12 +1549,12 @@ export default function AdminUsers() {
                                     {/* Change Referrer Section */}
                                     <div style={{ marginBottom: '16px' }}>
                                         <label className="form-label" style={{ marginBottom: '8px', display: 'block' }}>
-                                            Change Referrer
+                                            {t('adminUsers.changeReferrer')}
                                         </label>
                                         <input
                                             type="text"
                                             className={`form-input ${referCodeError ? 'error' : ''}`}
-                                            placeholder="Enter new refer code (e.g., ABC123)"
+                                            placeholder={t('adminUsers.enterNewReferCode')}
                                             value={referCodeInput}
                                             onChange={(e) => {
                                                 setReferCodeInput(e.target.value.toUpperCase());
@@ -1588,7 +1584,7 @@ export default function AdminUsers() {
                                                 alignItems: 'center'
                                             }}
                                         >
-                                            {isUpdatingSeniorConsultant ? 'Updating...' : 'Change Referrer'}
+                                            {isUpdatingSeniorConsultant ? t('adminUsers.updating') : t('adminUsers.changeReferrer')}
                                         </button>
                                     </div>
 
@@ -1600,7 +1596,7 @@ export default function AdminUsers() {
                                         gap: '12px'
                                     }}>
                                         <div style={{ flex: 1, height: '1px', background: '#e5e7eb' }}></div>
-                                        <span style={{ fontSize: '0.875rem', color: '#6b7280' }}>OR</span>
+                                        <span style={{ fontSize: '0.875rem', color: '#6b7280' }}>{t('common.or')}</span>
                                         <div style={{ flex: 1, height: '1px', background: '#e5e7eb' }}></div>
                                     </div>
 
@@ -1615,17 +1611,17 @@ export default function AdminUsers() {
                                             justifyContent: 'center'
                                         }}
                                     >
-                                        {isUpdatingSeniorConsultant ? 'Removing...' : 'Remove Referrer'}
+                                        {isUpdatingSeniorConsultant ? t('common.loading') : t('adminUsers.removeReferrer')}
                                     </button>
                                 </div>
                             ) : (
                                 // User doesn't have a referrer - show input only
                                 <div className="form-group">
-                                    <label className="form-label">Enter Refer Code</label>
+                                    <label className="form-label">{t('adminUsers.enterReferCode')}</label>
                                     <input
                                         type="text"
                                         className={`form-input ${referCodeError ? 'error' : ''}`}
-                                        placeholder="Enter refer code (e.g., ABC123)"
+                                        placeholder={t('adminUsers.enterReferCode')}
                                         value={referCodeInput}
                                         onChange={(e) => {
                                             setReferCodeInput(e.target.value.toUpperCase());
@@ -1652,7 +1648,7 @@ export default function AdminUsers() {
                                         color: '#6b7280',
                                         marginBottom: '16px'
                                     }}>
-                                        Enter the refer code of the user who will become the referrer.
+                                        {t('adminUsers.enterReferCodeDescription')}
                                     </div>
                                     <button 
                                         className="btn-primary" 
@@ -1666,7 +1662,7 @@ export default function AdminUsers() {
                                             alignItems: 'center'
                                         }}
                                     >
-                                        {isUpdatingSeniorConsultant ? 'Adding...' : 'Add Referrer'}
+                                        {isUpdatingSeniorConsultant ? t('adminUsers.adding') : t('adminUsers.addReferrer')}
                                     </button>
                                 </div>
                             )}
@@ -1678,7 +1674,7 @@ export default function AdminUsers() {
                                 disabled={isUpdatingSeniorConsultant || isLoadingReferrerInfo}
                                 style={{ width: '100%' }}
                             >
-                                Cancel
+                                {t('common.cancel')}
                             </button>
                         </div>
                     </div>

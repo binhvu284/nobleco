@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import AdminLayout from '../components/AdminLayout';
+import { useTranslation } from '../../shared/contexts/TranslationContext';
 
 type Level = 'guest' | 'member' | 'unit manager' | 'brand manager';
 
@@ -21,6 +22,7 @@ type DatabaseCommissionRate = {
 };
 
 export default function AdminCommission() {
+    const { t } = useTranslation();
     const [commissionRates, setCommissionRates] = useState<CommissionRate[]>([]);
     const [originalRates, setOriginalRates] = useState<CommissionRate[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -49,7 +51,7 @@ export default function AdminCommission() {
             
             if (!data || data.length === 0) {
                 console.warn('No commission rates found in database');
-                setErrorMessage('No commission rates found. Please ensure the database table has been created and populated.');
+                setErrorMessage(t('adminCommission.noCommissionRatesFound'));
                 setCommissionRates([]);
                 setOriginalRates([]);
                 return;
@@ -73,7 +75,7 @@ export default function AdminCommission() {
             setOriginalRates(sortedRates);
         } catch (error) {
             console.error('Error loading commission rates:', error);
-            setErrorMessage(error instanceof Error ? error.message : 'Failed to load commission rates. Please refresh the page.');
+            setErrorMessage(error instanceof Error ? error.message : t('adminCommission.failedLoadCommissionRates'));
             // Set empty array on error to prevent rendering issues
             setCommissionRates([]);
             setOriginalRates([]);
@@ -84,10 +86,10 @@ export default function AdminCommission() {
 
     const getLevelLabel = (level: Level) => {
         const labels: Record<Level, string> = {
-            'guest': 'Guest',
-            'member': 'Member',
-            'unit manager': 'Unit Manager',
-            'brand manager': 'Brand Manager'
+            'guest': t('adminCommission.guest'),
+            'member': t('adminCommission.member'),
+            'unit manager': t('adminCommission.unitManager'),
+            'brand manager': t('adminCommission.brandManager')
         };
         return labels[level];
     };
@@ -132,7 +134,7 @@ export default function AdminCommission() {
 
             if (!response.ok) {
                 const error = await response.json();
-                throw new Error(error.error || 'Failed to update commission rates');
+                throw new Error(error.error || t('adminCommission.failedUpdateCommissionRates'));
             }
 
             const result = await response.json();
@@ -140,11 +142,11 @@ export default function AdminCommission() {
             // Update original rates to current values
             setOriginalRates([...commissionRates]);
             setIsEditing(false);
-            setSuccessMessage('Commission rates updated successfully!');
+            setSuccessMessage(t('adminCommission.commissionRatesUpdatedSuccessfully'));
             setTimeout(() => setSuccessMessage(null), 3000);
         } catch (error) {
             console.error('Error saving commission rates:', error);
-            setErrorMessage(error instanceof Error ? error.message : 'Failed to save commission rates. Please try again.');
+            setErrorMessage(error instanceof Error ? error.message : t('adminCommission.failedSaveCommissionRates'));
         } finally {
             setIsSaving(false);
         }
@@ -159,7 +161,7 @@ export default function AdminCommission() {
 
     if (isLoading) {
         return (
-            <AdminLayout title="Commission Management">
+            <AdminLayout title={t('adminCommission.title')}>
                 <div className="commission-page">
                     <div className="commission-loading">
                         <div className="loading-spinner">
@@ -167,7 +169,7 @@ export default function AdminCommission() {
                             <div className="spinner-ring"></div>
                             <div className="spinner-ring"></div>
                         </div>
-                        <p>Loading commission rates...</p>
+                        <p>{t('adminCommission.loadingCommissionRates')}</p>
                     </div>
                 </div>
             </AdminLayout>
@@ -175,7 +177,7 @@ export default function AdminCommission() {
     }
 
     return (
-        <AdminLayout title="Commission Management">
+        <AdminLayout title={t('adminCommission.title')}>
             <div className="commission-page">
                 {/* Error Message */}
                 {errorMessage && (
@@ -200,8 +202,8 @@ export default function AdminCommission() {
                             </svg>
                         </div>
                         <div className="info-card-content">
-                            <div className="info-card-label">Self Commission</div>
-                            <div className="info-card-description">Earned from own successful orders</div>
+                            <div className="info-card-label">{t('adminCommission.selfCommission')}</div>
+                            <div className="info-card-description">{t('adminCommission.selfCommissionDescription')}</div>
                         </div>
                     </div>
                     <div className="info-card">
@@ -214,8 +216,8 @@ export default function AdminCommission() {
                             </svg>
                         </div>
                         <div className="info-card-content">
-                            <div className="info-card-label">Level 1 Commission</div>
-                            <div className="info-card-description">Earned from direct junior advisors' orders</div>
+                            <div className="info-card-label">{t('adminCommission.level1Commission')}</div>
+                            <div className="info-card-description">{t('adminCommission.level1CommissionDescription')}</div>
                         </div>
                     </div>
                     <div className="info-card">
@@ -227,8 +229,8 @@ export default function AdminCommission() {
                             </svg>
                         </div>
                         <div className="info-card-content">
-                            <div className="info-card-label">Level 2 Commission</div>
-                            <div className="info-card-description">Earned from 2nd level junior advisors' orders</div>
+                            <div className="info-card-label">{t('adminCommission.level2Commission')}</div>
+                            <div className="info-card-description">{t('adminCommission.level2CommissionDescription')}</div>
                         </div>
                     </div>
                 </div>
@@ -236,24 +238,24 @@ export default function AdminCommission() {
                 {/* Commission Table */}
                 <div className="commission-table-container">
                     <div className="commission-table-header">
-                        <h3 className="commission-table-title">Current commission rate</h3>
+                        <h3 className="commission-table-title">{t('adminCommission.currentCommissionRate')}</h3>
                         {!isEditing && (
                             <button className="btn-primary" onClick={() => setIsEditing(true)}>
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                     <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
                                     <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
                                 </svg>
-                                Edit Rates
+                                {t('adminCommission.editRates')}
                             </button>
                         )}
                     </div>
                     <table className="commission-table">
                         <thead>
                             <tr>
-                                <th style={{ width: '200px' }}>User Level</th>
-                                <th>Self Commission</th>
-                                <th>Level 1 Down</th>
-                                <th>Level 2 Down</th>
+                                <th style={{ width: '200px' }}>{t('adminCommission.userLevel')}</th>
+                                <th>{t('adminCommission.selfCommission')}</th>
+                                <th>{t('adminCommission.level1Commission')}</th>
+                                <th>{t('adminCommission.level2Commission')}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -268,11 +270,11 @@ export default function AdminCommission() {
                                                     onClick={loadCommissionRates}
                                                     style={{ marginTop: '12px' }}
                                                 >
-                                                    Retry
+                                                    {t('common.retry')}
                                                 </button>
                                             </div>
                                         ) : (
-                                            <p>No commission rates found. Please ensure the database table has been created.</p>
+                                            <p>{t('adminCommission.noCommissionRatesFoundDatabase')}</p>
                                         )}
                                     </td>
                                 </tr>
@@ -353,7 +355,7 @@ export default function AdminCommission() {
                 {isEditing && (
                     <div className="commission-actions">
                         <button className="btn-secondary" onClick={handleCancel} disabled={isSaving}>
-                            Cancel
+                            {t('common.cancel')}
                         </button>
                         <button className="btn-primary" onClick={handleSave} disabled={isSaving}>
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -361,7 +363,7 @@ export default function AdminCommission() {
                                 <polyline points="17 21 17 13 7 13 7 21" />
                                 <polyline points="7 3 7 8 15 8" />
                             </svg>
-                            {isSaving ? 'Saving...' : 'Save Changes'}
+                            {isSaving ? t('common.saving') : t('common.saveChanges')}
                         </button>
                     </div>
                 )}
@@ -386,29 +388,29 @@ export default function AdminCommission() {
                             <line x1="12" y1="16" x2="12" y2="12" />
                             <line x1="12" y1="8" x2="12.01" y2="8" />
                         </svg>
-                        How It Works
+                        {t('adminCommission.howItWorks')}
                     </h3>
                     <div className="example-content">
                         <div className="example-scenario">
-                            <div className="scenario-header">Example Scenario:</div>
+                            <div className="scenario-header">{t('adminCommission.exampleScenario')}</div>
                             <p>
-                                <strong>Unit Manager</strong> makes a <strong>$1,000</strong> sale:
+                                <strong>{t('adminCommission.unitManager')}</strong> {t('adminCommission.makesSale')} <strong>$1,000</strong>:
                             </p>
                             <ul className="scenario-breakdown">
                                 <li>
-                                    <span className="breakdown-label">Self Commission:</span>
+                                    <span className="breakdown-label">{t('adminCommission.selfCommission')}:</span>
                                     <span className="breakdown-value">${(1000 * 0.15).toFixed(2)} (15%)</span>
                                 </li>
                                 <li>
-                                    <span className="breakdown-label">Their Member makes $500 sale:</span>
+                                    <span className="breakdown-label">{t('adminCommission.theirMemberMakesSale')} $500:</span>
                                     <span className="breakdown-value">${(500 * 0.05).toFixed(2)} (5% of $500)</span>
                                 </li>
                                 <li>
-                                    <span className="breakdown-label">Their Member's Guest makes $300 sale:</span>
+                                    <span className="breakdown-label">{t('adminCommission.theirMemberGuestMakesSale')} $300:</span>
                                     <span className="breakdown-value">${(300 * 0.02).toFixed(2)} (2% of $300)</span>
                                 </li>
                                 <li className="breakdown-total">
-                                    <span className="breakdown-label"><strong>Total Earned:</strong></span>
+                                    <span className="breakdown-label"><strong>{t('adminCommission.totalEarned')}:</strong></span>
                                     <span className="breakdown-value"><strong>${(150 + 25 + 6).toFixed(2)}</strong></span>
                                 </li>
                             </ul>

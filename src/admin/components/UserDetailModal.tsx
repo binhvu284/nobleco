@@ -20,8 +20,10 @@ interface UserDetailModalProps {
 
 import { useState, useEffect } from 'react';
 import { getAvatarInitial, getAvatarColor } from '../../utils/avatarUtils';
+import { useTranslation } from '../../shared/contexts/TranslationContext';
 
 export default function UserDetailModal({ open, onClose, user, onEditReferrer }: UserDetailModalProps) {
+    const { t } = useTranslation();
     const [directInferiorsCount, setDirectInferiorsCount] = useState<number>(0);
     const [indirectInferiorsCount, setIndirectInferiorsCount] = useState<number>(0);
     const [superiorInfo, setSuperiorInfo] = useState<{ name: string; email?: string; avatar?: string } | null>(null);
@@ -152,7 +154,7 @@ export default function UserDetailModal({ open, onClose, user, onEditReferrer }:
     if (!open || !user) return null;
 
     const formatDate = (dateString?: string) => {
-        if (!dateString) return 'N/A';
+        if (!dateString) return t('common.notAvailable');
         return new Date(dateString).toLocaleDateString('en-US', {
             year: 'numeric',
             month: 'long',
@@ -161,11 +163,11 @@ export default function UserDetailModal({ open, onClose, user, onEditReferrer }:
     };
 
     const getLevelDisplay = (level?: string) => {
-        if (!level) return 'Guest';
-        if (level === 'unit manager') return 'Unit Manager';
-        if (level === 'brand manager') return 'Brand Manager';
-        if (level === 'member') return 'Member';
-        return 'Guest';
+        if (!level) return t('adminUsers.guest');
+        if (level === 'unit manager') return t('adminUsers.unitManager');
+        if (level === 'brand manager') return t('adminUsers.brandManager');
+        if (level === 'member') return t('adminUsers.member');
+        return t('adminUsers.guest');
     };
 
     return (
@@ -173,8 +175,8 @@ export default function UserDetailModal({ open, onClose, user, onEditReferrer }:
             <div className="modal-overlay" onClick={onClose} />
             <div className="profile-modal-card user-detail-modal" role="dialog" aria-modal="true">
                 <div className="modal-header">
-                    <span>User Details</span>
-                    <button className="modal-close" aria-label="Close" onClick={onClose}>✕</button>
+                    <span>{t('adminUsers.userDetails')}</span>
+                    <button className="modal-close" aria-label={t('common.close')} onClick={onClose}>✕</button>
                 </div>
                 
                 <div className="profile-content">
@@ -238,15 +240,15 @@ export default function UserDetailModal({ open, onClose, user, onEditReferrer }:
                                 <span className={`badge ${user.status === 'active' ? 'badge-success' : 'badge-muted'}`}>
                                     {user.status || 'inactive'}
                                 </span>
-                                <span className="user-points">⭐ {user.points || 0} Points</span>
+                                <span className="user-points">⭐ {user.points || 0} {t('adminUsers.points')}</span>
                             </div>
                             <div className="user-detail-info">
                                 <span className="info-item">
-                                    <strong>ID:</strong> {user.id}
+                                    <strong>{t('adminUsers.id')}:</strong> {user.id}
                                 </span>
                                 <span className="info-separator">•</span>
                                 <span className="info-item">
-                                    <strong>Joined:</strong> {formatDate(user.created_at)}
+                                    <strong>{t('adminUsers.joined')}:</strong> {formatDate(user.created_at)}
                                 </span>
                             </div>
                         </div>
@@ -256,40 +258,40 @@ export default function UserDetailModal({ open, onClose, user, onEditReferrer }:
                     <div className="user-detail-grid">
                         {/* Account Information */}
                         <div className="detail-group">
-                            <h4>Account Information</h4>
+                            <h4>{t('adminUsers.accountInformation')}</h4>
                             <div className="detail-list">
                                 <div className="detail-row">
-                                    <span className="detail-label">Email</span>
+                                    <span className="detail-label">{t('users.email')}</span>
                                     <span className="detail-value">{user.email}</span>
                                 </div>
                                 <div className="detail-row">
-                                    <span className="detail-label">Phone</span>
-                                    <span className="detail-value">{user.phone || 'Not set'}</span>
+                                    <span className="detail-label">{t('users.phone')}</span>
+                                    <span className="detail-value">{user.phone || t('settings.notSet')}</span>
                                 </div>
                                 <div className="detail-row">
-                                    <span className="detail-label">Address</span>
-                                    <span className="detail-value">{user.address || 'Not set'}</span>
+                                    <span className="detail-label">{t('profile.address')}</span>
+                                    <span className="detail-value">{user.address || t('settings.notSet')}</span>
                                 </div>
                                 <div className="detail-row">
-                                    <span className="detail-label">Country</span>
-                                    <span className="detail-value">{(user as any).country || 'Not set'}</span>
+                                    <span className="detail-label">{t('profile.country')}</span>
+                                    <span className="detail-value">{(user as any).country || t('settings.notSet')}</span>
                                 </div>
                                 <div className="detail-row">
-                                    <span className="detail-label">State / Province / City</span>
-                                    <span className="detail-value">{(user as any).state || 'Not set'}</span>
+                                    <span className="detail-label">{t('profile.stateProvinceCity')}</span>
+                                    <span className="detail-value">{(user as any).state || t('settings.notSet')}</span>
                                 </div>
                                 <div className="detail-row">
-                                    <span className="detail-label">Personal ID</span>
+                                    <span className="detail-label">{t('adminUsers.personalID')}</span>
                                     <div className="detail-value" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                                         {loadingPersonalID ? (
-                                            <span>Loading...</span>
+                                            <span>{t('common.loading')}</span>
                                         ) : personalID && (personalID.front_image_url || personalID.back_image_url) ? (
                                             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                                                 {personalID.front_image_url && (
                                                     <div style={{ position: 'relative', display: 'inline-block' }}>
                                                         <img 
                                                             src={personalID.front_image_url}
-                                                            alt="Front side"
+                                                            alt={t('adminUsers.frontSide')}
                                                             style={{
                                                                 width: '80px',
                                                                 height: '50px',
@@ -317,7 +319,7 @@ export default function UserDetailModal({ open, onClose, user, onEditReferrer }:
                                                                 justifyContent: 'center',
                                                                 padding: 0
                                                             }}
-                                                            title="Expand front image"
+                                                            title={t('adminUsers.expandFrontImage')}
                                                         >
                                                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                                                 <polyline points="15 3 21 3 21 9" />
@@ -326,14 +328,14 @@ export default function UserDetailModal({ open, onClose, user, onEditReferrer }:
                                                                 <line x1="3" y1="21" x2="10" y2="14" />
                                                             </svg>
                                                         </button>
-                                                        <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '4px', textAlign: 'center' }}>Front</div>
+                                                        <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '4px', textAlign: 'center' }}>{t('adminUsers.front')}</div>
                                                     </div>
                                                 )}
                                                 {personalID.back_image_url && (
                                                     <div style={{ position: 'relative', display: 'inline-block' }}>
                                                         <img 
                                                             src={personalID.back_image_url}
-                                                            alt="Back side"
+                                                            alt={t('adminUsers.backSide')}
                                                             style={{
                                                                 width: '80px',
                                                                 height: '50px',
@@ -361,7 +363,7 @@ export default function UserDetailModal({ open, onClose, user, onEditReferrer }:
                                                                 justifyContent: 'center',
                                                                 padding: 0
                                                             }}
-                                                            title="Expand back image"
+                                                            title={t('adminUsers.expandBackImage')}
                                                         >
                                                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                                                 <polyline points="15 3 21 3 21 9" />
@@ -370,12 +372,12 @@ export default function UserDetailModal({ open, onClose, user, onEditReferrer }:
                                                                 <line x1="3" y1="21" x2="10" y2="14" />
                                                             </svg>
                                                         </button>
-                                                        <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '4px', textAlign: 'center' }}>Back</div>
+                                                        <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '4px', textAlign: 'center' }}>{t('adminUsers.back')}</div>
                                                     </div>
                                                 )}
                                             </div>
                                         ) : (
-                                            <span>Not uploaded</span>
+                                            <span>{t('adminUsers.notUploaded')}</span>
                                         )}
                                     </div>
                                 </div>
@@ -384,13 +386,13 @@ export default function UserDetailModal({ open, onClose, user, onEditReferrer }:
 
                         {/* Hierarchy */}
                         <div className="detail-group">
-                            <h4>Hierarchy</h4>
+                            <h4>{t('adminUsers.hierarchy')}</h4>
                             <div className="detail-list">
                                 <div className="detail-row">
-                                    <span className="detail-label">Senior Jewelry Consultant</span>
+                                    <span className="detail-label">{t('adminUsers.seniorJewelryConsultant')}</span>
                                     <div className="detail-value" style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'flex-start' }}>
                                         {loadingHierarchy ? (
-                                            'Loading...'
+                                            t('common.loading')
                                         ) : superiorInfo ? (
                                             <>
                                                 <div className="superior-info" style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
@@ -476,7 +478,7 @@ export default function UserDetailModal({ open, onClose, user, onEditReferrer }:
                                                             e.currentTarget.style.background = 'transparent';
                                                             e.currentTarget.style.color = '#6b7280';
                                                         }}
-                                                        title="Edit Referrer"
+                                                        title={t('adminUsers.editReferrer')}
                                                     >
                                                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                                             <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
@@ -487,7 +489,7 @@ export default function UserDetailModal({ open, onClose, user, onEditReferrer }:
                                             </>
                                         ) : (
                                             <>
-                                                <span>None</span>
+                                                <span>{t('adminUsers.none')}</span>
                                                 {onEditReferrer && (
                                                     <button
                                                         onClick={() => {
@@ -515,7 +517,7 @@ export default function UserDetailModal({ open, onClose, user, onEditReferrer }:
                                                             e.currentTarget.style.background = 'transparent';
                                                             e.currentTarget.style.color = '#6b7280';
                                                         }}
-                                                        title="Add Referrer"
+                                                        title={t('adminUsers.addReferrer')}
                                                     >
                                                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                                             <line x1="12" y1="5" x2="12" y2="19" />
@@ -528,29 +530,29 @@ export default function UserDetailModal({ open, onClose, user, onEditReferrer }:
                                     </div>
                                 </div>
                                 <div className="detail-row">
-                                    <span className="detail-label">Direct Jewelry Advisors</span>
-                                    <span className="detail-value">{loadingHierarchy ? 'Loading...' : directInferiorsCount}</span>
+                                    <span className="detail-label">{t('adminUsers.directJewelryAdvisors')}</span>
+                                    <span className="detail-value">{loadingHierarchy ? t('common.loading') : directInferiorsCount}</span>
                                 </div>
                                 <div className="detail-row">
-                                    <span className="detail-label">Indirect Jewelry Advisors</span>
-                                    <span className="detail-value">{loadingHierarchy ? 'Loading...' : indirectInferiorsCount}</span>
+                                    <span className="detail-label">{t('adminUsers.indirectJewelryAdvisors')}</span>
+                                    <span className="detail-value">{loadingHierarchy ? t('common.loading') : indirectInferiorsCount}</span>
                                 </div>
                             </div>
                         </div>
 
                         {/* Referral Information */}
                         <div className="detail-group">
-                            <h4>Referral Information</h4>
+                            <h4>{t('adminUsers.referralInformation')}</h4>
                             <div className="detail-list">
                                 <div className="detail-row">
-                                    <span className="detail-label">Refer Code</span>
+                                    <span className="detail-label">{t('profile.referCode')}</span>
                                     <div className="refer-code-display">
-                                        <code>{user.refer_code || 'N/A'}</code>
+                                        <code>{user.refer_code || t('common.notAvailable')}</code>
                                         {user.refer_code && (
                                             <button 
                                                 className="copy-btn" 
                                                 onClick={copyReferCode}
-                                                title="Copy refer code"
+                                                title={t('profile.copyReferCode')}
                                             >
                                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                                     <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
@@ -570,7 +572,7 @@ export default function UserDetailModal({ open, onClose, user, onEditReferrer }:
                                             className="qr-code-image"
                                         />
                                     </div>
-                                    <p className="qr-code-hint">Scan to signup with this code</p>
+                                    <p className="qr-code-hint">{t('adminUsers.scanToSignup')}</p>
                                 </div>
                             )}
                         </div>
@@ -583,7 +585,7 @@ export default function UserDetailModal({ open, onClose, user, onEditReferrer }:
                 <div className="modal-overlay personal-id-expanded-overlay" onClick={() => setShowPersonalIDExpanded(null)}>
                     <div className="personal-id-expanded-modal" onClick={(e) => e.stopPropagation()}>
                         <div className="personal-id-expanded-header">
-                            <h3>{showPersonalIDExpanded.type === 'front' ? 'Front Side' : 'Back Side'} - Personal ID</h3>
+                            <h3>{showPersonalIDExpanded.type === 'front' ? t('adminUsers.frontSide') : t('adminUsers.backSide')} - {t('adminUsers.personalID')}</h3>
                             <button className="modal-close" onClick={() => setShowPersonalIDExpanded(null)}>
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                     <line x1="18" y1="6" x2="6" y2="18" />

@@ -5,6 +5,7 @@ import { getCurrentUser } from '../../auth';
 import AdminOrderDetailModal from '../components/AdminOrderDetailModal';
 import ConfirmModal from '../components/ConfirmModal';
 import { getAvatarColor, getAvatarInitial, getAvatarViewportStyles } from '../../utils/avatarUtils';
+import { useTranslation } from '../../shared/contexts/TranslationContext';
 
 // Order status type based on database schema
 type OrderStatus = 'pending' | 'processing' | 'confirmed' | 'shipped' | 'delivered' | 'completed' | 'cancelled' | 'refunded';
@@ -62,6 +63,7 @@ const formatDate = (dateString: string): string => {
 };
 
 export default function AdminOrders() {
+    const { t } = useTranslation();
     const [orders, setOrders] = useState<Order[]>([]);
     const [loading, setLoading] = useState(true);
     const [viewMode, setViewMode] = useState<'table' | 'card'>('table');
@@ -105,11 +107,11 @@ export default function AdminOrders() {
                 const data = await response.json();
                 setOrders(data || []);
             } else {
-                console.error('Failed to load orders');
+                console.error(t('adminOrders.failedLoadOrders'));
                 setOrders([]);
             }
         } catch (error) {
-            console.error('Error loading orders:', error);
+            console.error(t('adminOrders.errorLoadingOrders'), error);
             setOrders([]);
         } finally {
             setLoading(false);
@@ -147,27 +149,27 @@ export default function AdminOrders() {
     // Get status display
     const getStatusDisplay = (status: OrderStatus) => {
         const statusConfig = {
-            pending: { label: 'Pending', class: 'status-pending' },
-            processing: { label: 'Processing', class: 'status-processing' },
-            confirmed: { label: 'Confirmed', class: 'status-confirmed' },
-            shipped: { label: 'Shipped', class: 'status-shipped' },
-            delivered: { label: 'Delivered', class: 'status-delivered' },
-            completed: { label: 'Completed', class: 'status-completed' },
-            cancelled: { label: 'Cancelled', class: 'status-cancelled' },
-            refunded: { label: 'Refunded', class: 'status-refunded' },
+            pending: { label: t('adminOrders.pending'), class: 'status-pending' },
+            processing: { label: t('adminOrders.processing'), class: 'status-processing' },
+            confirmed: { label: t('adminOrders.confirmed'), class: 'status-confirmed' },
+            shipped: { label: t('adminOrders.shipped'), class: 'status-shipped' },
+            delivered: { label: t('adminOrders.delivered'), class: 'status-delivered' },
+            completed: { label: t('adminOrders.completed'), class: 'status-completed' },
+            cancelled: { label: t('adminOrders.cancelled'), class: 'status-cancelled' },
+            refunded: { label: t('adminOrders.refunded'), class: 'status-refunded' },
         };
         return statusConfig[status] || { label: status, class: 'status-pending' };
     };
 
     // Get payment method display
     const getPaymentMethodDisplay = (method: string | null) => {
-        if (!method) return 'N/A';
+        if (!method) return t('common.notAvailable');
         const methodMap: Record<string, string> = {
-            cash: 'Cash',
-            card: 'Card',
-            bank_transfer: 'Bank Transfer',
-            credit: 'Credit',
-            other: 'Other'
+            cash: t('adminOrders.cash'),
+            card: t('adminOrders.card'),
+            bank_transfer: t('adminOrders.bankTransfer'),
+            credit: t('adminOrders.credit'),
+            other: t('adminOrders.other')
         };
         return methodMap[method] || method;
     };
@@ -207,11 +209,11 @@ export default function AdminOrders() {
                 setOrderToDelete(null);
             } else {
                 const error = await response.json();
-                throw new Error(error.error || 'Failed to delete order');
+                throw new Error(error.error || t('adminOrders.failedDeleteOrder'));
             }
         } catch (error) {
             console.error('Error deleting order:', error);
-            alert((error as Error).message || 'Failed to delete order');
+            alert((error as Error).message || t('adminOrders.failedDeleteOrder'));
         } finally {
             setDeleteLoading(false);
         }
@@ -250,7 +252,7 @@ export default function AdminOrders() {
             const authToken = localStorage.getItem('nobleco_auth_token');
             
             if (!authToken) {
-                setNotification({ type: 'error', message: 'Authentication required' });
+                setNotification({ type: 'error', message: t('common.authTokenNotFound') });
                 setTimeout(() => setNotification(null), 3000);
                 setShowTestPaymentConfirm(false);
                 setOrderToTestPayment(null);
@@ -270,18 +272,18 @@ export default function AdminOrders() {
             if (response.ok) {
                 setNotification({ 
                     type: 'success', 
-                    message: `Test payment completed successfully! Order ${orderToTestPayment.order_number} has been marked as paid and completed.` 
+                    message: t('adminOrders.testPaymentSuccess').replace('{{orderNumber}}', orderToTestPayment.order_number)
                 });
                 setTimeout(() => setNotification(null), 5000);
                 loadOrders(); // Reload orders to show updated status
             } else {
-                throw new Error(data.error || 'Failed to process test payment');
+                throw new Error(data.error || t('adminOrders.failedProcessTestPayment'));
             }
         } catch (error) {
             console.error('Error processing test payment:', error);
             setNotification({ 
                 type: 'error', 
-                message: (error as Error).message || 'Failed to process test payment' 
+                message: (error as Error).message || t('adminOrders.failedProcessTestPayment') 
             });
             setTimeout(() => setNotification(null), 5000);
         } finally {
@@ -308,7 +310,7 @@ export default function AdminOrders() {
     }, []);
 
     return (
-        <AdminLayout title="Orders Management">
+        <AdminLayout title={t('adminOrders.title')}>
             <div className="admin-orders-page">
                 {/* Toolbar */}
                 <div className="orders-toolbar">
@@ -319,7 +321,7 @@ export default function AdminOrders() {
                             <input
                                 type="text"
                                 className="search-input"
-                                placeholder="Search orders..."
+                                placeholder={t('adminOrders.searchPlaceholder')}
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                             />
@@ -330,7 +332,7 @@ export default function AdminOrders() {
                             <button 
                                 className="btn-filter"
                                 onClick={() => setShowFilterDropdown(!showFilterDropdown)}
-                                title="Filter by status"
+                                title={t('adminOrders.filterByStatus')}
                             >
                                 <IconFilter />
                             </button>
@@ -343,7 +345,7 @@ export default function AdminOrders() {
                                             setShowFilterDropdown(false);
                                         }}
                                     >
-                                        All Orders
+                                        {t('adminOrders.allOrders')}
                                     </button>
                                     <button 
                                         className={`filter-option ${filterStatus === 'pending' ? 'active' : ''}`}
@@ -352,7 +354,7 @@ export default function AdminOrders() {
                                             setShowFilterDropdown(false);
                                         }}
                                     >
-                                        Pending
+                                        {t('adminOrders.pending')}
                                     </button>
                                     <button 
                                         className={`filter-option ${filterStatus === 'processing' ? 'active' : ''}`}
@@ -361,7 +363,7 @@ export default function AdminOrders() {
                                             setShowFilterDropdown(false);
                                         }}
                                     >
-                                        Processing
+                                        {t('adminOrders.processing')}
                                     </button>
                                     <button 
                                         className={`filter-option ${filterStatus === 'completed' ? 'active' : ''}`}
@@ -370,7 +372,7 @@ export default function AdminOrders() {
                                             setShowFilterDropdown(false);
                                         }}
                                     >
-                                        Completed
+                                        {t('adminOrders.completed')}
                                     </button>
                                     <button 
                                         className={`filter-option ${filterStatus === 'confirmed' ? 'active' : ''}`}
@@ -379,7 +381,7 @@ export default function AdminOrders() {
                                             setShowFilterDropdown(false);
                                         }}
                                     >
-                                        Confirmed
+                                        {t('adminOrders.confirmed')}
                                     </button>
                                     <button 
                                         className={`filter-option ${filterStatus === 'shipped' ? 'active' : ''}`}
@@ -388,7 +390,7 @@ export default function AdminOrders() {
                                             setShowFilterDropdown(false);
                                         }}
                                     >
-                                        Shipped
+                                        {t('adminOrders.shipped')}
                                     </button>
                                     <button 
                                         className={`filter-option ${filterStatus === 'delivered' ? 'active' : ''}`}
@@ -397,7 +399,7 @@ export default function AdminOrders() {
                                             setShowFilterDropdown(false);
                                         }}
                                     >
-                                        Delivered
+                                        {t('adminOrders.delivered')}
                                     </button>
                                     <button 
                                         className={`filter-option ${filterStatus === 'cancelled' ? 'active' : ''}`}
@@ -406,7 +408,7 @@ export default function AdminOrders() {
                                             setShowFilterDropdown(false);
                                         }}
                                     >
-                                        Cancelled
+                                        {t('adminOrders.cancelled')}
                                     </button>
                                     <button 
                                         className={`filter-option ${filterStatus === 'refunded' ? 'active' : ''}`}
@@ -415,7 +417,7 @@ export default function AdminOrders() {
                                             setShowFilterDropdown(false);
                                         }}
                                     >
-                                        Refunded
+                                        {t('adminOrders.refunded')}
                                     </button>
                                 </div>
                             )}
@@ -429,14 +431,14 @@ export default function AdminOrders() {
                                 className={`view-btn ${viewMode === 'table' ? 'active' : ''}`}
                                 onClick={() => !isMobile && setViewMode('table')}
                                 disabled={isMobile}
-                                title="Table view"
+                                title={t('common.tableView')}
                             >
                                 <IconList />
                             </button>
                             <button
                                 className={`view-btn ${viewMode === 'card' ? 'active' : ''}`}
                                 onClick={() => setViewMode('card')}
-                                title="Card view"
+                                title={t('common.cardView')}
                             >
                                 <IconGrid />
                             </button>
@@ -451,12 +453,12 @@ export default function AdminOrders() {
                         <table className="orders-table">
                             <thead>
                                 <tr>
-                                    <th>Order Code</th>
-                                    <th>Products</th>
-                                    <th>Order Value</th>
-                                    <th>Status</th>
-                                    <th>Created Date</th>
-                                    <th>Created By</th>
+                                    <th>{t('adminOrders.orderCode')}</th>
+                                    <th>{t('adminOrders.products')}</th>
+                                    <th>{t('adminOrders.orderValue')}</th>
+                                    <th>{t('adminOrders.status')}</th>
+                                    <th>{t('adminOrders.createdDate')}</th>
+                                    <th>{t('adminOrders.createdBy')}</th>
                                     <th></th>
                                 </tr>
                             </thead>
@@ -471,7 +473,7 @@ export default function AdminOrders() {
                                             <span className="order-code">{order.order_number}</span>
                                         </td>
                                         <td>
-                                            <span className="product-count">{order.item_count || 0} items</span>
+                                            <span className="product-count">{order.item_count || 0} {t('adminOrders.items')}</span>
                                         </td>
                                         <td>
                                             <span className="order-value">{formatVND(order.total_amount)}</span>
@@ -516,7 +518,7 @@ export default function AdminOrders() {
                                                     </div>
                                                 </div>
                                             ) : (
-                                                <span className="text-muted">N/A</span>
+                                                <span className="text-muted">{t('common.notAvailable')}</span>
                                             )}
                                         </td>
                                         <td onClick={(e) => e.stopPropagation()}>
@@ -537,7 +539,7 @@ export default function AdminOrders() {
                                                             }}
                                                         >
                                                             <IconEye />
-                                                            View Detail
+                                                            {t('adminOrders.viewDetail')}
                                                         </button>
                                                         {order.status !== 'completed' && order.payment_status !== 'paid' && (
                                                             <button
@@ -545,7 +547,7 @@ export default function AdminOrders() {
                                                                 onClick={(e) => handleTestPaymentClick(order, e)}
                                                                 disabled={testPaymentLoading === order.id}
                                                             >
-                                                                {testPaymentLoading === order.id ? 'Processing...' : '🧪 Test Payment'}
+                                                                {testPaymentLoading === order.id ? t('adminOrders.processing') : `🧪 ${t('adminOrders.testPayment')}`}
                                                             </button>
                                                         )}
                                                         <button
@@ -556,7 +558,7 @@ export default function AdminOrders() {
                                                             }}
                                                         >
                                                             <IconTrash2 />
-                                                            Delete
+                                                            {t('common.delete')}
                                                         </button>
                                                     </div>
                                                 )}
@@ -570,12 +572,12 @@ export default function AdminOrders() {
                         {loading ? (
                             <div className="empty-state">
                                 <div className="loading-spinner"></div>
-                                <p>Loading orders...</p>
+                                <p>{t('adminOrders.loadingOrders')}</p>
                             </div>
                         ) : filteredOrders.length === 0 ? (
                             <div className="empty-state">
                                 <div className="empty-icon">📦</div>
-                                <p>No orders found</p>
+                                <p>{t('adminOrders.noOrdersFound')}</p>
                             </div>
                         ) : null}
                     </div>
@@ -585,7 +587,7 @@ export default function AdminOrders() {
                         {loading ? (
                             <div className="empty-state">
                                 <div className="loading-spinner"></div>
-                                <p>Loading orders...</p>
+                                <p>{t('adminOrders.loadingOrders')}</p>
                             </div>
                         ) : (
                             <>
@@ -620,7 +622,7 @@ export default function AdminOrders() {
                                                             }}
                                                         >
                                                             <IconEye />
-                                                            View Detail
+                                                            {t('adminOrders.viewDetail')}
                                                         </button>
                                                         {order.status !== 'completed' && order.payment_status !== 'paid' && (
                                                             <button
@@ -628,7 +630,7 @@ export default function AdminOrders() {
                                                                 onClick={(e) => handleTestPaymentClick(order, e)}
                                                                 disabled={testPaymentLoading === order.id}
                                                             >
-                                                                {testPaymentLoading === order.id ? 'Processing...' : '🧪 Test Payment'}
+                                                                {testPaymentLoading === order.id ? t('adminOrders.processing') : `🧪 ${t('adminOrders.testPayment')}`}
                                                             </button>
                                                         )}
                                                         <button
@@ -639,7 +641,7 @@ export default function AdminOrders() {
                                                             }}
                                                         >
                                                             <IconTrash2 />
-                                                            Delete
+                                                            {t('common.delete')}
                                                         </button>
                                                     </div>
                                                 )}
@@ -649,7 +651,7 @@ export default function AdminOrders() {
                                         <div className="card-body">
                                             {order.client && (
                                                 <div className="card-row">
-                                                    <span className="card-label">Client:</span>
+                                                    <span className="card-label">{t('adminOrders.client')}:</span>
                                                     <div className="card-value-group">
                                                         <span className="card-value">{order.client.name}</span>
                                                         {order.client.phone && (
@@ -659,19 +661,19 @@ export default function AdminOrders() {
                                                 </div>
                                             )}
                                             <div className="card-row">
-                                                <span className="card-label">Products:</span>
+                                                <span className="card-label">{t('adminOrders.products')}:</span>
                                                 <span className="card-value">{order.item_count || 0} items</span>
                                             </div>
                                             <div className="card-row">
-                                                <span className="card-label">Order Value:</span>
+                                                <span className="card-label">{t('adminOrders.orderValue')}:</span>
                                                 <span className="card-value order-value">{formatVND(order.total_amount)}</span>
                                             </div>
                                             <div className="card-row">
-                                                <span className="card-label">Payment Method:</span>
+                                                <span className="card-label">{t('adminOrders.paymentMethod')}:</span>
                                                 <span className="card-value">{getPaymentMethodDisplay(order.payment_method)}</span>
                                             </div>
                                             <div className="card-row">
-                                                <span className="card-label">Created Date:</span>
+                                                <span className="card-label">{t('adminOrders.createdDate')}:</span>
                                                 <span className="card-value">{formatDate(order.created_at)}</span>
                                             </div>
                                         </div>
@@ -715,7 +717,7 @@ export default function AdminOrders() {
                                 {filteredOrders.length === 0 && (
                                     <div className="empty-state">
                                         <div className="empty-icon">📦</div>
-                                        <p>No orders found</p>
+                                        <p>{t('adminOrders.noOrdersFound')}</p>
                                     </div>
                                 )}
                             </>
@@ -738,10 +740,10 @@ export default function AdminOrders() {
                     open={showDeleteConfirm}
                     onClose={handleDeleteCancel}
                     onConfirm={handleDeleteConfirm}
-                    title="Delete Order"
-                    message={orderToDelete ? `Are you sure you want to delete order "${orderToDelete.order_number}"? This will permanently remove the order and all associated order items. This action cannot be undone.` : 'Are you sure you want to delete this order?'}
-                    confirmText="Delete"
-                    cancelText="Cancel"
+                    title={t('adminOrders.deleteOrder')}
+                    message={orderToDelete ? t('adminOrders.deleteOrderMessage').replace('{{orderNumber}}', orderToDelete.order_number) : t('adminOrders.deleteOrderConfirm')}
+                    confirmText={t('common.delete')}
+                    cancelText={t('common.cancel')}
                     type="danger"
                     loading={deleteLoading}
                 />
@@ -754,10 +756,10 @@ export default function AdminOrders() {
                         setOrderToTestPayment(null);
                     }}
                     onConfirm={handleTestPaymentConfirm}
-                    title="Test Payment"
-                    message={orderToTestPayment ? `Are you sure you want to simulate payment for order "${orderToTestPayment.order_number}"?\n\nThis will mark the order as completed and process commissions. This is for testing only.` : 'Are you sure you want to simulate payment for this order?'}
-                    confirmText="Confirm Test Payment"
-                    cancelText="Cancel"
+                    title={t('adminOrders.testPaymentTitle')}
+                    message={orderToTestPayment ? t('adminOrders.testPaymentMessage').replace('{{orderNumber}}', orderToTestPayment.order_number) : t('adminOrders.testPaymentConfirm')}
+                    confirmText={t('adminOrders.confirmTestPayment')}
+                    cancelText={t('common.cancel')}
                     type="success"
                     loading={orderToTestPayment ? testPaymentLoading === orderToTestPayment.id : false}
                 />

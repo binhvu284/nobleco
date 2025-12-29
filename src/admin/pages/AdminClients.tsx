@@ -12,6 +12,7 @@ import {
     IconGrid
 } from '../components/icons';
 import { getAvatarInitial, getAvatarColor } from '../../utils/avatarUtils';
+import { useTranslation } from '../../shared/contexts/TranslationContext';
 
 interface Client {
     id: number;
@@ -36,6 +37,7 @@ interface Client {
 }
 
 export default function AdminClients() {
+    const { t } = useTranslation();
     const [clients, setClients] = useState<Client[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -170,7 +172,7 @@ export default function AdminClients() {
             setClientToDelete(null);
         } catch (err) {
             console.error('Error deleting client:', err);
-            alert('Failed to delete client. Please try again.');
+            alert(t('adminClients.deleteFailed'));
         } finally {
             setDeleteLoading(false);
         }
@@ -190,7 +192,7 @@ export default function AdminClients() {
     };
 
     const formatDate = (dateString: string | null) => {
-        if (!dateString) return 'N/A';
+        if (!dateString) return t('common.notAvailable');
         return new Date(dateString).toLocaleDateString('en-US', {
             year: 'numeric',
             month: 'short',
@@ -237,7 +239,7 @@ export default function AdminClients() {
     }, [activeDropdown]);
 
     return (
-        <AdminLayout title="Client Management">
+        <AdminLayout title={t('adminClients.title')}>
             <div className="admin-clients-page">
                 {/* Clean Toolbar */}
                 <div className="categories-toolbar">
@@ -246,13 +248,13 @@ export default function AdminClients() {
                             <IconSearch className="search-icon" />
                             <input
                                 type="text"
-                                placeholder="Search clients..."
+                                placeholder={t('adminClients.searchPlaceholder')}
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 className="search-input"
                             />
                         </div>
-                        <button className="btn-filter" title="Filter">
+                        <button className="btn-filter" title={t('adminClients.filter')}>
                             <IconFilter />
                         </button>
                     </div>
@@ -262,7 +264,7 @@ export default function AdminClients() {
                             <button
                                 className={`view-btn ${viewMode === 'table' ? 'active' : ''}`}
                                 onClick={() => !isMobile && setViewMode('table')}
-                                title="Table view"
+                                title={t('adminClients.tableView')}
                                 disabled={isMobile}
                             >
                                 <IconList />
@@ -270,7 +272,7 @@ export default function AdminClients() {
                             <button
                                 className={`view-btn ${viewMode === 'card' ? 'active' : ''}`}
                                 onClick={() => setViewMode('card')}
-                                title="Card view"
+                                title={t('adminClients.cardView')}
                             >
                                 <IconGrid />
                             </button>
@@ -282,10 +284,10 @@ export default function AdminClients() {
                         
                         <button 
                             className="create-btn"
-                            title="Create Client"
+                            title={t('adminClients.createClient')}
                         >
                             <IconPlus />
-                            <span className="desktop-only">Create Client</span>
+                            <span className="desktop-only">{t('adminClients.createClient')}</span>
                         </button>
                     </div>
                 </div>
@@ -297,12 +299,12 @@ export default function AdminClients() {
                         <table className="clients-table">
                             <thead>
                                 <tr>
-                                    <th>Name</th>
-                                    <th>Phone</th>
-                                    <th>Orders Made</th>
-                                    <th>Made By</th>
-                                    <th>Create Date</th>
-                                    <th>Actions</th>
+                                    <th>{t('adminClients.name')}</th>
+                                    <th>{t('adminClients.phone')}</th>
+                                    <th>{t('adminClients.ordersMade')}</th>
+                                    <th>{t('adminClients.madeBy')}</th>
+                                    <th>{t('adminClients.createDate')}</th>
+                                    <th>{t('adminClients.actions')}</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -311,7 +313,7 @@ export default function AdminClients() {
                                         <td colSpan={6} style={{ textAlign: 'center', padding: '40px' }}>
                                             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
                                                 <div className="loading-spinner"></div>
-                                                <p style={{ color: 'var(--muted)', margin: 0 }}>Loading clients...</p>
+                                                <p style={{ color: 'var(--muted)', margin: 0 }}>{t('adminClients.loading')}</p>
                                             </div>
                                         </td>
                                     </tr>
@@ -324,7 +326,7 @@ export default function AdminClients() {
                                 ) : filteredClients.length === 0 ? (
                                     <tr>
                                         <td colSpan={6} style={{ textAlign: 'center', padding: '40px' }}>
-                                            No clients found
+                                            {t('adminClients.noClientsFound')}
                                         </td>
                                     </tr>
                                 ) : (
@@ -362,7 +364,7 @@ export default function AdminClients() {
                                                     <span className="client-name">{client.name}</span>
                                                 </div>
                                             </td>
-                                            <td>{client.phone || 'N/A'}</td>
+                                            <td>{client.phone || t('common.notAvailable')}</td>
                                             <td>
                                                 <span className="orders-badge">{client.completed_orders_count || 0}</span>
                                             </td>
@@ -395,7 +397,7 @@ export default function AdminClients() {
                                                             <span>{client.created_by_user.name}</span>
                                                         </>
                                                     ) : (
-                                                        <span>N/A</span>
+                                                        <span>{t('common.notAvailable')}</span>
                                                     )}
                                                 </div>
                                             </td>
@@ -411,7 +413,7 @@ export default function AdminClients() {
                                                             e.stopPropagation();
                                                             handleDropdownToggle(client.id);
                                                         }}
-                                                        title="More Actions"
+                                                        title={t('adminClients.moreActions')}
                                                     >
                                                         <IconMoreVertical />
                                                     </button>
@@ -425,7 +427,7 @@ export default function AdminClients() {
                                                                 }}
                                                             >
                                                                 <IconEye />
-                                                                View Details
+                                                                {t('adminClients.viewDetails')}
                                                             </button>
                                                             <button 
                                                                 className="unified-dropdown-item danger"
@@ -435,7 +437,7 @@ export default function AdminClients() {
                                                                 }}
                                                             >
                                                                 <IconTrash2 />
-                                                                Delete
+                                                                {t('common.delete')}
                                                             </button>
                                                         </div>
                                                     )}
@@ -454,7 +456,7 @@ export default function AdminClients() {
                         {loading ? (
                             <div className="empty-state">
                                 <div className="loading-spinner"></div>
-                                <p>Loading clients...</p>
+                                <p>{t('adminClients.loading')}</p>
                             </div>
                         ) : error ? (
                             <div className="empty-state">
@@ -462,7 +464,7 @@ export default function AdminClients() {
                             </div>
                         ) : filteredClients.length === 0 ? (
                             <div className="empty-state">
-                                <p>No clients found</p>
+                                <p>{t('adminClients.noClientsFound')}</p>
                             </div>
                         ) : (
                             filteredClients.map((client) => (
@@ -496,10 +498,10 @@ export default function AdminClients() {
                                         </div>
                                         <div className="card-info">
                                             <h3>{client.name}</h3>
-                                            <p className="client-phone">{client.phone || 'N/A'}</p>
+                                            <p className="client-phone">{client.phone || t('common.notAvailable')}</p>
                                         </div>
                                         <div className="card-meta">
-                                            <span className="orders-badge">{client.order_count} orders</span>
+                                            <span className="orders-badge">{client.order_count} {t('adminClients.orders')}</span>
                                             <span className="created-date">{formatDate(client.created_at)}</span>
                                         </div>
                                         <div 
@@ -543,7 +545,7 @@ export default function AdminClients() {
                                     </div>
                                     <div className="card-body">
                                         <div className="card-detail">
-                                            <span className="detail-label">Made By:</span>
+                                            <span className="detail-label">{t('adminClients.madeBy')}:</span>
                                             <div className="made-by-compact">
                                                 {client.created_by_user ? (
                                                     <>
@@ -572,7 +574,7 @@ export default function AdminClients() {
                                                         <span className="detail-value">{client.created_by_user.name}</span>
                                                     </>
                                                 ) : (
-                                                    <span className="detail-value">N/A</span>
+                                                    <span className="detail-value">{t('common.notAvailable')}</span>
                                                 )}
                                             </div>
                                         </div>
@@ -587,8 +589,8 @@ export default function AdminClients() {
                 {viewMode === 'table' && filteredClients.length === 0 && (
                     <div className="empty-state">
                         <div className="empty-icon">👥</div>
-                        <h3>No clients found</h3>
-                        <p>Try adjusting your search criteria or add a new client.</p>
+                        <h3>{t('adminClients.noClientsFound')}</h3>
+                        <p>{t('adminClients.tryAdjustingSearch')}</p>
                     </div>
                 )}
 
@@ -604,7 +606,7 @@ export default function AdminClients() {
                     <div className="modal-overlay" onClick={handleDeleteCancel}>
                         <div className="modal-content delete-modal" onClick={(e) => e.stopPropagation()}>
                             <div className="modal-header">
-                                <h2>Delete Client</h2>
+                                <h2>{t('adminClients.deleteClient')}</h2>
                                 <button 
                                     className="modal-close"
                                     onClick={handleDeleteCancel}
@@ -613,22 +615,22 @@ export default function AdminClients() {
                                 </button>
                             </div>
                             <div className="modal-body">
-                                <p>Are you sure you want to delete <strong>{clientToDelete.name}</strong>?</p>
-                                <p className="warning-text">This action cannot be undone.</p>
+                                <p>{t('adminClients.confirmDelete').replace('{{name}}', clientToDelete.name)}</p>
+                                <p className="warning-text">{t('adminClients.actionCannotBeUndone')}</p>
                             </div>
                             <div className="modal-footer">
                                 <button 
                                     className="btn-secondary"
                                     onClick={handleDeleteCancel}
                                 >
-                                    Cancel
+                                    {t('common.cancel')}
                                 </button>
                                 <button 
                                     className="btn-danger"
                                     onClick={handleDeleteConfirm}
                                     disabled={deleteLoading}
                                 >
-                                    {deleteLoading ? 'Deleting...' : 'Delete'}
+                                    {deleteLoading ? t('common.deleting') : t('common.delete')}
                                 </button>
                             </div>
                         </div>

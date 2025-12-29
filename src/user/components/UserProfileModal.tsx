@@ -5,6 +5,7 @@ import { uploadUserAvatar, deleteUserAvatar, type UserAvatar } from '../../utils
 import { getAvatarInitial, getAvatarColor, getAvatarViewportStyles } from '../../utils/avatarUtils';
 import { IconChevronDown } from '../../admin/components/icons';
 import { compressImage } from '../../utils/imageCompression';
+import { useTranslation } from '../../shared/contexts/TranslationContext';
 
 // Country list for location dropdown
 const COUNTRIES = [
@@ -30,6 +31,7 @@ const LOCATIONS: { [key: string]: string[] } = {
 };
 
 export default function UserProfileModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+    const { t } = useTranslation();
     const [user, setUser] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
@@ -1053,20 +1055,20 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
                     <div className="profile-info-grid">
                         {/* Non-Editable Section */}
                         <div className="profile-section">
-                            <h3 className="profile-section-title">Account Information</h3>
+                            <h3 className="profile-section-title">{t('profile.accountInformation')}</h3>
                             <div className="profile-fields">
                                 <div className="profile-field">
-                                    <label>Email</label>
+                                    <label>{t('profile.email')}</label>
                                     <div className="profile-field-value email-display">{user.email}</div>
                                 </div>
                                 <div className="profile-field">
-                                    <label>Phone Number</label>
-                                    <div className="profile-field-value">{user.phone || 'Not set'}</div>
+                                    <label>{t('profile.phoneNumber')}</label>
+                                    <div className="profile-field-value">{user.phone || t('settings.notSet')}</div>
                                 </div>
                                 <div className="profile-field refer-code-field">
-                                    <label>Refer Code</label>
+                                    <label>{t('profile.referCode')}</label>
                                     <p className="field-description">
-                                        Share your unique refer code to invite others to become your junior advisor.
+                                        {t('profile.referCodeDescription')}
                                     </p>
                                     {user.refer_code ? (
                                         <div className="refer-code-compact-container">
@@ -1076,7 +1078,7 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
                                                     <span>{user.refer_code}</span>
                                                     <button 
                                                         className="copy-btn-inline" 
-                                                        title="Copy refer code"
+                                                        title={t('profile.copyReferCode')}
                                                         onClick={copyReferCode}
                                                     >
                                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -1094,7 +1096,7 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
 
                                             {/* Referral Link Row */}
                                             <div className="refer-link-row">
-                                                <label className="refer-link-label">Referral Link</label>
+                                                <label className="refer-link-label">{t('profile.referralLink')}</label>
                                                 <div className="refer-link-value-compact">
                                                     <input
                                                         type="text"
@@ -1105,7 +1107,7 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
                                                     />
                                                     <button 
                                                         className="copy-btn-inline" 
-                                                        title="Copy referral link"
+                                                        title={t('profile.copyReferralLink')}
                                                         onClick={copyReferLink}
                                                     >
                                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -1129,7 +1131,7 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
                                                         <div className="qr-actions-horizontal">
                                                             <button 
                                                                 className="qr-action-btn-horizontal" 
-                                                                title="Expand QR Code"
+                                                                title={t('profile.expandQRCode')}
                                                                 onClick={expandQRCode}
                                                             >
                                                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -1141,7 +1143,7 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
                                                             </button>
                                                             <button 
                                                                 className="qr-action-btn-horizontal" 
-                                                                title="Download QR Code"
+                                                                title={t('profile.downloadQRCode')}
                                                                 onClick={downloadQRCode}
                                                             >
                                                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -1156,7 +1158,7 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
                                             )}
                                         </div>
                                     ) : (
-                                        <div className="profile-field-value non-editable">N/A</div>
+                                        <div className="profile-field-value non-editable">{t('profile.notAvailable')}</div>
                                     )}
                                 </div>
                             </div>
@@ -1165,47 +1167,47 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
                         {/* Editable Section */}
                         <div className="profile-section">
                             <div className="profile-section-header">
-                                <h3 className="profile-section-title">Personal Information</h3>
+                                <h3 className="profile-section-title">{t('profile.personalInformation')}</h3>
                                 {!isEditing && (
                                     <button className="edit-btn" onClick={() => setIsEditing(true)}>
                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                             <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
                                             <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
                                         </svg>
-                                        Edit
+                                        {t('common.edit')}
                                     </button>
                                 )}
                             </div>
                             <div className="profile-fields">
                                 <div className="profile-field">
-                                    <label>Name</label>
+                                    <label>{t('profile.name')}</label>
                                     {isEditing ? (
                                         <input
                                             type="text"
                                             value={formData.name}
                                             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                            placeholder="Enter your name"
+                                            placeholder={t('profile.enterYourName')}
                                         />
                                     ) : (
-                                        <div className="profile-field-value">{formData.name || 'Not set'}</div>
+                                        <div className="profile-field-value">{formData.name || t('settings.notSet')}</div>
                                     )}
                                 </div>
                                 <div className="profile-field profile-field-full">
-                                    <label>Address</label>
+                                    <label>{t('profile.address')}</label>
                                     {isEditing ? (
                                         <textarea
                                             value={formData.address}
                                             onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                                            placeholder="Enter your address"
+                                            placeholder={t('profile.enterYourAddress')}
                                             rows={2}
                                         />
                                     ) : (
-                                        <div className="profile-field-value">{formData.address || 'Not set'}</div>
+                                        <div className="profile-field-value">{formData.address || t('settings.notSet')}</div>
                                     )}
                                 </div>
                                 <div className="profile-field profile-field-full" style={{ display: 'flex', flexDirection: 'row', gap: '16px' }}>
                                     <div className="profile-field" style={{ flex: 1 }}>
-                                        <label>Country</label>
+                                        <label>{t('profile.country')}</label>
                                         {isEditing ? (
                                             <div className="location-dropdown-wrapper" ref={countryDropdownRef}>
                                                 <div
@@ -1216,7 +1218,7 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
                                                     }}
                                                 >
                                                     <span className={formData.country ? '' : 'location-placeholder'}>
-                                                        {formData.country || 'Select country'}
+                                                        {formData.country || t('profile.selectCountry')}
                                                     </span>
                                                     <IconChevronDown className={showCountryDropdown ? 'rotated' : ''} style={{ width: '12px', height: '12px' }} />
                                                 </div>
@@ -1230,7 +1232,7 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
                                                                     setShowCountryDropdown(false);
                                                                 }}
                                                             >
-                                                                Select country
+                                                                {t('profile.selectCountry')}
                                                             </div>
                                                             {COUNTRIES.map(country => (
                                                                 <div
@@ -1249,11 +1251,11 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
                                                 )}
                                             </div>
                                         ) : (
-                                            <div className="profile-field-value">{formData.country || 'Not set'}</div>
+                                            <div className="profile-field-value">{formData.country || t('settings.notSet')}</div>
                                         )}
                                     </div>
                                     <div className="profile-field" style={{ flex: 1 }}>
-                                        <label>State / Province / City</label>
+                                        <label>{t('profile.stateProvinceCity')}</label>
                                         {isEditing ? (
                                             <div className="location-dropdown-wrapper" ref={stateDropdownRef}>
                                                 <div
@@ -1266,7 +1268,7 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
                                                     }}
                                                 >
                                                     <span className={formData.state ? '' : 'location-placeholder'}>
-                                                        {formData.state || (formData.country && LOCATIONS[formData.country] && LOCATIONS[formData.country].length > 0 ? 'Select state/province/city' : formData.country ? 'No locations available' : 'Select country first')}
+                                                        {formData.state || (formData.country && LOCATIONS[formData.country] && LOCATIONS[formData.country].length > 0 ? t('profile.selectStateProvinceCity') : formData.country ? t('profile.noLocationsAvailable') : t('profile.selectCountryFirst'))}
                                                     </span>
                                                     {formData.country && LOCATIONS[formData.country] && LOCATIONS[formData.country].length > 0 && (
                                                         <IconChevronDown className={showStateDropdown ? 'rotated' : ''} style={{ width: '12px', height: '12px' }} />
@@ -1282,7 +1284,7 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
                                                                     setShowStateDropdown(false);
                                                                 }}
                                                             >
-                                                                Select state/province/city
+                                                                {t('profile.selectStateProvinceCity')}
                                                             </div>
                                                             {LOCATIONS[formData.country].map(location => (
                                                                 <div
@@ -1301,18 +1303,18 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
                                                 )}
                                             </div>
                                         ) : (
-                                            <div className="profile-field-value">{formData.state || 'Not set'}</div>
+                                            <div className="profile-field-value">{formData.state || t('settings.notSet')}</div>
                                         )}
                                     </div>
                                 </div>
                                 
                                 {/* Personal ID Field */}
                                 <div className="profile-field profile-field-full personal-id-field">
-                                    <label>Personal ID</label>
+                                    <label>{t('profile.personalID')}</label>
                                     <div className="personal-id-container">
                                         {/* Front Side */}
                                         <div className="personal-id-item">
-                                            <div className="personal-id-label">Front Side</div>
+                                            <div className="personal-id-label">{t('profile.frontSide')}</div>
                                             {personalID?.front_image_url ? (
                                                 <div className="personal-id-image-wrapper">
                                                     <img 
@@ -1325,7 +1327,7 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
                                                             <button
                                                                 className="personal-id-expand-btn"
                                                                 onClick={() => setShowPersonalIDExpanded({ type: 'front' })}
-                                                                title="Expand image"
+                                                                title={t('profile.expandImage')}
                                                             >
                                                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                                                     <polyline points="15 3 21 3 21 9" />
@@ -1338,7 +1340,7 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
                                                                 className="personal-id-delete-btn"
                                                                 onClick={() => handlePersonalIDDelete('front')}
                                                                 disabled={isUploadingPersonalID}
-                                                                title="Delete image"
+                                                                title={t('profile.deleteImage')}
                                                             >
                                                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                                                     <polyline points="3 6 5 6 21 6" />
@@ -1351,7 +1353,7 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
                                                         <button
                                                             className="personal-id-expand-btn"
                                                             onClick={() => setShowPersonalIDExpanded({ type: 'front' })}
-                                                            title="Expand image"
+                                                            title={t('profile.expandImage')}
                                                         >
                                                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                                                 <polyline points="15 3 21 3 21 9" />
@@ -1380,7 +1382,7 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
                                                                     <div className="spinner-ring"></div>
                                                                     <div className="spinner-ring"></div>
                                                                 </div>
-                                                                <span>Uploading...</span>
+                                                                <span>{t('profile.uploading')}</span>
                                                             </div>
                                                         ) : (
                                                             <div className="personal-id-upload-placeholder">
@@ -1389,19 +1391,19 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
                                                                     <polyline points="17 8 12 3 7 8" />
                                                                     <line x1="12" y1="3" x2="12" y2="15" />
                                                                 </svg>
-                                                                <span>Upload Front</span>
+                                                                <span>{t('profile.uploadFrontSide')}</span>
                                                             </div>
                                                         )}
                                                     </label>
                                                 ) : (
-                                                    <div className="personal-id-empty">Not uploaded</div>
+                                                    <div className="personal-id-empty">{t('profile.notUploaded')}</div>
                                                 )
                                             )}
                                         </div>
 
                                         {/* Back Side */}
                                         <div className="personal-id-item">
-                                            <div className="personal-id-label">Back Side</div>
+                                            <div className="personal-id-label">{t('profile.backSide')}</div>
                                             {personalID?.back_image_url ? (
                                                 <div className="personal-id-image-wrapper">
                                                     <img 
@@ -1414,7 +1416,7 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
                                                             <button
                                                                 className="personal-id-expand-btn"
                                                                 onClick={() => setShowPersonalIDExpanded({ type: 'back' })}
-                                                                title="Expand image"
+                                                                title={t('profile.expandImage')}
                                                             >
                                                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                                                     <polyline points="15 3 21 3 21 9" />
@@ -1427,7 +1429,7 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
                                                                 className="personal-id-delete-btn"
                                                                 onClick={() => handlePersonalIDDelete('back')}
                                                                 disabled={isUploadingPersonalID}
-                                                                title="Delete image"
+                                                                title={t('profile.deleteImage')}
                                                             >
                                                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                                                     <polyline points="3 6 5 6 21 6" />
@@ -1440,7 +1442,7 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
                                                         <button
                                                             className="personal-id-expand-btn"
                                                             onClick={() => setShowPersonalIDExpanded({ type: 'back' })}
-                                                            title="Expand image"
+                                                            title={t('profile.expandImage')}
                                                         >
                                                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                                                 <polyline points="15 3 21 3 21 9" />
@@ -1469,7 +1471,7 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
                                                                     <div className="spinner-ring"></div>
                                                                     <div className="spinner-ring"></div>
                                                                 </div>
-                                                                <span>Uploading...</span>
+                                                                <span>{t('profile.uploading')}</span>
                                                             </div>
                                                         ) : (
                                                             <div className="personal-id-upload-placeholder">
@@ -1478,12 +1480,12 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
                                                                     <polyline points="17 8 12 3 7 8" />
                                                                     <line x1="12" y1="3" x2="12" y2="15" />
                                                                 </svg>
-                                                                <span>Upload Back</span>
+                                                                <span>{t('profile.uploadBackSide')}</span>
                                                             </div>
                                                         )}
                                                     </label>
                                                 ) : (
-                                                    <div className="personal-id-empty">Not uploaded</div>
+                                                    <div className="personal-id-empty">{t('profile.notUploaded')}</div>
                                                 )
                                             )}
                                         </div>
@@ -1513,19 +1515,19 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
                                 {isEditing && (
                                     <div className="profile-actions profile-actions-fixed">
                                         <button className="btn-secondary" onClick={handleCancel} disabled={isSaving}>
-                                            Cancel
+                                            {t('common.cancel')}
                                         </button>
                                         <button className="btn-primary" onClick={handleSave} disabled={isSaving}>
-                                            {isSaving ? 'Saving...' : 'Save Changes'}
+                                            {isSaving ? t('profile.saving') : t('profile.saveChanges')}
                                         </button>
                                     </div>
                                 )}
                             </div>
                         ) : (
                             <div className="profile-error">
-                                <p>Failed to load profile data. Please try again.</p>
+                                <p>{t('profile.failedToLoadProfile')}</p>
                                 <button className="btn-primary" onClick={loadFreshUserData}>
-                                    Retry
+                                    {t('profile.retry')}
                                 </button>
                             </div>
                         )}
@@ -1538,7 +1540,7 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
                 <div className="modal-overlay personal-id-expanded-overlay" onClick={() => setShowAvatarExpanded(false)}>
                     <div className="personal-id-expanded-modal" onClick={(e) => e.stopPropagation()}>
                         <div className="personal-id-expanded-header">
-                            <h3>Avatar</h3>
+                            <h3>{t('profile.avatar')}</h3>
                             <button className="modal-close" onClick={() => setShowAvatarExpanded(false)}>
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                     <line x1="18" y1="6" x2="6" y2="18" />
@@ -1563,7 +1565,7 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
                 <div className="modal-overlay personal-id-expanded-overlay" onClick={() => setShowPersonalIDExpanded(null)}>
                     <div className="personal-id-expanded-modal" onClick={(e) => e.stopPropagation()}>
                         <div className="personal-id-expanded-header">
-                            <h3>{showPersonalIDExpanded.type === 'front' ? 'Front Side' : 'Back Side'} - Personal ID</h3>
+                            <h3>{showPersonalIDExpanded.type === 'front' ? t('profile.frontSidePersonalID') : t('profile.backSidePersonalID')}</h3>
                             <button className="modal-close" onClick={() => setShowPersonalIDExpanded(null)}>
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                     <line x1="18" y1="6" x2="6" y2="18" />
@@ -1587,7 +1589,7 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
                 <div className="modal-overlay qr-modal-overlay" onClick={closeQrModal}>
                     <div className="qr-modal-card" onClick={(e) => e.stopPropagation()}>
                         <div className="qr-modal-header">
-                            <h3>Referral QR Code</h3>
+                            <h3>{t('profile.referralQRCode')}</h3>
                             <button className="close-btn" onClick={closeQrModal}>
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                     <line x1="18" y1="6" x2="6" y2="18" />
@@ -1796,7 +1798,7 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
                                     onClick={handleCropCancel}
                                     disabled={isUploadingAvatar}
                                 >
-                                    Cancel
+                                    {t('common.cancel')}
                                 </button>
                                 <button 
                                     className="btn-primary" 

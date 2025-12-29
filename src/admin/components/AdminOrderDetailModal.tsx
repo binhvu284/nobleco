@@ -11,6 +11,7 @@ import {
     IconMapPin
 } from './icons';
 import { getAvatarColor, getAvatarInitial, getAvatarViewportStyles } from '../../utils/avatarUtils';
+import { useTranslation } from '../../shared/contexts/TranslationContext';
 
 // Order status type
 type OrderStatus = 'pending' | 'processing' | 'confirmed' | 'shipped' | 'delivered' | 'completed' | 'cancelled' | 'refunded';
@@ -106,6 +107,7 @@ interface AdminOrderDetailModalProps {
 }
 
 export default function AdminOrderDetailModal({ open, orderId, onClose }: AdminOrderDetailModalProps) {
+    const { t } = useTranslation();
     const [order, setOrder] = useState<Order | null>(null);
     const [loading, setLoading] = useState(false);
     const [isFullscreen, setIsFullscreen] = useState(false);
@@ -152,7 +154,7 @@ export default function AdminOrderDetailModal({ open, orderId, onClose }: AdminO
             } else {
                 const errorData = await response.json().catch(() => ({}));
                 console.error('Failed to load order detail:', response.status, errorData);
-                alert('Failed to load order details');
+                alert(t('adminOrders.failedLoadOrderDetails'));
             }
         } catch (error) {
             console.error('Error loading order detail:', error);
@@ -168,28 +170,39 @@ export default function AdminOrderDetailModal({ open, orderId, onClose }: AdminO
 
     const getStatusDisplay = (status: OrderStatus) => {
         const statusConfig = {
-            pending: { label: 'Pending', class: 'status-pending' },
-            processing: { label: 'Processing', class: 'status-processing' },
-            confirmed: { label: 'Confirmed', class: 'status-confirmed' },
-            shipped: { label: 'Shipped', class: 'status-shipped' },
-            delivered: { label: 'Delivered', class: 'status-delivered' },
-            completed: { label: 'Completed', class: 'status-completed' },
-            cancelled: { label: 'Cancelled', class: 'status-cancelled' },
-            refunded: { label: 'Refunded', class: 'status-refunded' },
+            pending: { label: t('adminOrders.pending'), class: 'status-pending' },
+            processing: { label: t('adminOrders.processing'), class: 'status-processing' },
+            confirmed: { label: t('adminOrders.confirmed'), class: 'status-confirmed' },
+            shipped: { label: t('adminOrders.shipped'), class: 'status-shipped' },
+            delivered: { label: t('adminOrders.delivered'), class: 'status-delivered' },
+            completed: { label: t('adminOrders.completed'), class: 'status-completed' },
+            cancelled: { label: t('adminOrders.cancelled'), class: 'status-cancelled' },
+            refunded: { label: t('adminOrders.refunded'), class: 'status-refunded' },
         };
         return statusConfig[status];
     };
 
     const getPaymentMethodDisplay = (method: string | null) => {
-        if (!method) return 'N/A';
+        if (!method) return t('common.notAvailable');
         const methodMap: Record<string, string> = {
-            cash: 'Cash',
-            card: 'Card',
-            bank_transfer: 'Bank Transfer',
-            credit: 'Credit',
-            other: 'Other'
+            cash: t('adminOrders.cash'),
+            card: t('adminOrders.card'),
+            bank_transfer: t('adminOrders.bankTransfer'),
+            credit: t('adminOrders.credit'),
+            other: t('adminOrders.other')
         };
         return methodMap[method] || method;
+    };
+
+    const getPaymentStatusDisplay = (status: string) => {
+        const statusMap: Record<string, string> = {
+            pending: t('adminOrders.paymentStatusPending'),
+            partial: t('adminOrders.paymentStatusPartial'),
+            paid: t('adminOrders.paymentStatusPaid'),
+            failed: t('adminOrders.paymentStatusFailed'),
+            refunded: t('adminOrders.paymentStatusRefunded')
+        };
+        return statusMap[status] || status.charAt(0).toUpperCase() + status.slice(1);
     };
 
     if (!open) return null;
@@ -200,7 +213,7 @@ export default function AdminOrderDetailModal({ open, orderId, onClose }: AdminO
             <div className={`order-detail-modal ${isFullscreen ? 'fullscreen' : ''}`}>
                 <div className="order-detail-header">
                     <div className="order-detail-header-left">
-                        <h2>Order Details</h2>
+                        <h2>{t('adminOrders.orderDetails')}</h2>
                         {order && (
                             <span className={`status-badge ${getStatusDisplay(order.status).class}`}>
                                 {getStatusDisplay(order.status).label}
@@ -208,7 +221,7 @@ export default function AdminOrderDetailModal({ open, orderId, onClose }: AdminO
                         )}
                         {order && order.creator && (
                             <div className="order-detail-made-by">
-                                <span className="made-by-label">Made by:</span>
+                                <span className="made-by-label">{t('adminOrders.madeBy')}:</span>
                                 <div className="user-info" style={{ margin: 0 }}>
                                     {order.creator.avatar?.url ? (
                                         <img
@@ -249,7 +262,7 @@ export default function AdminOrderDetailModal({ open, orderId, onClose }: AdminO
                             <button
                                 className="order-detail-expand"
                                 onClick={toggleFullscreen}
-                                title={isFullscreen ? 'Shrink' : 'Expand'}
+                                title={isFullscreen ? t('common.collapse') : t('common.expand')}
                             >
                                 {isFullscreen ? <IconMinimize /> : <IconMaximize />}
                             </button>
@@ -257,7 +270,7 @@ export default function AdminOrderDetailModal({ open, orderId, onClose }: AdminO
                         <button
                             className="order-detail-close"
                             onClick={onClose}
-                            title="Close"
+                            title={t('common.close')}
                         >
                             <IconX />
                         </button>
@@ -268,7 +281,7 @@ export default function AdminOrderDetailModal({ open, orderId, onClose }: AdminO
                     {loading ? (
                         <div className="order-detail-loading">
                             <div className="loading-spinner"></div>
-                            <p>Loading order details...</p>
+                            <p>{t('adminOrders.loadingOrderDetails')}</p>
                         </div>
                     ) : order ? (
                         <div className="order-detail-content">
@@ -278,42 +291,42 @@ export default function AdminOrderDetailModal({ open, orderId, onClose }: AdminO
                                 <section className="order-detail-section compact">
                                     <h3 className="order-detail-section-title">
                                         <IconPackage />
-                                        Order Information
+                                        {t('adminOrders.orderInformation')}
                                     </h3>
                                     <div className="order-detail-grid compact-grid">
                                         {/* Order Number and Location on same line */}
                                         <div className="order-detail-field-row">
                                             <div className="order-detail-field">
-                                                <label style={{ color: 'var(--muted)', fontWeight: '500' }}>Order Number</label>
+                                                <label style={{ color: 'var(--muted)', fontWeight: '500' }}>{t('adminOrders.orderCode')}</label>
                                                 <span className="order-number">{order.order_number}</span>
                                             </div>
                                             <div className="order-detail-field">
-                                                <label style={{ color: 'var(--muted)', fontWeight: '500' }}>Order Location</label>
+                                                <label style={{ color: 'var(--muted)', fontWeight: '500' }}>{t('adminOrders.orderLocation')}</label>
                                                 {order.shipping_address ? (
                                                     <span>
                                                         <IconMapPin style={{ width: '14px', height: '14px', display: 'inline-block', marginRight: '6px', verticalAlign: 'middle' }} />
                                                         {order.shipping_address}
                                                     </span>
                                                 ) : (
-                                                    <span className="text-muted">N/A</span>
+                                                    <span className="text-muted">{t('common.notAvailable')}</span>
                                                 )}
                                             </div>
                                         </div>
                                         {/* Created Date and Last Updated/Completed Date on same line */}
                                         <div className="order-detail-field-row">
                                             <div className="order-detail-field">
-                                                <label style={{ color: 'var(--muted)', fontWeight: '500' }}>Created Date</label>
+                                                <label style={{ color: 'var(--muted)', fontWeight: '500' }}>{t('adminOrders.createdDate')}</label>
                                                 <span>{formatDateTime(order.created_at)}</span>
                                             </div>
                                             <div className="order-detail-field">
                                                 {order.status === 'completed' && order.completed_at ? (
                                                     <>
-                                                        <label style={{ color: 'var(--muted)', fontWeight: '500' }}>Completed Date</label>
+                                                        <label style={{ color: 'var(--muted)', fontWeight: '500' }}>{t('adminOrders.completedDate')}</label>
                                                         <span>{formatDateTime(order.completed_at)}</span>
                                                     </>
                                                 ) : (
                                                     <>
-                                                        <label style={{ color: 'var(--muted)', fontWeight: '500' }}>Last Updated</label>
+                                                        <label style={{ color: 'var(--muted)', fontWeight: '500' }}>{t('adminOrders.lastUpdated')}</label>
                                                         <span>{formatDateTime(order.updated_at)}</span>
                                                     </>
                                                 )}
@@ -322,7 +335,7 @@ export default function AdminOrderDetailModal({ open, orderId, onClose }: AdminO
                                         {/* Cancelled date on separate line if exists */}
                                         {order.cancelled_at && (
                                             <div className="order-detail-field">
-                                                <label style={{ color: 'var(--muted)', fontWeight: '500' }}>Cancelled Date</label>
+                                                <label style={{ color: 'var(--muted)', fontWeight: '500' }}>{t('adminOrders.cancelledDate')}</label>
                                                 <span>{formatDateTime(order.cancelled_at)}</span>
                                             </div>
                                         )}
@@ -333,35 +346,35 @@ export default function AdminOrderDetailModal({ open, orderId, onClose }: AdminO
                                 <section className="order-detail-section compact">
                                     <h3 className="order-detail-section-title">
                                         <IconUser />
-                                        Client Information
+                                        {t('adminOrders.clientInformation')}
                                     </h3>
                                     <div className="order-detail-grid compact-grid">
                                         {order.client ? (
                                             <>
                                                 <div className="order-detail-field-row">
                                                     <div className="order-detail-field">
-                                                        <label style={{ color: 'var(--muted)', fontWeight: '500' }}>Client Name</label>
+                                                        <label style={{ color: 'var(--muted)', fontWeight: '500' }}>{t('adminOrders.clientName')}</label>
                                                         <span>{order.client.name}</span>
                                                     </div>
                                                     <div className="order-detail-field">
-                                                        <label style={{ color: 'var(--muted)', fontWeight: '500' }}>Phone</label>
+                                                        <label style={{ color: 'var(--muted)', fontWeight: '500' }}>{t('adminOrders.phone')}</label>
                                                         <span>{order.client.phone}</span>
                                                     </div>
                                                 </div>
                                                 <div className="order-detail-field-row">
                                                     <div className="order-detail-field">
-                                                        <label style={{ color: 'var(--muted)', fontWeight: '500' }}>Location</label>
-                                                        <span>{order.client.location || 'N/A'}</span>
+                                                        <label style={{ color: 'var(--muted)', fontWeight: '500' }}>{t('adminOrders.location')}</label>
+                                                        <span>{order.client.location || t('common.notAvailable')}</span>
                                                     </div>
                                                     <div className="order-detail-field">
-                                                        <label style={{ color: 'var(--muted)', fontWeight: '500' }}>Gender</label>
-                                                        <span>{order.client.gender || 'N/A'}</span>
+                                                        <label style={{ color: 'var(--muted)', fontWeight: '500' }}>{t('adminOrders.gender')}</label>
+                                                        <span>{order.client.gender ? (order.client.gender === 'Male' ? t('adminOrders.male') : order.client.gender === 'Female' ? t('adminOrders.female') : t('adminOrders.other')) : t('common.notAvailable')}</span>
                                                     </div>
                                                 </div>
                                             </>
                                         ) : (
                                             <div className="order-detail-field">
-                                                <span className="text-muted">No client assigned</span>
+                                                <span className="text-muted">{t('adminOrders.noClientAssigned')}</span>
                                             </div>
                                         )}
                                     </div>
@@ -373,18 +386,18 @@ export default function AdminOrderDetailModal({ open, orderId, onClose }: AdminO
                                 <section className="order-detail-section">
                                     <h3 className="order-detail-section-title">
                                         <IconPackage />
-                                        Order Items ({order.items.length})
+                                        {t('adminOrders.orderItems')} ({order.items.length})
                                     </h3>
                                     <div className="order-items-table">
                                         <table>
                                             <thead>
                                                 <tr>
-                                                    <th>Product</th>
-                                                    <th>SKU</th>
-                                                    <th>Quantity</th>
-                                                    <th>Unit Price</th>
-                                                    <th>Discount</th>
-                                                    <th>Line Total</th>
+                                                    <th>{t('adminOrders.product')}</th>
+                                                    <th>{t('adminOrders.sku')}</th>
+                                                    <th>{t('adminOrders.quantity')}</th>
+                                                    <th>{t('adminOrders.unitPrice')}</th>
+                                                    <th>{t('adminOrders.discount')}</th>
+                                                    <th>{t('adminOrders.lineTotal')}</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -394,7 +407,7 @@ export default function AdminOrderDetailModal({ open, orderId, onClose }: AdminO
                                                             <span className="item-name">{item.product_name}</span>
                                                         </td>
                                                         <td>
-                                                            <span className="item-sku">{item.product_sku || 'N/A'}</span>
+                                                            <span className="item-sku">{item.product_sku || t('common.notAvailable')}</span>
                                                         </td>
                                                         <td>
                                                             <span className="item-quantity">{item.quantity}</span>
@@ -422,28 +435,28 @@ export default function AdminOrderDetailModal({ open, orderId, onClose }: AdminO
                             <section className="order-detail-section">
                                 <h3 className="order-detail-section-title">
                                     <IconFileText />
-                                    Order Summary
+                                    {t('adminOrders.orderSummary')}
                                 </h3>
                                 <div className="order-summary">
                                     <div className="order-summary-row">
-                                        <span>Subtotal</span>
+                                        <span>{t('adminOrders.subtotal')}</span>
                                         <span>{formatVND(order.subtotal_amount)}</span>
                                     </div>
                                     {order.discount_amount > 0 && (
                                         <div className="order-summary-row discount">
-                                            <span>Discount</span>
+                                            <span>{t('adminOrders.discount')}</span>
                                             <span>-{formatVND(order.discount_amount)}</span>
                                         </div>
                                     )}
                                     {order.tax_amount > 0 && (
                                         <div className="order-summary-row">
-                                            <span>Tax</span>
+                                            <span>{t('adminOrders.tax')}</span>
                                             <span>{formatVND(order.tax_amount)}</span>
                                         </div>
                                     )}
                                     <div className="order-summary-divider"></div>
                                     <div className="order-summary-row total">
-                                        <span>Total Amount</span>
+                                        <span>{t('adminOrders.totalAmount')}</span>
                                         <span>{formatVND(order.total_amount)}</span>
                                     </div>
                                     {order.payment_method && (
@@ -452,7 +465,7 @@ export default function AdminOrderDetailModal({ open, orderId, onClose }: AdminO
                                             <div className="order-summary-row">
                                                 <span>
                                                     <IconCreditCard style={{ width: '16px', height: '16px', display: 'inline-block', marginRight: '6px', verticalAlign: 'middle' }} />
-                                                    Payment Method
+                                                    {t('adminOrders.paymentMethod')}
                                                 </span>
                                                 <span>{getPaymentMethodDisplay(order.payment_method)}</span>
                                             </div>
@@ -464,10 +477,10 @@ export default function AdminOrderDetailModal({ open, orderId, onClose }: AdminO
                                             <div className="order-summary-row">
                                                 <span>
                                                     <IconCreditCard style={{ width: '16px', height: '16px', display: 'inline-block', marginRight: '6px', verticalAlign: 'middle' }} />
-                                                    Payment Status
+                                                    {t('adminOrders.paymentStatus')}
                                                 </span>
                                                 <span className={`status-badge status-${order.payment_status}`}>
-                                                    {order.payment_status.charAt(0).toUpperCase() + order.payment_status.slice(1)}
+                                                    {getPaymentStatusDisplay(order.payment_status)}
                                                 </span>
                                             </div>
                                         </>
@@ -480,7 +493,7 @@ export default function AdminOrderDetailModal({ open, orderId, onClose }: AdminO
                                 <section className="order-detail-section">
                                     <h3 className="order-detail-section-title">
                                         <IconFileText />
-                                        Additional Notes
+                                        {t('adminOrders.additionalNotes')}
                                     </h3>
                                     <div className="order-notes">
                                         <p>{order.notes}</p>
@@ -491,7 +504,7 @@ export default function AdminOrderDetailModal({ open, orderId, onClose }: AdminO
                     ) : (
                         <div className="order-detail-empty">
                             <IconPackage />
-                            <p>Order not found</p>
+                            <p>{t('adminOrders.orderNotFound')}</p>
                         </div>
                     )}
                 </div>

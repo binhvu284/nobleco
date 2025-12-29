@@ -3,6 +3,7 @@ import AdminLayout from '../components/AdminLayout';
 import { IconSearch, IconFilter, IconMoreVertical, IconEye, IconTrash2, IconList, IconGrid, IconX, IconChevronDown } from '../components/icons';
 import ConfirmModal from '../components/ConfirmModal';
 import { getAvatarColor, getAvatarInitial } from '../../utils/avatarUtils';
+import { useTranslation } from '../../shared/contexts/TranslationContext';
 
 type RequestStatus = 'pending' | 'approve' | 'reject';
 
@@ -31,6 +32,7 @@ type SortField = 'user' | 'point' | 'amount' | 'request_date' | null;
 type SortDirection = 'asc' | 'desc' | null;
 
 export default function AdminRequest() {
+    const { t } = useTranslation();
     const [requests, setRequests] = useState<WithdrawRequest[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
@@ -123,6 +125,25 @@ export default function AdminRequest() {
     useEffect(() => {
         loadRequests();
     }, [loadRequests]);
+
+    const getLevelLabel = (level: string) => {
+        const labels: Record<string, string> = {
+            'guest': t('adminCommission.guest'),
+            'member': t('adminCommission.member'),
+            'unit manager': t('adminCommission.unitManager'),
+            'brand manager': t('adminCommission.brandManager')
+        };
+        return labels[level] || level;
+    };
+
+    const getStatusLabel = (status: RequestStatus) => {
+        const labels: Record<RequestStatus, string> = {
+            'pending': t('adminWithdraw.pending'),
+            'approve': t('adminWithdraw.approved'),
+            'reject': t('adminWithdraw.rejected')
+        };
+        return labels[status] || status;
+    };
 
     const getLevelColor = (level: string) => {
         const colors: Record<string, string> = {
@@ -332,11 +353,11 @@ export default function AdminRequest() {
                 setActiveDropdown(null);
             } else {
                 const error = await response.json().catch(() => ({ error: 'Failed to approve request' }));
-                throw new Error(error.error || 'Failed to approve request');
+                throw new Error(error.error || t('adminWithdraw.failedApproveRequest'));
             }
         } catch (error) {
             console.error('Error approving request:', error);
-            alert((error as Error).message || 'Failed to approve request');
+            alert((error as Error).message || t('adminWithdraw.failedApproveRequest'));
         } finally {
             setLoadingAction({ type: null, requestId: null });
         }
@@ -367,11 +388,11 @@ export default function AdminRequest() {
                 setActiveDropdown(null);
             } else {
                 const error = await response.json().catch(() => ({ error: 'Failed to reject request' }));
-                throw new Error(error.error || 'Failed to reject request');
+                throw new Error(error.error || t('adminWithdraw.failedRejectRequest'));
             }
         } catch (error) {
             console.error('Error rejecting request:', error);
-            alert((error as Error).message || 'Failed to reject request');
+            alert((error as Error).message || t('adminWithdraw.failedRejectRequest'));
         } finally {
             setLoadingAction({ type: null, requestId: null });
         }
@@ -414,11 +435,11 @@ export default function AdminRequest() {
                 setActiveDropdown(null);
             } else {
                 const error = await response.json().catch(() => ({ error: 'Failed to delete request' }));
-                throw new Error(error.error || 'Failed to delete request');
+                throw new Error(error.error || t('adminWithdraw.failedDeleteRequest'));
             }
         } catch (error) {
             console.error('Error deleting request:', error);
-            alert((error as Error).message || 'Failed to delete request');
+            alert((error as Error).message || t('adminWithdraw.failedDeleteRequest'));
         } finally {
             setLoadingAction({ type: null, requestId: null });
         }
@@ -455,10 +476,10 @@ export default function AdminRequest() {
 
     if (loading) {
         return (
-            <AdminLayout title="Withdraw Request">
+            <AdminLayout title={t('adminWithdraw.title')}>
                 <div className="empty-state">
                     <div className="loading-spinner"></div>
-                    <p>Loading requests...</p>
+                    <p>{t('adminWithdraw.loadingRequests')}</p>
                 </div>
             </AdminLayout>
         );
@@ -476,7 +497,7 @@ export default function AdminRequest() {
                             <input
                                 type="text"
                                 className="search-input"
-                                placeholder="Search by name or email..."
+                                placeholder={t('adminWithdraw.searchPlaceholder')}
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                             />
@@ -487,7 +508,7 @@ export default function AdminRequest() {
                             <button 
                                 className="btn-filter"
                                 onClick={() => setShowFilterPopup(true)}
-                                title="Filter requests"
+                                title={t('adminWithdraw.filterRequests')}
                             >
                                 <IconFilter />
                             </button>
@@ -499,14 +520,14 @@ export default function AdminRequest() {
                             <button
                                 className={`view-btn ${viewMode === 'table' ? 'active' : ''}`}
                                 onClick={() => setViewMode('table')}
-                                title="Table view"
+                                title={t('common.tableView')}
                             >
                                 <IconList />
                             </button>
                             <button
                                 className={`view-btn ${viewMode === 'card' ? 'active' : ''}`}
                                 onClick={() => setViewMode('card')}
-                                title="Card view"
+                                title={t('common.cardView')}
                             >
                                 <IconGrid />
                             </button>
@@ -520,22 +541,22 @@ export default function AdminRequest() {
                         <table className="request-table">
                             <thead>
                                 <tr>
-                                    <th>ID</th>
+                                    <th>{t('adminWithdraw.id')}</th>
                                     <th 
                                         className="sortable-header"
                                         onClick={() => handleSort('user')}
                                         style={{ cursor: 'pointer' }}
                                     >
-                                        <span>User</span>
+                                        <span>{t('adminWithdraw.user')}</span>
                                         {getSortIcon('user')}
                                     </th>
-                                    <th>Level</th>
+                                    <th>{t('adminWithdraw.level')}</th>
                                     <th 
                                         className="sortable-header"
                                         onClick={() => handleSort('point')}
                                         style={{ cursor: 'pointer' }}
                                     >
-                                        <span>Points</span>
+                                        <span>{t('adminWithdraw.points')}</span>
                                         {getSortIcon('point')}
                                     </th>
                                     <th 
@@ -543,20 +564,20 @@ export default function AdminRequest() {
                                         onClick={() => handleSort('amount')}
                                         style={{ cursor: 'pointer' }}
                                     >
-                                        <span>Amount</span>
+                                        <span>{t('adminWithdraw.amount')}</span>
                                         {getSortIcon('amount')}
                                     </th>
-                                    <th>Bank Info</th>
+                                    <th>{t('adminWithdraw.bankInfo')}</th>
                                     <th 
                                         className="sortable-header"
                                         onClick={() => handleSort('request_date')}
                                         style={{ cursor: 'pointer' }}
                                     >
-                                        <span>Request Date</span>
+                                        <span>{t('adminWithdraw.requestDate')}</span>
                                         {getSortIcon('request_date')}
                                     </th>
-                                    <th>Status</th>
-                                    <th>Actions</th>
+                                    <th>{t('adminWithdraw.status')}</th>
+                                    <th>{t('adminWithdraw.actions')}</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -569,7 +590,7 @@ export default function AdminRequest() {
                                                 <line x1="9" y1="9" x2="9.01" y2="9" />
                                                 <line x1="15" y1="9" x2="15.01" y2="9" />
                                             </svg>
-                                            <p>No requests found</p>
+                                            <p>{t('adminWithdraw.noRequestsFound')}</p>
                                         </td>
                                     </tr>
                                 ) : (
@@ -610,7 +631,7 @@ export default function AdminRequest() {
                                                         className="level-badge"
                                                         style={{ backgroundColor: getLevelColor(user.level) }}
                                                     >
-                                                        {user.level}
+                                                        {getLevelLabel(user.level)}
                                                     </span>
                                                 </td>
                                                 <td>
@@ -632,7 +653,7 @@ export default function AdminRequest() {
                                                         style={{ backgroundColor: getStatusColor(request.status) }}
                                                     >
                                                         {getStatusIcon(request.status)}
-                                                        {request.status}
+                                                        {getStatusLabel(request.status)}
                                                     </span>
                                                 </td>
                                                 <td onClick={(e) => e.stopPropagation()}>
@@ -643,7 +664,7 @@ export default function AdminRequest() {
                                                                 e.stopPropagation();
                                                                 toggleDropdown(request.id);
                                                             }}
-                                                            title="More Actions"
+                                                            title={t('adminWithdraw.moreActions')}
                                                         >
                                                             <IconMoreVertical />
                                                         </button>
@@ -654,7 +675,7 @@ export default function AdminRequest() {
                                                                     onClick={() => openDetailModal(request)}
                                                                 >
                                                                     <IconEye />
-                                                                    Detail
+                                                                    {t('adminWithdraw.detail')}
                                                                 </button>
                                                                 {request.status === 'pending' && (
                                                                     <>
@@ -666,7 +687,7 @@ export default function AdminRequest() {
                                                                                 <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
                                                                                 <polyline points="22 4 12 14.01 9 11.01" />
                                                                             </svg>
-                                                                            Approve
+                                                                            {t('adminWithdraw.approve')}
                                                                         </button>
                                                                         <button
                                                                             className="unified-dropdown-item"
@@ -677,7 +698,7 @@ export default function AdminRequest() {
                                                                                 <line x1="15" y1="9" x2="9" y2="15" />
                                                                                 <line x1="9" y1="9" x2="15" y2="15" />
                                                                             </svg>
-                                                                            Reject
+                                                                            {t('adminWithdraw.reject')}
                                                                         </button>
                                                                     </>
                                                                 )}
@@ -690,7 +711,7 @@ export default function AdminRequest() {
                                                                     disabled={loadingAction.type === 'delete' && loadingAction.requestId === request.id}
                                                                 >
                                                                     <IconTrash2 />
-                                                                    {loadingAction.type === 'delete' && loadingAction.requestId === request.id ? 'Deleting...' : 'Delete'}
+                                                                    {loadingAction.type === 'delete' && loadingAction.requestId === request.id ? t('common.deleting') : t('common.delete')}
                                                                 </button>
                                                             </div>
                                                         )}
@@ -714,7 +735,7 @@ export default function AdminRequest() {
                                     <line x1="9" y1="9" x2="9.01" y2="9" />
                                     <line x1="15" y1="9" x2="15.01" y2="9" />
                                 </svg>
-                                <p>No requests found</p>
+                                <p>{t('adminWithdraw.noRequestsFound')}</p>
                             </div>
                         ) : (
                             filteredAndSortedRequests.map((request) => {
@@ -748,7 +769,7 @@ export default function AdminRequest() {
                                                             onClick={() => openDetailModal(request)}
                                                         >
                                                             <IconEye />
-                                                            Detail
+                                                            {t('adminWithdraw.detail')}
                                                         </button>
                                                         {request.status === 'pending' && (
                                                             <>
@@ -764,7 +785,7 @@ export default function AdminRequest() {
                                                                                 <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
                                                                                 <polyline points="22 4 12 14.01 9 11.01" />
                                                                             </svg>
-                                                                            {loadingAction.type === 'approve' && loadingAction.requestId === request.id ? 'Approving...' : 'Approve'}
+                                                                            {loadingAction.type === 'approve' && loadingAction.requestId === request.id ? t('adminWithdraw.approving') : t('adminWithdraw.approve')}
                                                                         </button>
                                                                         <button
                                                                             className="unified-dropdown-item"
@@ -779,7 +800,7 @@ export default function AdminRequest() {
                                                                                 <line x1="15" y1="9" x2="9" y2="15" />
                                                                                 <line x1="9" y1="9" x2="15" y2="15" />
                                                                             </svg>
-                                                                            {loadingAction.type === 'reject' && loadingAction.requestId === request.id ? 'Rejecting...' : 'Reject'}
+                                                                            {loadingAction.type === 'reject' && loadingAction.requestId === request.id ? t('adminWithdraw.rejecting') : t('adminWithdraw.reject')}
                                                                         </button>
                                                                     </>
                                                                 )}
@@ -792,7 +813,7 @@ export default function AdminRequest() {
                                                                     disabled={loadingAction.type === 'delete' && loadingAction.requestId === request.id}
                                                                 >
                                                                     <IconTrash2 />
-                                                                    {loadingAction.type === 'delete' && loadingAction.requestId === request.id ? 'Deleting...' : 'Delete'}
+                                                                    {loadingAction.type === 'delete' && loadingAction.requestId === request.id ? t('common.deleting') : t('common.delete')}
                                                                 </button>
                                                     </div>
                                                 )}
@@ -801,7 +822,7 @@ export default function AdminRequest() {
 
                                         <div className="card-body">
                                             <div className="card-row">
-                                                <span className="card-label">User:</span>
+                                                <span className="card-label">{t('adminWithdraw.user')}:</span>
                                                 <div className="card-value-group">
                                                     <div className="user-info" style={{ margin: 0 }}>
                                                         {user.avatar_url && !failedAvatars.has(user.id) ? (
@@ -830,31 +851,31 @@ export default function AdminRequest() {
                                                 </div>
                                             </div>
                                             <div className="card-row">
-                                                <span className="card-label">Level:</span>
+                                                <span className="card-label">{t('adminWithdraw.level')}:</span>
                                                 <span
                                                     className="level-badge"
                                                     style={{ backgroundColor: getLevelColor(user.level) }}
                                                 >
-                                                    {user.level}
+                                                    {getLevelLabel(user.level)}
                                                 </span>
                                             </div>
                                             <div className="card-row">
-                                                <span className="card-label">Points:</span>
+                                                <span className="card-label">{t('adminWithdraw.points')}:</span>
                                                 <span className="card-value points-value">{request.point.toLocaleString()} pts</span>
                                             </div>
                                             <div className="card-row">
-                                                <span className="card-label">Amount:</span>
+                                                <span className="card-label">{t('adminWithdraw.amount')}:</span>
                                                 <span className="card-value amount-value">{formatVND(request.amount)}</span>
                                             </div>
                                             <div className="card-row">
-                                                <span className="card-label">Bank:</span>
+                                                <span className="card-label">{t('adminWithdraw.bank')}:</span>
                                                 <div className="card-value-group">
                                                     <span className="card-value">{request.bank_name}</span>
                                                     <span className="card-value-sub">{request.bank_number}</span>
                                                 </div>
                                             </div>
                                             <div className="card-row">
-                                                <span className="card-label">Request Date:</span>
+                                                <span className="card-label">{t('adminWithdraw.requestDate')}:</span>
                                                 <span className="card-value">{formatDate(request.request_date)}</span>
                                             </div>
                                         </div>
@@ -871,12 +892,12 @@ export default function AdminRequest() {
                         <div className="modal-overlay" onClick={() => setShowDetailModal(false)} />
                         <div className="request-detail-modal">
                             <div className="modal-header">
-                                <h3>Withdraw Request Details</h3>
+                                <h3>{t('adminWithdraw.withdrawRequestDetails')}</h3>
                                 <button className="modal-close" onClick={() => setShowDetailModal(false)}>×</button>
                             </div>
                             <div className="modal-body">
                                 <div className="detail-section">
-                                    <h4>User Information</h4>
+                                    <h4>{t('adminWithdraw.userInformation')}</h4>
                                     <div className="detail-grid">
                                         <div className="detail-item detail-item-full">
                                             <div className="user-info-modal">
@@ -915,56 +936,56 @@ export default function AdminRequest() {
                                 </div>
 
                                 <div className="detail-section">
-                                    <h4>Bank Information</h4>
+                                    <h4>{t('adminWithdraw.bankInformation')}</h4>
                                     <div className="detail-grid detail-grid-inline">
                                         <div className="detail-item">
-                                            <span className="detail-label">Bank Name:</span>
+                                            <span className="detail-label">{t('adminWithdraw.bankName')}:</span>
                                             <span className="detail-value">{selectedRequest.bank_name}</span>
                                         </div>
                                         <div className="detail-item">
-                                            <span className="detail-label">Account Owner:</span>
+                                            <span className="detail-label">{t('adminWithdraw.accountOwner')}:</span>
                                             <span className="detail-value">{selectedRequest.bank_owner_name}</span>
                                         </div>
                                         <div className="detail-item">
-                                            <span className="detail-label">Account Number:</span>
+                                            <span className="detail-label">{t('adminWithdraw.accountNumber')}:</span>
                                             <span className="detail-value">{selectedRequest.bank_number}</span>
                                         </div>
                                     </div>
                                 </div>
 
                                 <div className="detail-section">
-                                    <h4>Request Information</h4>
+                                    <h4>{t('adminWithdraw.requestInformation')}</h4>
                                     <div className="detail-grid detail-grid-4col">
                                         <div className="detail-item">
-                                            <span className="detail-label">Request ID:</span>
+                                            <span className="detail-label">{t('adminWithdraw.requestId')}:</span>
                                             <span className="detail-value">#{selectedRequest.id}</span>
                                         </div>
                                         <div className="detail-item">
-                                            <span className="detail-label">Points:</span>
+                                            <span className="detail-label">{t('adminWithdraw.points')}:</span>
                                             <span className="detail-value points-value-modal">{selectedRequest.point.toLocaleString()} pts</span>
                                         </div>
                                         <div className="detail-item">
-                                            <span className="detail-label">Amount:</span>
+                                            <span className="detail-label">{t('adminWithdraw.amount')}:</span>
                                             <span className="detail-value amount-value-modal">{formatVND(selectedRequest.amount)}</span>
                                         </div>
                                         <div className="detail-item">
-                                            <span className="detail-label">Status:</span>
+                                            <span className="detail-label">{t('adminWithdraw.status')}:</span>
                                             <span
                                                 className="status-badge"
                                                 style={{ backgroundColor: getStatusColor(selectedRequest.status) }}
                                             >
                                                 {getStatusIcon(selectedRequest.status)}
-                                                {selectedRequest.status}
+                                                {getStatusLabel(selectedRequest.status)}
                                             </span>
                                         </div>
                                     </div>
                                     <div className="detail-grid detail-grid-2col">
                                         <div className="detail-item">
-                                            <span className="detail-label">Request Date:</span>
+                                            <span className="detail-label">{t('adminWithdraw.requestDate')}:</span>
                                             <span className="detail-value">{formatDate(selectedRequest.request_date)}</span>
                                         </div>
                                         <div className="detail-item">
-                                            <span className="detail-label">Completed Date:</span>
+                                            <span className="detail-label">{t('adminWithdraw.completedDate')}:</span>
                                             <span className="detail-value">
                                                 {selectedRequest.completed_date ? formatDate(selectedRequest.completed_date) : '-'}
                                             </span>
@@ -974,7 +995,7 @@ export default function AdminRequest() {
 
                                 {selectedRequest.admin_notes && (
                                     <div className="detail-section">
-                                        <h4>Admin Notes</h4>
+                                        <h4>{t('adminWithdraw.adminNotes')}</h4>
                                         <div className="detail-grid">
                                             <div className="detail-item detail-item-full">
                                                 <span className="detail-value">{selectedRequest.admin_notes}</span>
@@ -997,7 +1018,7 @@ export default function AdminRequest() {
                                             <line x1="15" y1="9" x2="9" y2="15" />
                                             <line x1="9" y1="9" x2="15" y2="15" />
                                         </svg>
-                                        Reject Request
+                                        {t('adminWithdraw.rejectRequest')}
                                     </button>
                                     <button
                                         className="btn-success"
@@ -1010,7 +1031,7 @@ export default function AdminRequest() {
                                             <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
                                             <polyline points="22 4 12 14.01 9 11.01" />
                                         </svg>
-                                        Approve & Confirm Payment
+                                        {t('adminWithdraw.approveConfirmPayment')}
                                     </button>
                                 </div>
                             )}
@@ -1023,7 +1044,7 @@ export default function AdminRequest() {
                     <div className={`filter-popup-overlay ${showFilterPopup ? 'active' : ''}`} onClick={() => setShowFilterPopup(false)} />
                     <div className={`filter-popup ${showFilterPopup ? 'active' : ''}`}>
                         <div className="filter-popup-header">
-                            <h3>Filter Requests</h3>
+                            <h3>{t('adminWithdraw.filterRequests')}</h3>
                             <button className="filter-popup-close" onClick={() => setShowFilterPopup(false)}>
                                 <IconX />
                             </button>
@@ -1031,7 +1052,7 @@ export default function AdminRequest() {
                         <div className="filter-popup-content">
                             {/* Level Filter */}
                             <div className="filter-group">
-                                <label>Level</label>
+                                <label>{t('adminWithdraw.level')}</label>
                                 <div className="filter-dropdown-wrapper">
                                     <button
                                         className={`filter-select-btn ${showLevelDropdown ? 'active' : ''}`}
@@ -1039,8 +1060,8 @@ export default function AdminRequest() {
                                     >
                                         <span className={selectedLevels.length > 0 ? 'has-selection' : ''}>
                                             {selectedLevels.length === 0
-                                                ? 'All Levels'
-                                                : `${selectedLevels.length} level${selectedLevels.length > 1 ? 's' : ''} selected`}
+                                                ? t('adminWithdraw.allLevels')
+                                                : t('adminWithdraw.levelsSelected', { count: selectedLevels.length })}
                                         </span>
                                         <IconChevronDown />
                                     </button>
@@ -1050,7 +1071,7 @@ export default function AdminRequest() {
                                                 <IconSearch />
                                                 <input
                                                     type="text"
-                                                    placeholder="Search levels..."
+                                                    placeholder={t('adminWithdraw.searchLevels')}
                                                     className="filter-search-input"
                                                     value={levelSearchQuery}
                                                     onChange={(e) => setLevelSearchQuery(e.target.value)}
@@ -1074,7 +1095,7 @@ export default function AdminRequest() {
                                                                     }
                                                                 }}
                                                             />
-                                                            <span>{level}</span>
+                                                            <span>{getLevelLabel(level)}</span>
                                                         </label>
                                                     ))}
                                             </div>
@@ -1085,7 +1106,7 @@ export default function AdminRequest() {
 
                             {/* Status Filter */}
                             <div className="filter-group">
-                                <label>Status</label>
+                                <label>{t('adminWithdraw.status')}</label>
                                 <div className="filter-dropdown-wrapper">
                                     <button
                                         className={`filter-select-btn ${showStatusDropdown ? 'active' : ''}`}
@@ -1093,8 +1114,8 @@ export default function AdminRequest() {
                                     >
                                         <span className={selectedStatuses.length > 0 ? 'has-selection' : ''}>
                                             {selectedStatuses.length === 0
-                                                ? 'All Statuses'
-                                                : `${selectedStatuses.length} status${selectedStatuses.length > 1 ? 'es' : ''} selected`}
+                                                ? t('adminWithdraw.allStatuses')
+                                                : t('adminWithdraw.statusesSelected', { count: selectedStatuses.length })}
                                         </span>
                                         <IconChevronDown />
                                     </button>
@@ -1104,7 +1125,7 @@ export default function AdminRequest() {
                                                 <IconSearch />
                                                 <input
                                                     type="text"
-                                                    placeholder="Search statuses..."
+                                                    placeholder={t('adminWithdraw.searchStatuses')}
                                                     className="filter-search-input"
                                                     value={statusSearchQuery}
                                                     onChange={(e) => setStatusSearchQuery(e.target.value)}
@@ -1128,7 +1149,7 @@ export default function AdminRequest() {
                                                                     }
                                                                 }}
                                                             />
-                                                            <span>{status}</span>
+                                                            <span>{getStatusLabel(status as RequestStatus)}</span>
                                                         </label>
                                                     ))}
                                             </div>
@@ -1139,19 +1160,19 @@ export default function AdminRequest() {
 
                             {/* Point Range */}
                             <div className="filter-group">
-                                <label>Point Range</label>
+                                <label>{t('adminWithdraw.pointRange')}</label>
                                 <div className="filter-range-inputs">
                                     <input
                                         type="number"
-                                        placeholder="Min"
+                                        placeholder={t('common.min')}
                                         value={pointMin}
                                         onChange={(e) => setPointMin(e.target.value)}
                                         className="filter-input"
                                     />
-                                    <span>to</span>
+                                    <span>{t('common.to')}</span>
                                     <input
                                         type="number"
-                                        placeholder="Max"
+                                        placeholder={t('common.max')}
                                         value={pointMax}
                                         onChange={(e) => setPointMax(e.target.value)}
                                         className="filter-input"
@@ -1161,19 +1182,19 @@ export default function AdminRequest() {
 
                             {/* Amount Range */}
                             <div className="filter-group">
-                                <label>Amount Range</label>
+                                <label>{t('adminWithdraw.amountRange')}</label>
                                 <div className="filter-range-inputs">
                                     <input
                                         type="number"
-                                        placeholder="Min"
+                                        placeholder={t('common.min')}
                                         value={amountMin}
                                         onChange={(e) => setAmountMin(e.target.value)}
                                         className="filter-input"
                                     />
-                                    <span>to</span>
+                                    <span>{t('common.to')}</span>
                                     <input
                                         type="number"
-                                        placeholder="Max"
+                                        placeholder={t('common.max')}
                                         value={amountMax}
                                         onChange={(e) => setAmountMax(e.target.value)}
                                         className="filter-input"
@@ -1183,7 +1204,7 @@ export default function AdminRequest() {
 
                             {/* Request Date Range */}
                             <div className="filter-group">
-                                <label>Request Date</label>
+                                <label>{t('adminWithdraw.requestDate')}</label>
                                 <div className="filter-range-inputs">
                                     <input
                                         type="date"
@@ -1191,7 +1212,7 @@ export default function AdminRequest() {
                                         onChange={(e) => setRequestDateFrom(e.target.value)}
                                         className="filter-input"
                                     />
-                                    <span>to</span>
+                                    <span>{t('common.to')}</span>
                                     <input
                                         type="date"
                                         value={requestDateTo}
@@ -1203,7 +1224,7 @@ export default function AdminRequest() {
 
                             {/* Completed Date Range */}
                             <div className="filter-group">
-                                <label>Completed Date</label>
+                                <label>{t('adminWithdraw.completedDate')}</label>
                                 <div className="filter-range-inputs">
                                     <input
                                         type="date"
@@ -1211,7 +1232,7 @@ export default function AdminRequest() {
                                         onChange={(e) => setCompletedDateFrom(e.target.value)}
                                         className="filter-input"
                                     />
-                                    <span>to</span>
+                                    <span>{t('common.to')}</span>
                                     <input
                                         type="date"
                                         value={completedDateTo}
@@ -1237,13 +1258,13 @@ export default function AdminRequest() {
                                     setCompletedDateTo('');
                                 }}
                             >
-                                Clear All
+                                {t('adminWithdraw.clearAll')}
                             </button>
                             <button
                                 className="btn-filter-apply"
                                 onClick={() => setShowFilterPopup(false)}
                             >
-                                Apply Filters
+                                {t('adminWithdraw.applyFilters')}
                             </button>
                         </div>
                     </div>
@@ -1261,10 +1282,10 @@ export default function AdminRequest() {
                             handleApprove(requestToAction);
                         }
                     }}
-                    title="Approve Withdrawal Request"
-                    message="Confirm that payment has been completed and approve this withdrawal request?"
-                    confirmText="Approve"
-                    cancelText="Cancel"
+                    title={t('adminWithdraw.approveWithdrawalRequest')}
+                    message={t('adminWithdraw.approveWithdrawalMessage')}
+                    confirmText={t('adminWithdraw.approve')}
+                    cancelText={t('common.cancel')}
                     type="success"
                     loading={loadingAction.type === 'approve' && loadingAction.requestId === requestToAction}
                 />
@@ -1281,10 +1302,10 @@ export default function AdminRequest() {
                             handleReject(requestToAction);
                         }
                     }}
-                    title="Reject Withdrawal Request"
-                    message="Are you sure you want to reject this withdrawal request?"
-                    confirmText="Reject"
-                    cancelText="Cancel"
+                    title={t('adminWithdraw.rejectWithdrawalRequest')}
+                    message={t('adminWithdraw.rejectWithdrawalMessage')}
+                    confirmText={t('adminWithdraw.reject')}
+                    cancelText={t('common.cancel')}
                     type="danger"
                     loading={loadingAction.type === 'reject' && loadingAction.requestId === requestToAction}
                 />
@@ -1297,10 +1318,10 @@ export default function AdminRequest() {
                         setRequestToDelete(null);
                     }}
                     onConfirm={confirmDelete}
-                    title="Delete Withdrawal Request"
-                    message="Are you sure you want to delete this withdrawal request? This action cannot be undone."
-                    confirmText="Delete"
-                    cancelText="Cancel"
+                    title={t('adminWithdraw.deleteWithdrawalRequest')}
+                    message={t('adminWithdraw.deleteWithdrawalMessage')}
+                    confirmText={t('common.delete')}
+                    cancelText={t('common.cancel')}
                     type="danger"
                     loading={loadingAction.type === 'delete' && loadingAction.requestId === requestToDelete}
                 />
