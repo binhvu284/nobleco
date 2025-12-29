@@ -122,15 +122,16 @@ export default async function handler(req, res) {
     };
 
     // Generate and send OTP (without creating user account)
+    // Only pass phone OR email to createOTP based on otpMethod, not both
     const otpCode = generateOTP();
     await createOTP({
-      phone: cleanedPhone,
-      email: cleanedEmail,
+      phone: otpMethod === 'phone' ? cleanedPhone : null,
+      email: otpMethod === 'email' ? cleanedEmail : null,
       code: otpCode,
       purpose: 'signup',
       userId: null, // No user ID yet - account not created
       expiresInMinutes: 10,
-      signupData: signupData // Store signup data in OTP record
+      signupData: signupData // Store signup data in OTP record (can contain both phone and email)
     });
 
     // Send OTP via SMS or Email based on method

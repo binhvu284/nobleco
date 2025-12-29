@@ -175,6 +175,7 @@ function parseExcelFile(buffer) {
     supplierCode: headers.findIndex(h => h && h.toLowerCase().includes('supplier code')),
     productName: headers.findIndex(h => h && h.toLowerCase().includes('product name')),
     jewelrySpecifications: headers.findIndex(h => h && h.toLowerCase().includes('jewelry specification')),
+    centerstoneSpecifications: headers.findIndex(h => h && h.toLowerCase().includes('centerstone specification')),
     description: headers.findIndex(h => h && h.toLowerCase().includes('description')),
     price: headers.findIndex(h => h && h.toLowerCase().includes('price')),
     stock: headers.findIndex(h => h && h.toLowerCase().includes('stock')),
@@ -184,6 +185,11 @@ function parseExcelFile(buffer) {
   // Validate required columns
   if (columnMap.productCode === -1 || columnMap.productName === -1) {
     throw new Error('Missing required columns: Product Code and Product Name are required');
+  }
+  
+  // Validate specification column matches product type
+  if (columnMap.centerstoneSpecifications !== -1 && columnMap.jewelrySpecifications === -1) {
+    throw new Error('This file is for centerstone products. Please use the jewelry product template instead.');
   }
   
   // Parse data rows (skip header)

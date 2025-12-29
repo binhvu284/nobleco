@@ -14,6 +14,8 @@ interface ExcelImportModalProps {
         duplicateSKUList?: string;
     }>;
     onDownloadTemplate: () => Promise<void>;
+    onSuccess?: () => void;
+    productType?: 'jewelry' | 'centerstone';
 }
 
 interface FileAnalysis {
@@ -30,7 +32,7 @@ interface DuplicateSKUError {
     errorMessage: string;
 }
 
-export default function ExcelImportModal({ open, onClose, onImport, onDownloadTemplate }: ExcelImportModalProps) {
+export default function ExcelImportModal({ open, onClose, onImport, onDownloadTemplate, onSuccess, productType = 'jewelry' }: ExcelImportModalProps) {
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [fileAnalysis, setFileAnalysis] = useState<FileAnalysis | null>(null);
     const [analyzing, setAnalyzing] = useState(false);
@@ -129,6 +131,30 @@ export default function ExcelImportModal({ open, onClose, onImport, onDownloadTe
                         if (missingColumns.length > 0) {
                             errors.push(`Missing required columns: ${missingColumns.join(', ')}`);
                         }
+                        
+                        // Validate specification column matches productType
+                        const hasJewelrySpec = headerRow.some((h: any) => 
+                            h && String(h).toLowerCase().includes('jewelry specification')
+                        );
+                        const hasCenterstoneSpec = headerRow.some((h: any) => 
+                            h && String(h).toLowerCase().includes('centerstone specification')
+                        );
+                        
+                        if (productType === 'jewelry') {
+                            if (hasCenterstoneSpec && !hasJewelrySpec) {
+                                errors.push('This file is for centerstone products. Please use the jewelry product template instead.');
+                            } else if (!hasJewelrySpec && !hasCenterstoneSpec) {
+                                // No specification column found - this is acceptable but warn
+                                // Don't add error, just allow it
+                            }
+                        } else if (productType === 'centerstone') {
+                            if (hasJewelrySpec && !hasCenterstoneSpec) {
+                                errors.push('This file is for jewelry products. Please use the centerstone template instead.');
+                            } else if (!hasCenterstoneSpec && !hasJewelrySpec) {
+                                // No specification column found - this is acceptable but warn
+                                // Don't add error, just allow it
+                            }
+                        }
                     }
                     
                     resolve({
@@ -150,19 +176,48 @@ export default function ExcelImportModal({ open, onClose, onImport, onDownloadTe
         if (!selectedFile || !fileAnalysis?.isValid) return;
 
         setImporting(true);
-        setImportProgress({ current: 0, total: fileAnalysis.estimatedCount });
+        const totalItems = fileAnalysis.estimatedCount || 1;
+        // Start with a small initial progress to show the bar immediately
+        setImportProgress({ current: 1, total: totalItems });
         setDuplicateSKUError(null);
+
+        // Simulate progress to avoid freezing UI
+        let simulatedProgress = 5; // Start at 5% to show the bar immediately
+        const progressInterval = setInterval(() => {
+            // Gradually increase progress up to 90% while waiting for response
+            if (simulatedProgress < 90) {
+                simulatedProgress = Math.min(90, simulatedProgress + Math.random() * 5 + 2);
+                const currentCount = Math.floor((simulatedProgress / 100) * totalItems);
+                setImportProgress({ 
+                    current: Math.max(1, currentCount), // Ensure at least 1 to show the bar
+                    total: totalItems 
+                });
+            }
+        }, 200); // Update every 200ms
 
         try {
             // Call the import function with progress callback
             const result = await onImport(selectedFile);
             
+            // Clear the simulation interval
+            clearInterval(progressInterval);
+            
+            // Set to 100% when complete
+            setImportProgress({ 
+                current: totalItems, 
+                total: totalItems 
+            });
+            
             if (result.success) {
                 // Success - close modal after a brief delay
                 setTimeout(() => {
                     onClose();
-                    // Refresh page or show success message
-                    window.location.reload();
+                    // Call onSuccess callback if provided, otherwise reload page
+                    if (onSuccess) {
+                        onSuccess();
+                    } else {
+                        window.location.reload();
+                    }
                 }, 1000);
             } else {
                 // Check if this is a duplicate SKU error
@@ -181,6 +236,7 @@ export default function ExcelImportModal({ open, onClose, onImport, onDownloadTe
             }
         } catch (error) {
             console.error('Import error:', error);
+            clearInterval(progressInterval);
             alert('Failed to import products. Please try again.');
         } finally {
             setImporting(false);
@@ -317,42 +373,6 @@ export default function ExcelImportModal({ open, onClose, onImport, onDownloadTe
                         )}
                     </div>
 
-                    {/* Instructions - Moved Below Upload */}
-                    <div className="import-instructions">
-                        <h4>File Format Instructions</h4>
-                        <ul>
-                            <li><strong>Format:</strong> Single row format - each product should be on one row</li>
-                            <li><strong>Multiple values:</strong> Separate multiple values with commas (e.g., "Value1, Value2")</li>
-                            <li><strong>Decimal values:</strong> Use "." (dot) to indicate decimal values. This is used to distinguish from commas which are used for multiple values (e.g., use "2.5" not "2,5")</li>
-                            <li><strong>Categories:</strong> Category names must exactly match the format (Capital letter, space) of values in the Category table</li>
-                            <li><strong>Unrecognized values:</strong> Any mismatch or unrecognized category values will be imported as null</li>
-                            <li><strong>File type:</strong> Only .xlsx files are accepted</li>
-                        </ul>
-                    </div>
-
-                    {/* Import Progress */}
-                    {importing && (
-                        <div className="import-progress">
-                            <div className="progress-header">
-                                <IconLoader className="spinner" />
-                                <span>Importing products...</span>
-                            </div>
-                            <div className="progress-bar-container">
-                                <div 
-                                    className="progress-bar" 
-                                    style={{ 
-                                        width: `${fileAnalysis && fileAnalysis.estimatedCount > 0 
-                                            ? (importProgress.current / fileAnalysis.estimatedCount) * 100 
-                                            : 0}%` 
-                                    }}
-                                />
-                            </div>
-                            <div className="progress-text">
-                                {importProgress.current} / {fileAnalysis?.estimatedCount || 0} products imported
-                            </div>
-                        </div>
-                    )}
-
                     {/* Duplicate SKU Error Display */}
                     {duplicateSKUError && (
                         <div className="duplicate-sku-error">
@@ -408,6 +428,51 @@ export default function ExcelImportModal({ open, onClose, onImport, onDownloadTe
                             </div>
                         </div>
                     )}
+
+                    {/* Import Progress */}
+                    {importing && (
+                        <div className="import-progress">
+                            <div className="progress-header">
+                                <IconLoader className="spinner" />
+                                <span>Importing products...</span>
+                            </div>
+                            <div className="progress-bar-container">
+                                <div 
+                                    className="progress-bar progress-bar-animated" 
+                                    style={{ 
+                                        width: `${fileAnalysis && fileAnalysis.estimatedCount > 0 
+                                            ? Math.max(2, (importProgress.current / fileAnalysis.estimatedCount) * 100)
+                                            : 2}%` 
+                                    }}
+                                >
+                                    <div className="progress-bar-shimmer"></div>
+                                </div>
+                            </div>
+                            <div className="progress-text">
+                                <span className="progress-count">
+                                    {importProgress.current} / {fileAnalysis?.estimatedCount || 0} products imported
+                                </span>
+                                <span className="progress-percentage">
+                                    {fileAnalysis && fileAnalysis.estimatedCount > 0 
+                                        ? Math.round((importProgress.current / fileAnalysis.estimatedCount) * 100)
+                                        : 0}%
+                                </span>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Instructions - Moved Below Error and Progress Sections */}
+                    <div className="import-instructions">
+                        <h4>File Format Instructions</h4>
+                        <ul>
+                            <li><strong>Format:</strong> Single row format - each product should be on one row</li>
+                            <li><strong>Multiple values:</strong> Separate multiple values with commas (e.g., "Value1, Value2")</li>
+                            <li><strong>Decimal values:</strong> Use "." (dot) to indicate decimal values. This is used to distinguish from commas which are used for multiple values (e.g., use "2.5" not "2,5")</li>
+                            <li><strong>Categories:</strong> Category names must exactly match the format (Capital letter, space) of values in the Category table</li>
+                            <li><strong>Unrecognized values:</strong> Any mismatch or unrecognized category values will be imported as null</li>
+                            <li><strong>File type:</strong> Only .xlsx files are accepted</li>
+                        </ul>
+                    </div>
                 </div>
 
                 {/* Fixed Footer */}

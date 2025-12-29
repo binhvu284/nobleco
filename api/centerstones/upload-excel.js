@@ -174,6 +174,7 @@ function parseExcelFile(buffer) {
     productCode: headers.findIndex(h => h && h.toLowerCase().includes('product code')),
     supplierCode: headers.findIndex(h => h && h.toLowerCase().includes('supplier code')),
     productName: headers.findIndex(h => h && h.toLowerCase().includes('product name')),
+    centerstoneSpecifications: headers.findIndex(h => h && h.toLowerCase().includes('centerstone specification')),
     jewelrySpecifications: headers.findIndex(h => h && h.toLowerCase().includes('jewelry specification')),
     description: headers.findIndex(h => h && h.toLowerCase().includes('description')),
     price: headers.findIndex(h => h && h.toLowerCase().includes('price')),
@@ -185,6 +186,16 @@ function parseExcelFile(buffer) {
   if (columnMap.productCode === -1 || columnMap.productName === -1) {
     throw new Error('Missing required columns: Product Code and Product Name are required');
   }
+  
+  // Validate specification column matches product type
+  if (columnMap.jewelrySpecifications !== -1 && columnMap.centerstoneSpecifications === -1) {
+    throw new Error('This file is for jewelry products. Please use the centerstone template instead.');
+  }
+  
+  // Use centerstone specification if available, otherwise fall back to jewelry specification for backward compatibility
+  const specificationColumnIndex = columnMap.centerstoneSpecifications !== -1 
+    ? columnMap.centerstoneSpecifications 
+    : columnMap.jewelrySpecifications;
   
   // Parse data rows (skip header)
   const centerstones = [];
@@ -212,9 +223,9 @@ function parseExcelFile(buffer) {
         continue;
       }
       
-      // Parse Jewelry Specifications (multi-line text)
-      const jewelrySpecifications = row[columnMap.jewelrySpecifications] 
-        ? String(row[columnMap.jewelrySpecifications]).trim() 
+      // Parse Centerstone Specifications (multi-line text)
+      const centerstoneSpecifications = specificationColumnIndex !== -1 && row[specificationColumnIndex] 
+        ? String(row[specificationColumnIndex]).trim() 
         : null;
       
       // Parse Description
@@ -248,7 +259,7 @@ function parseExcelFile(buffer) {
         name: productName,
         short_description: description,
         long_description: null,
-        jewelry_specifications: jewelrySpecifications,
+        jewelry_specifications: centerstoneSpecifications,
         price: price !== null ? price : 0,
         stock: stock,
         category_names: row[columnMap.categoryNames] ? String(row[columnMap.categoryNames]).trim() : null,

@@ -7,6 +7,7 @@ import signupHandler from '../api/auth/signup.js';
 import diagnosticsHandler from '../api/diagnostics.js';
 import productsHandler from '../api/products.js';
 import downloadTemplateHandler from '../api/products/download-template.js';
+import downloadCenterstoneTemplateHandler from '../api/centerstones/download-template.js';
 import uploadExcelHandler from '../api/products/upload-excel.js';
 import categoriesHandler from '../api/categories.js';
 import clientsHandler from '../api/clients.js';
@@ -87,6 +88,7 @@ app.post('/api/products/upload-excel', upload.single('file'), async (req, res) =
 });
 app.all('/api/categories', toRoute(categoriesHandler));
 app.all('/api/centerstones', toRoute(centerstonesHandler));
+app.get('/api/centerstones/download-template', toRoute(downloadCenterstoneTemplateHandler));
 app.post('/api/centerstones/upload-excel', upload.single('file'), async (req, res) => {
   // Attach file buffer to request body for handler
   if (req.file) {

@@ -569,9 +569,14 @@ export default function AdminProducts() {
     const handleDownloadTemplate = async () => {
         try {
             const authToken = localStorage.getItem('nobleco_auth_token');
-            // Note: Template download currently only supports jewelry products
-            // Center stones can use the same template format
-            const response = await fetch('/api/products/download-template', {
+            const endpoint = productType === 'jewelry' 
+                ? '/api/products/download-template' 
+                : '/api/centerstones/download-template';
+            const filename = productType === 'jewelry' 
+                ? 'jewelry-import-template.xlsx' 
+                : 'centerstone-import-template.xlsx';
+            
+            const response = await fetch(endpoint, {
                 headers: {
                     'Authorization': `Bearer ${authToken}`
                 }
@@ -585,7 +590,7 @@ export default function AdminProducts() {
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = 'product-import-template.xlsx';
+            a.download = filename;
             document.body.appendChild(a);
             a.click();
             window.URL.revokeObjectURL(url);
@@ -1328,6 +1333,10 @@ export default function AdminProducts() {
                 onClose={() => setShowExcelImportModal(false)}
                 onImport={handleExcelImport}
                 onDownloadTemplate={handleDownloadTemplate}
+                onSuccess={() => {
+                    fetchProducts();
+                }}
+                productType={productType}
             />
 
             {/* Filter Popup */}

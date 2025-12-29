@@ -171,6 +171,25 @@ export default function SignUp() {
         setPhone('');
     };
 
+    // Show loading screen while transitioning to OTP verification
+    if (isSendingOTP && !showOTPVerification) {
+        return (
+            <div className="auth-root">
+                <div className="auth-gradient" aria-hidden="true" />
+                <div className="auth-card">
+                    <h1 className="brand">{t('common.loading')}</h1>
+                    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '40px 0' }}>
+                        <div className="otp-loading-spinner"></div>
+                    </div>
+                    <p className="subtitle" style={{ textAlign: 'center' }}>
+                        {t('auth.sendingOTP')}
+                    </p>
+                </div>
+                <AuthFooter />
+            </div>
+        );
+    }
+
     // Show OTP verification screen if needed
     if (showOTPVerification && signupData) {
         return (
@@ -330,9 +349,8 @@ export default function SignUp() {
                             type="email"
                             value={email} 
                             onChange={(e) => {
-                                // Normalize email to lowercase to prevent capitalization issues
-                                const normalizedEmail = e.target.value.toLowerCase();
-                                setEmail(normalizedEmail);
+                                // Allow users to type with capital letters - normalization happens when sending to backend
+                                setEmail(e.target.value);
                             }} 
                             placeholder={t('auth.email')} 
                             required
@@ -344,12 +362,12 @@ export default function SignUp() {
                         />
                     </label>
                     <label>
-                        {t('auth.phone')} ({t('common.optional')})
+                        {t('auth.phone')}
                         <input 
                             type="tel"
                             value={phone} 
                             onChange={(e) => setPhone(e.target.value)} 
-                            placeholder={t('auth.enterPhoneNumber') || 'Enter phone number (optional)'} 
+                            placeholder={t('auth.enterPhoneNumber') || 'Enter phone number'} 
                             inputMode="tel"
                             autoComplete="tel"
                         />

@@ -205,7 +205,7 @@ export default function OTPVerification({ phone, userId, email, password, otpMet
         <p className="subtitle">
           {t('auth.codeSentTo')}
           <br className="mobile-break" />
-          <strong className="otp-target">{otpMethod === 'phone' && phone ? formatPhone(phone) : formatEmail(email)}</strong>
+          <strong className="otp-target">{otpMethod === 'phone' && phone ? formatPhone(phone) : formatEmail(email.toLowerCase())}</strong>
         </p>
         
         <form onSubmit={handleVerify} className="form">

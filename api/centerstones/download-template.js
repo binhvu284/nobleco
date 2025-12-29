@@ -25,7 +25,7 @@ export default async function handler(req, res) {
       'Product Code',
       'Supplier Code',
       'Product Name',
-      'Jewelry Specifications',
+      'Centerstone Specification',
       'Description',
       'Price (VND)',
       'Stock',
@@ -34,14 +34,14 @@ export default async function handler(req, res) {
 
     // Create sample data row (optional - can be empty)
     const sampleRow = [
-      '01R0924001',           // Product Code
-      'RDM24213',             // Supplier Code
-      'Sample Product Name',  // Product Name
-      'Center Stone Size: 2.4 mm\nNi tay: 6.5\nShape: Round\nDimensions: 2.9*3.3\nStone Count: 16\nCarat Weight: 4.065 ct\nGold Purity: 18K\nProduct Weight: 9.083 g\nType: L',  // Jewelry Specifications (multi-line)
+      'CST-00000001',           // Product Code
+      'SUP001',                 // Supplier Code
+      'Sample Centerstone Name',  // Product Name
+      'Center Stone Size: 2.4 mm\nNi tay: 6.5\nShape: Round\nDimensions: 2.9*3.3\nStone Count: 16\nCarat Weight: 4.065 ct\nGold Purity: 18K\nProduct Weight: 9.083 g\nType: L',  // Centerstone Specification (multi-line)
       'Sample description',   // Description
       88300000,               // Price (VND)
       1,                      // Stock
-      'Rings, Gold Jewelry'  // Categories (comma-separated)
+      'Diamonds, Gemstones'  // Categories (comma-separated)
     ];
 
     // Create worksheet data
@@ -58,7 +58,7 @@ export default async function handler(req, res) {
       { wch: 15 },  // Product Code
       { wch: 15 },  // Supplier Code
       { wch: 25 },  // Product Name
-      { wch: 50 },  // Jewelry Specifications (wider for multi-line text)
+      { wch: 50 },  // Centerstone Specification (wider for multi-line text)
       { wch: 30 },  // Description
       { wch: 15 },  // Price (VND)
       { wch: 10 },  // Stock
@@ -79,7 +79,7 @@ export default async function handler(req, res) {
     }
 
     // Add worksheet to workbook
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Products');
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Centerstones');
 
     // Generate Excel file buffer
     const excelBuffer = XLSX.write(workbook, { 
@@ -90,7 +90,7 @@ export default async function handler(req, res) {
 
     // Set response headers for file download
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.setHeader('Content-Disposition', 'attachment; filename="jewelry-import-template.xlsx"');
+    res.setHeader('Content-Disposition', 'attachment; filename="centerstone-import-template.xlsx"');
     res.setHeader('Content-Length', excelBuffer.length);
 
     // Send the file
