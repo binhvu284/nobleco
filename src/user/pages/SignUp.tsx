@@ -100,14 +100,27 @@ export default function SignUp() {
         setIsSendingOTP(true);
         setError('');
 
+        // Normalize email to lowercase before sending
+        const normalizedEmail = email.trim().toLowerCase();
+
+        // Validate email format (basic check)
+        if (method === 'email' && normalizedEmail) {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(normalizedEmail)) {
+                setError(t('auth.invalidEmail') || 'Please enter a valid email address');
+                setIsSendingOTP(false);
+                return;
+            }
+        }
+
         try {
             const response = await fetch('/api/auth/signup', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     name,
-                    email,
-                    phone: method === 'phone' ? phone : undefined,
+                    email: normalizedEmail,
+                    phone: phone.trim() || undefined, // Optional phone - backend will validate if provided
                     password,
                     referCode: referCode.trim() || undefined,
                     otpMethod: method,
@@ -123,9 +136,10 @@ export default function SignUp() {
             }
 
             // OTP sent successfully, show verification screen
+            // Use normalized email to ensure consistency
             setSignupData({
                 phone: method === 'phone' ? (data.phone || phone) : undefined,
-                email: email,
+                email: normalizedEmail,
                 password: password,
                 otpMethod: method
             });
@@ -315,9 +329,29 @@ export default function SignUp() {
                         <input 
                             type="email"
                             value={email} 
-                            onChange={(e) => setEmail(e.target.value)} 
+                            onChange={(e) => {
+                                // Normalize email to lowercase to prevent capitalization issues
+                                const normalizedEmail = e.target.value.toLowerCase();
+                                setEmail(normalizedEmail);
+                            }} 
                             placeholder={t('auth.email')} 
-                            required 
+                            required
+                            autoCapitalize="off"
+                            autoCorrect="off"
+                            autoComplete="email"
+                            spellCheck="false"
+                            inputMode="email"
+                        />
+                    </label>
+                    <label>
+                        {t('auth.phone')} ({t('common.optional')})
+                        <input 
+                            type="tel"
+                            value={phone} 
+                            onChange={(e) => setPhone(e.target.value)} 
+                            placeholder={t('auth.enterPhoneNumber') || 'Enter phone number (optional)'} 
+                            inputMode="tel"
+                            autoComplete="tel"
                         />
                     </label>
                     <label style={{ position: 'relative' }}>

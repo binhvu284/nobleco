@@ -117,7 +117,8 @@ export default function OTPVerification({ phone, userId, email, password, otpMet
       if (otpMethod === 'phone' && phone) {
         verifyBody.phone = phone;
       } else if (otpMethod === 'email' && email) {
-        verifyBody.email = email;
+        // Normalize email to lowercase to ensure consistency with backend
+        verifyBody.email = email.toLowerCase().trim();
       }
 
       const verifyResponse = await fetch('/api/otp', {
@@ -135,8 +136,9 @@ export default function OTPVerification({ phone, userId, email, password, otpMet
       }
 
       // OTP verified successfully - account is now created (if signup)
-      // Now auto-login the user
-      const loginResult = await login(email, password);
+      // Normalize email to lowercase before login to ensure consistency
+      const normalizedEmail = email.toLowerCase().trim();
+      const loginResult = await login(normalizedEmail, password);
       
       if (loginResult.success && loginResult.user) {
         // Success - redirect to dashboard
@@ -166,7 +168,8 @@ export default function OTPVerification({ phone, userId, email, password, otpMet
       if (otpMethod === 'phone' && phone) {
         resendBody.phone = phone;
       } else if (otpMethod === 'email' && email) {
-        resendBody.email = email;
+        // Normalize email to lowercase to ensure consistency with backend
+        resendBody.email = email.toLowerCase().trim();
       }
 
       const response = await fetch('/api/otp', {

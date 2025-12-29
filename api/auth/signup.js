@@ -24,12 +24,19 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Invalid OTP method. Use: phone or email' });
     }
 
-    // Validate phone number if using phone OTP
+    // Validate phone number (required if using phone OTP, optional otherwise)
     let cleanedPhone = null;
     if (otpMethod === 'phone') {
       if (!phone) {
         return res.status(400).json({ error: 'Phone number is required when using phone OTP' });
       }
+      const phoneValidation = validatePhone(phone);
+      if (!phoneValidation.valid) {
+        return res.status(400).json({ error: phoneValidation.error });
+      }
+      cleanedPhone = phoneValidation.cleaned;
+    } else if (phone && phone.trim()) {
+      // Optional phone provided when using email OTP - validate format
       const phoneValidation = validatePhone(phone);
       if (!phoneValidation.valid) {
         return res.status(400).json({ error: phoneValidation.error });
@@ -50,7 +57,7 @@ export default async function handler(req, res) {
       return res.status(409).json({ error: 'Email already registered' });
     }
 
-    // Check if phone already exists (only if using phone OTP)
+    // Check if phone already exists (if phone is provided, regardless of OTP method)
     const supabase = getSupabase();
     if (cleanedPhone) {
       const { data: existingPhoneUser } = await supabase

@@ -4,6 +4,7 @@ import QRCode from 'qrcode';
 import { uploadUserAvatar, deleteUserAvatar, type UserAvatar } from '../../utils/avatarUpload';
 import { getAvatarInitial, getAvatarColor, getAvatarViewportStyles } from '../../utils/avatarUtils';
 import { IconChevronDown } from '../../admin/components/icons';
+import { compressImage } from '../../utils/imageCompression';
 
 // Country list for location dropdown
 const COUNTRIES = [
@@ -68,6 +69,7 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
     } | null>(null);
     const [showPersonalIDExpanded, setShowPersonalIDExpanded] = useState<{ type: 'front' | 'back' } | null>(null);
     const [isUploadingPersonalID, setIsUploadingPersonalID] = useState(false);
+    const [uploadingType, setUploadingType] = useState<'front' | 'back' | null>(null);
     const frontImageInputRef = useRef<HTMLInputElement>(null);
     const backImageInputRef = useRef<HTMLInputElement>(null);
     const [showAvatarExpanded, setShowAvatarExpanded] = useState(false);
@@ -697,6 +699,7 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
         if (!user?.id) return;
         
         setIsUploadingPersonalID(true);
+        setUploadingType(type);
         setError('');
 
         try {
@@ -708,7 +711,21 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
                 throw new Error('Image file is too large. Maximum size is 10MB.');
             }
 
-            // Convert file to base64 without compression to preserve original quality
+            // Compress image before upload to prevent 413 errors
+            let fileToUpload = file;
+            try {
+                fileToUpload = await compressImage(file, {
+                    maxWidth: 2000,  // Reasonable size for ID images
+                    maxHeight: 2000,
+                    quality: 0.85,   // Good quality with compression
+                    maxSizeMB: 2     // Max 2MB after compression
+                });
+            } catch (compressError) {
+                console.warn('Image compression failed, uploading original:', compressError);
+                // Continue with original file if compression fails
+            }
+
+            // Convert compressed file to base64
             const reader = new FileReader();
             const base64Promise = new Promise<string>((resolve, reject) => {
                 reader.onload = () => {
@@ -719,11 +736,11 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
                 };
                 reader.onerror = reject;
             });
-            reader.readAsDataURL(file);
+            reader.readAsDataURL(fileToUpload);
 
             const base64Data = await base64Promise;
             const timestamp = Date.now();
-            const fileExt = file.name.split('.').pop() || 'jpg';
+            const fileExt = fileToUpload.name.split('.').pop() || 'jpg';
             const fileName = `${type}_${timestamp}.${fileExt}`;
             const storagePath = `${user.id}/${fileName}`;
 
@@ -739,7 +756,7 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
                     [type === 'front' ? 'frontImage' : 'backImage']: base64Data,
                     fileName: fileName,
                     storagePath: storagePath,
-                    mimeType: file.type,
+                    mimeType: fileToUpload.type,
                 }),
             });
 
@@ -768,6 +785,7 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
             console.error('Personal ID upload error:', error);
         } finally {
             setIsUploadingPersonalID(false);
+            setUploadingType(null);
         }
     };
 
@@ -779,6 +797,7 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
         }
 
         setIsUploadingPersonalID(true);
+        setUploadingType(type);
         setError('');
 
         try {
@@ -809,6 +828,7 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
             console.error('Personal ID delete error:', error);
         } finally {
             setIsUploadingPersonalID(false);
+            setUploadingType(null);
         }
     };
 
@@ -1344,24 +1364,34 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
                                                 </div>
                                             ) : (
                                                 isEditing ? (
-                                                    <label className="personal-id-upload-area">
+                                                    <label className={`personal-id-upload-area ${isUploadingPersonalID && uploadingType === 'front' ? 'uploading' : ''}`}>
                                                         <input
                                                             ref={frontImageInputRef}
                                                             type="file"
                                                             accept="image/*"
-                                                            capture="environment"
                                                             onChange={(e) => handlePersonalIDFileSelect('front', e)}
                                                             disabled={isUploadingPersonalID}
                                                             style={{ display: 'none' }}
                                                         />
-                                                        <div className="personal-id-upload-placeholder">
-                                                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                                                                <polyline points="17 8 12 3 7 8" />
-                                                                <line x1="12" y1="3" x2="12" y2="15" />
-                                                            </svg>
-                                                            <span>Upload Front</span>
-                                                        </div>
+                                                        {isUploadingPersonalID && uploadingType === 'front' ? (
+                                                            <div className="personal-id-upload-placeholder uploading">
+                                                                <div className="upload-spinner">
+                                                                    <div className="spinner-ring"></div>
+                                                                    <div className="spinner-ring"></div>
+                                                                    <div className="spinner-ring"></div>
+                                                                </div>
+                                                                <span>Uploading...</span>
+                                                            </div>
+                                                        ) : (
+                                                            <div className="personal-id-upload-placeholder">
+                                                                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                                                    <polyline points="17 8 12 3 7 8" />
+                                                                    <line x1="12" y1="3" x2="12" y2="15" />
+                                                                </svg>
+                                                                <span>Upload Front</span>
+                                                            </div>
+                                                        )}
                                                     </label>
                                                 ) : (
                                                     <div className="personal-id-empty">Not uploaded</div>
@@ -1423,24 +1453,34 @@ export default function UserProfileModal({ open, onClose }: { open: boolean; onC
                                                 </div>
                                             ) : (
                                                 isEditing ? (
-                                                    <label className="personal-id-upload-area">
+                                                    <label className={`personal-id-upload-area ${isUploadingPersonalID && uploadingType === 'back' ? 'uploading' : ''}`}>
                                                         <input
                                                             ref={backImageInputRef}
                                                             type="file"
                                                             accept="image/*"
-                                                            capture="environment"
                                                             onChange={(e) => handlePersonalIDFileSelect('back', e)}
                                                             disabled={isUploadingPersonalID}
                                                             style={{ display: 'none' }}
                                                         />
-                                                        <div className="personal-id-upload-placeholder">
-                                                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                                                                <polyline points="17 8 12 3 7 8" />
-                                                                <line x1="12" y1="3" x2="12" y2="15" />
-                                                            </svg>
-                                                            <span>Upload Back</span>
-                                                        </div>
+                                                        {isUploadingPersonalID && uploadingType === 'back' ? (
+                                                            <div className="personal-id-upload-placeholder uploading">
+                                                                <div className="upload-spinner">
+                                                                    <div className="spinner-ring"></div>
+                                                                    <div className="spinner-ring"></div>
+                                                                    <div className="spinner-ring"></div>
+                                                                </div>
+                                                                <span>Uploading...</span>
+                                                            </div>
+                                                        ) : (
+                                                            <div className="personal-id-upload-placeholder">
+                                                                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                                                    <polyline points="17 8 12 3 7 8" />
+                                                                    <line x1="12" y1="3" x2="12" y2="15" />
+                                                                </svg>
+                                                                <span>Upload Back</span>
+                                                            </div>
+                                                        )}
                                                     </label>
                                                 ) : (
                                                     <div className="personal-id-empty">Not uploaded</div>

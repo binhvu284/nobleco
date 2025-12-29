@@ -70,14 +70,28 @@ export default function ForgotPassword() {
 
         setIsLoading(true);
 
+        // Normalize email to lowercase before sending
+        const normalizedEmail = otpMethod === 'email' ? email.trim().toLowerCase() : undefined;
+        if (otpMethod === 'email' && normalizedEmail) {
+            // Validate email format
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(normalizedEmail)) {
+                setError(t('auth.invalidEmail') || 'Please enter a valid email address');
+                setIsLoading(false);
+                return;
+            }
+            // Update state with normalized email
+            setEmail(normalizedEmail);
+        }
+
         try {
             const response = await fetch('/api/otp', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     action: 'send',
-                    phone: otpMethod === 'phone' ? phone : undefined,
-                    email: otpMethod === 'email' ? email : undefined,
+                    phone: otpMethod === 'phone' ? phone.trim() : undefined,
+                    email: normalizedEmail,
                     purpose: 'password_reset'
                 }),
             });
@@ -144,13 +158,16 @@ export default function ForgotPassword() {
         setIsLoading(true);
 
         try {
+            // Normalize email to lowercase before verification
+            const normalizedEmail = otpMethod === 'email' ? email.trim().toLowerCase() : undefined;
+            
             const response = await fetch('/api/otp', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     action: 'verify',
-                    phone: otpMethod === 'phone' ? phone : undefined,
-                    email: otpMethod === 'email' ? email : undefined,
+                    phone: otpMethod === 'phone' ? phone.trim() : undefined,
+                    email: normalizedEmail,
                     code: otpCode,
                     purpose: 'password_reset'
                 }),
@@ -192,12 +209,15 @@ export default function ForgotPassword() {
         try {
             const otpCode = otp.join('');
             
+            // Normalize email to lowercase before reset
+            const normalizedEmail = otpMethod === 'email' ? email.trim().toLowerCase() : undefined;
+            
             const response = await fetch('/api/auth/reset-password', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    phone: otpMethod === 'phone' ? phone : undefined,
-                    email: otpMethod === 'email' ? email : undefined,
+                    phone: otpMethod === 'phone' ? phone.trim() : undefined,
+                    email: normalizedEmail,
                     newPassword,
                     otpCode
                 }),
@@ -230,13 +250,16 @@ export default function ForgotPassword() {
         setError('');
 
         try {
+            // Normalize email to lowercase before resend
+            const normalizedEmail = otpMethod === 'email' ? email.trim().toLowerCase() : undefined;
+            
             const response = await fetch('/api/otp', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     action: 'resend',
-                    phone: otpMethod === 'phone' ? phone : undefined,
-                    email: otpMethod === 'email' ? email : undefined,
+                    phone: otpMethod === 'phone' ? phone.trim() : undefined,
+                    email: normalizedEmail,
                     purpose: 'password_reset'
                 }),
             });
@@ -327,7 +350,9 @@ export default function ForgotPassword() {
                                         if (otpMethod === 'phone') {
                                             setPhone(e.target.value);
                                         } else {
-                                            setEmail(e.target.value);
+                                            // Normalize email to lowercase to prevent capitalization issues
+                                            const normalizedEmail = e.target.value.toLowerCase();
+                                            setEmail(normalizedEmail);
                                         }
                                         setError('');
                                     }}
@@ -336,6 +361,9 @@ export default function ForgotPassword() {
                                     disabled={isLoading}
                                     inputMode={otpMethod === 'phone' ? 'tel' : 'email'}
                                     autoComplete={otpMethod === 'phone' ? 'tel' : 'email'}
+                                    autoCapitalize="off"
+                                    autoCorrect="off"
+                                    spellCheck="false"
                                 />
                             </label>
                             {error && <div className="error">{error}</div>}

@@ -1288,9 +1288,18 @@ export default function AdminAdminUsers() {
                                             type="email"
                                             className="form-input"
                                             value={formData.email}
-                                            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                            onChange={(e) => {
+                                                // Normalize email to lowercase to prevent capitalization issues
+                                                const normalizedEmail = e.target.value.toLowerCase();
+                                                setFormData({ ...formData, email: normalizedEmail });
+                                            }}
                                             placeholder="Enter email address"
                                             required
+                                            autoCapitalize="off"
+                                            autoCorrect="off"
+                                            autoComplete="email"
+                                            spellCheck="false"
+                                            inputMode="email"
                                             disabled={createLoading}
                                         />
                                     </div>
@@ -1808,10 +1817,19 @@ export default function AdminAdminUsers() {
                                                     type="email"
                                                     className="form-input"
                                                     value={coworkerFormData.email}
-                                                    onChange={(e) => setCoworkerFormData({ ...coworkerFormData, email: e.target.value })}
+                                                    onChange={(e) => {
+                                                        // Normalize email to lowercase to prevent capitalization issues
+                                                        const normalizedEmail = e.target.value.toLowerCase();
+                                                        setCoworkerFormData({ ...coworkerFormData, email: normalizedEmail });
+                                                    }}
                                                     placeholder="Enter email address"
                                                     required
                                                     disabled={createCoworkerLoading}
+                                                    autoCapitalize="off"
+                                                    autoCorrect="off"
+                                                    autoComplete="email"
+                                                    spellCheck="false"
+                                                    inputMode="email"
                                                 />
                                             </div>
                                             <div className="form-group" style={{ marginBottom: '20px' }}>

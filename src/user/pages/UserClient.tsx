@@ -874,8 +874,17 @@ export default function UserClient() {
                                         <input
                                             type="email"
                                             value={formData.email || ''}
-                                            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                            onChange={(e) => {
+                                                // Normalize email to lowercase to prevent capitalization issues
+                                                const normalizedEmail = e.target.value.toLowerCase();
+                                                setFormData({ ...formData, email: normalizedEmail });
+                                            }}
                                             placeholder="Enter email address"
+                                            autoCapitalize="off"
+                                            autoCorrect="off"
+                                            autoComplete="email"
+                                            spellCheck="false"
+                                            inputMode="email"
                                         />
                                     </div>
 

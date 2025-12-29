@@ -101,13 +101,22 @@ export default function Login() {
         setError('');
         setIsLoading(true);
         
-        const result = await login(email, password);
+        // Normalize email to lowercase if it's an email (contains @)
+        // Keep phone numbers as-is
+        const normalizedEmail = email.includes('@') ? email.trim().toLowerCase() : email.trim();
+        
+        const result = await login(normalizedEmail, password);
         setIsLoading(false);
         
         if (result.success && result.user) {
             try {
-                if (remember) localStorage.setItem('remember_email', email);
-                else localStorage.removeItem('remember_email');
+                // Store normalized email if it's an email
+                if (remember) {
+                    const emailToStore = normalizedEmail.includes('@') ? normalizedEmail : email;
+                    localStorage.setItem('remember_email', emailToStore);
+                } else {
+                    localStorage.removeItem('remember_email');
+                }
             } catch { }
             
             // Redirect based on user role
@@ -177,9 +186,20 @@ export default function Login() {
                         <input
                             type="text"
                             value={email}
-                            onChange={(e) => setEmail(e.target.value)}
+                            onChange={(e) => {
+                                const value = e.target.value;
+                                // Normalize email to lowercase if it contains @ (email format)
+                                // Keep phone numbers as-is
+                                const normalizedValue = value.includes('@') ? value.toLowerCase() : value;
+                                setEmail(normalizedValue);
+                            }}
                             placeholder={`${t('auth.email')} ${t('common.or')} ${t('auth.phone')}`}
                             required
+                            autoCapitalize="off"
+                            autoCorrect="off"
+                            autoComplete="username"
+                            spellCheck="false"
+                            inputMode="text"
                         />
                     </label>
                     <label style={{ position: 'relative' }}>

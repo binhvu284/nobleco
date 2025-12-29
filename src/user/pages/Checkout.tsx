@@ -1308,8 +1308,17 @@ export default function Checkout() {
                                     <input
                                         type="email"
                                         value={newClientData.email}
-                                        onChange={(e) => setNewClientData({ ...newClientData, email: e.target.value })}
+                                        onChange={(e) => {
+                                            // Normalize email to lowercase to prevent capitalization issues
+                                            const normalizedEmail = e.target.value.toLowerCase();
+                                            setNewClientData({ ...newClientData, email: normalizedEmail });
+                                        }}
                                         placeholder="Enter email address"
+                                        autoCapitalize="off"
+                                        autoCorrect="off"
+                                        autoComplete="email"
+                                        spellCheck="false"
+                                        inputMode="email"
                                     />
                                 </div>
                                 <div className="form-group">
