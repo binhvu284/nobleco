@@ -461,16 +461,15 @@ export default function AdminDashboard() {
                             />
                             
                             {/* Row 3: Orders by Status (2x2), Orders by Country Table (2x2) */}
-                            {/* #region agent log */}
+                            {}
                             {(() => {
                                 const statusData = businessMetrics.ordersByStatus.map(s => ({ 
                                     name: s.status === 'processing' ? 'Processing' : s.status === 'completed' ? 'Completed' : s.status, 
                                     value: s.count 
                                 }));
-                                fetch('http://127.0.0.1:7242/ingest/3da31dfe-5721-4e1a-a160-93fd6dd15ec4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminDashboard.tsx:432',message:'Orders by Status data',data:{ordersByStatus:businessMetrics.ordersByStatus,statusData,totalOrders:businessMetrics.totalOrders},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
                                 return null;
                             })()}
-                            {/* #endregion */}
+                            {}
                             <MetricChart
                                 title={t('adminDashboard.ordersByStatus')}
                                 data={businessMetrics.ordersByStatus.map(s => ({ 
@@ -506,9 +505,6 @@ export default function AdminDashboard() {
                                                 </tr>
                                             ) : (
                                                 businessMetrics.ordersByCountry.map((row, index) => {
-                                                    // #region agent log
-                                                    fetch('http://127.0.0.1:7242/ingest/3da31dfe-5721-4e1a-a160-93fd6dd15ec4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminDashboard.tsx:466',message:'Country row data',data:{country:row.country,revenuePercentage:row.revenuePercentage,revenue:row.revenue,totalRevenue:businessMetrics.totalRevenue},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-                                                    // #endregion
                                                     return (
                                                         <tr key={index}>
                                                         <td>{row.country}</td>
@@ -544,66 +540,25 @@ export default function AdminDashboard() {
                     ) : userMetrics ? (
                         <DashboardGrid>
                             {/* Row 1: User Level Distribution (2x2), Top Users by Points (2x2) */}
-                            {(() => {
-                                // #region agent log
-                                const levelItems = userMetrics.levelDistribution.map(level => {
-                                    const color = getLevelColor(level.level);
-                                    fetch('http://127.0.0.1:7242/ingest/3da31dfe-5721-4e1a-a160-93fd6dd15ec4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminDashboard.tsx:517',message:'Level color mapping',data:{level:level.level,color,count:level.count,percentage:level.percentage},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-                                    return {
-                                        label: level.level,
-                                        value: level.count,
-                                        percentage: level.percentage,
-                                        color
-                                    };
-                                });
-                                fetch('http://127.0.0.1:7242/ingest/3da31dfe-5721-4e1a-a160-93fd6dd15ec4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminDashboard.tsx:525',message:'All level items with colors',data:{levelItems},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-                                return (
-                                    <MetricProgress
-                                        title={t('adminDashboard.userLevelDistribution')}
-                                        items={levelItems}
-                                        width={2}
-                                        height={2}
-                                    />
-                                );
-                            })()}
-                            <div className="metric-card metric-table" style={{ gridColumn: 'span 2', gridRow: 'span 2', display: 'flex', flexDirection: 'column' }}>
-                                <div className="widget-header">
-                                    <h3>{t('adminDashboard.topUsersByPoints')}</h3>
-                                </div>
-                                <div className="table-container" style={{ flex: 1, overflowY: 'auto', maxHeight: '300px' }}>
-                                    <table className="metric-table-content">
-                                        <thead>
-                                            <tr>
-                                                <th>{t('users.name')}</th>
-                                                <th>{t('users.level')}</th>
-                                                <th>{t('adminUsers.points')}</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {userMetrics.topUsersByPoints.length === 0 ? (
-                                                <tr>
-                                                    <td colSpan={3} className="empty-state">No data available</td>
-                                                </tr>
-                                            ) : (
-                                                userMetrics.topUsersByPoints.map((row, index) => {
-                                                    // #region agent log
-                                                    fetch('http://127.0.0.1:7242/ingest/3da31dfe-5721-4e1a-a160-93fd6dd15ec4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminDashboard.tsx:546',message:'Top user by points row',data:{id:row.id,name:row.name,level:row.level,levelLower:row.level?.toLowerCase(),points:row.points,index},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-                                                    // #endregion
-                                                    return (
-                                                        <tr key={row.id}>
-                                                            <td>{row.name}</td>
-                                                            <td>{row.level}</td>
-                                                            <td style={index === 0 ? { color: '#f59e0b', fontWeight: 'bold' } : index === 1 ? { color: '#eab308', fontWeight: 'bold' } : {}}>
-                                                                {formatNumber(row.points)}
-                                                            </td>
-                                                        </tr>
-                                                    );
-                                                })
-                                            )}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
+                            <SortableTable
+                                title={t('adminDashboard.topUsersByPoints')}
+                                columns={[
+                                    { key: 'name', label: t('users.name') },
+                                    { key: 'level', label: t('users.level') },
+                                    { key: 'points', label: t('users.points'), sortable: true, render: (val: any, row: any) => {
+                                        const sortedByPoints = [...userMetrics.topUsersByPoints].sort((a, b) => b.points - a.points);
+                                        const sortedIndex = sortedByPoints.findIndex(u => u.id === row.id);
+                                        return (
+                                            <span style={sortedIndex === 0 ? { color: '#f59e0b', fontWeight: 'bold' } : sortedIndex === 1 ? { color: '#eab308', fontWeight: 'bold' } : {}}>
+                                                {formatNumber(val)}
+                                            </span>
+                                        );
+                                    }}
+                                ]}
+                                data={userMetrics.topUsersByPoints}
+                                width={2}
+                                height={2}
+                            />
                             
                             {/* Row 2: Top Users by Order and Value (2x2), User Growth Trend (2x2) */}
                             <SortableTable

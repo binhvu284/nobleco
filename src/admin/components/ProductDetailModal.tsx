@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { IconX } from '../components/icons';
 import ImageGallery from '../../components/ImageGallery';
 import { UploadedImage } from '../../utils/imageUpload';
+import { useTranslation } from '../../shared/contexts/TranslationContext';
 
 interface Category {
     id: number;
@@ -35,6 +36,31 @@ interface Product {
     supplier_id?: string | null;
     jewelry_specifications?: string | null;
     inventory_value?: number | null;
+    // Jewelry/Centerstone specification fields
+    material_purity?: string | null;
+    material_weight_g?: number | null;
+    total_weight_g?: number | null;
+    size_text?: string | null;
+    jewelry_size?: string | null;
+    style_bst?: string | null;
+    sub_style?: string | null;
+    main_stone_type?: string | null;
+    stone_quantity?: number | null;
+    shape_and_polished?: string | null;
+    origin?: string | null;
+    item_serial?: string | null;
+    country_of_origin?: string | null;
+    certification_number?: string | null;
+    size_mm?: number | null;
+    color?: string | null;
+    clarity?: string | null;
+    weight_ct?: number | null;
+    pcs?: number | null;
+    cut_grade?: string | null;
+    treatment?: string | null;
+    sub_stone_type_1?: string | null;
+    sub_stone_type_2?: string | null;
+    sub_stone_type_3?: string | null;
     // Legacy fields (kept for backward compatibility)
     center_stone_size_mm?: number | null;
     ni_tay?: number | null;
@@ -58,6 +84,7 @@ interface ProductDetailModalProps {
 }
 
 export default function ProductDetailModal({ open, onClose, product, onEdit, productType = 'jewelry' }: ProductDetailModalProps) {
+    const { t } = useTranslation();
     const [images, setImages] = useState<UploadedImage[]>([]);
     const [loadingImages, setLoadingImages] = useState(false);
 
@@ -222,45 +249,234 @@ export default function ProductDetailModal({ open, onClose, product, onEdit, pro
                             </div>
                         </div>
 
-                        {/* Product Specifications - Always display */}
-                        <div className="product-section">
-                            <label className="section-label">Product Specifications</label>
-                            <div className="kiotviet-fields-grid">
-                                <div className="kiotviet-field">
-                                    <label>Supplier ID</label>
-                                    <span>{product.supplier_id ?? 'null'}</span>
-                                </div>
-                                <div className="kiotviet-field">
-                                    <label>Inventory Value</label>
-                                    <span>{product.inventory_value != null ? new Intl.NumberFormat('vi-VN').format(product.inventory_value) + ' ₫' : 'null'}</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Specifications - Always display */}
+                        {/* Specifications */}
                         <div className="product-section">
                             <label className="section-label">
-                                {productType === 'jewelry' ? 'Jewelry Specifications' : 'Center Stone Specifications'}
+                                {productType === 'jewelry' ? t('products.jewelrySpecifications') : t('products.centerStoneSpecifications')}
                             </label>
-                            <div className="jewelry-specifications-content">
-                                {product.jewelry_specifications ? (
-                                    <pre style={{
-                                        whiteSpace: 'pre-wrap',
-                                        fontFamily: 'inherit',
-                                        fontSize: '14px',
-                                        lineHeight: '1.6',
-                                        margin: 0,
-                                        padding: '12px',
-                                        backgroundColor: '#f9fafb',
-                                        borderRadius: '8px',
-                                        border: '1px solid #e5e7eb'
-                                    }}>
-                                        {product.jewelry_specifications}
-                                    </pre>
-                                ) : (
-                                    <span style={{ color: '#9ca3af', fontStyle: 'italic' }}>No specifications available</span>
-                                )}
-                            </div>
+                            {productType === 'jewelry' ? (
+                                <div className="kiotviet-fields-grid">
+                                    <div className="kiotviet-field">
+                                        <label>Material / Purity</label>
+                                        <span style={product.material_purity ? {} : { color: '#9ca3af', fontStyle: 'italic' }}>
+                                            {product.material_purity ?? 'N/A'}
+                                        </span>
+                                    </div>
+                                    <div className="kiotviet-field">
+                                        <label>Material Weight (g)</label>
+                                        <span style={product.material_weight_g != null ? {} : { color: '#9ca3af', fontStyle: 'italic' }}>
+                                            {product.material_weight_g != null ? product.material_weight_g.toFixed(3) : 'N/A'}
+                                        </span>
+                                    </div>
+                                    <div className="kiotviet-field">
+                                        <label>Total Weight (g)</label>
+                                        <span style={product.total_weight_g != null ? {} : { color: '#9ca3af', fontStyle: 'italic' }}>
+                                            {product.total_weight_g != null ? product.total_weight_g.toFixed(3) : 'N/A'}
+                                        </span>
+                                    </div>
+                                    <div className="kiotviet-field">
+                                        <label>Size</label>
+                                        <span style={product.size_text ? {} : { color: '#9ca3af', fontStyle: 'italic' }}>
+                                            {product.size_text ?? 'N/A'}
+                                        </span>
+                                    </div>
+                                    <div className="kiotviet-field">
+                                        <label>Jewelry Size</label>
+                                        <span style={product.jewelry_size ? {} : { color: '#9ca3af', fontStyle: 'italic' }}>
+                                            {product.jewelry_size ?? 'N/A'}
+                                        </span>
+                                    </div>
+                                    <div className="kiotviet-field">
+                                        <label>Style (BST)</label>
+                                        <span style={product.style_bst ? {} : { color: '#9ca3af', fontStyle: 'italic' }}>
+                                            {product.style_bst ?? 'N/A'}
+                                        </span>
+                                    </div>
+                                    <div className="kiotviet-field">
+                                        <label>Sub Style</label>
+                                        <span style={product.sub_style ? {} : { color: '#9ca3af', fontStyle: 'italic' }}>
+                                            {product.sub_style ?? 'N/A'}
+                                        </span>
+                                    </div>
+                                    <div className="kiotviet-field">
+                                        <label>Main Stone Type</label>
+                                        <span style={product.main_stone_type ? {} : { color: '#9ca3af', fontStyle: 'italic' }}>
+                                            {product.main_stone_type ?? 'N/A'}
+                                        </span>
+                                    </div>
+                                    <div className="kiotviet-field">
+                                        <label>Stone Quantity</label>
+                                        <span style={product.stone_quantity != null ? {} : { color: '#9ca3af', fontStyle: 'italic' }}>
+                                            {product.stone_quantity != null ? product.stone_quantity : 'N/A'}
+                                        </span>
+                                    </div>
+                                    <div className="kiotviet-field">
+                                        <label>Shape and Polished</label>
+                                        <span style={product.shape_and_polished ? {} : { color: '#9ca3af', fontStyle: 'italic' }}>
+                                            {product.shape_and_polished ?? 'N/A'}
+                                        </span>
+                                    </div>
+                                    <div className="kiotviet-field">
+                                        <label>Origin</label>
+                                        <span style={product.origin ? {} : { color: '#9ca3af', fontStyle: 'italic' }}>
+                                            {product.origin ?? 'N/A'}
+                                        </span>
+                                    </div>
+                                    <div className="kiotviet-field">
+                                        <label>Item Serial</label>
+                                        <span style={product.item_serial ? {} : { color: '#9ca3af', fontStyle: 'italic' }}>
+                                            {product.item_serial ?? 'N/A'}
+                                        </span>
+                                    </div>
+                                    <div className="kiotviet-field">
+                                        <label>Country of Origin</label>
+                                        <span style={product.country_of_origin ? {} : { color: '#9ca3af', fontStyle: 'italic' }}>
+                                            {product.country_of_origin ?? 'N/A'}
+                                        </span>
+                                    </div>
+                                    <div className="kiotviet-field">
+                                        <label>Certification Number</label>
+                                        <span style={product.certification_number ? {} : { color: '#9ca3af', fontStyle: 'italic' }}>
+                                            {product.certification_number ?? 'N/A'}
+                                        </span>
+                                    </div>
+                                    <div className="kiotviet-field">
+                                        <label>Size (mm)</label>
+                                        <span style={product.size_mm != null ? {} : { color: '#9ca3af', fontStyle: 'italic' }}>
+                                            {product.size_mm != null ? product.size_mm.toFixed(2) : 'N/A'}
+                                        </span>
+                                    </div>
+                                    <div className="kiotviet-field">
+                                        <label>Color</label>
+                                        <span style={product.color ? {} : { color: '#9ca3af', fontStyle: 'italic' }}>
+                                            {product.color ?? 'N/A'}
+                                        </span>
+                                    </div>
+                                    <div className="kiotviet-field">
+                                        <label>Clarity</label>
+                                        <span style={product.clarity ? {} : { color: '#9ca3af', fontStyle: 'italic' }}>
+                                            {product.clarity ?? 'N/A'}
+                                        </span>
+                                    </div>
+                                    <div className="kiotviet-field">
+                                        <label>Weight (CT)</label>
+                                        <span style={product.weight_ct != null ? {} : { color: '#9ca3af', fontStyle: 'italic' }}>
+                                            {product.weight_ct != null ? product.weight_ct.toFixed(2) : 'N/A'}
+                                        </span>
+                                    </div>
+                                    <div className="kiotviet-field">
+                                        <label>PCS</label>
+                                        <span style={product.pcs != null ? {} : { color: '#9ca3af', fontStyle: 'italic' }}>
+                                            {product.pcs != null ? product.pcs : 'N/A'}
+                                        </span>
+                                    </div>
+                                    <div className="kiotviet-field">
+                                        <label>Cut Grade</label>
+                                        <span style={product.cut_grade ? {} : { color: '#9ca3af', fontStyle: 'italic' }}>
+                                            {product.cut_grade ?? 'N/A'}
+                                        </span>
+                                    </div>
+                                    <div className="kiotviet-field">
+                                        <label>Treatment</label>
+                                        <span style={product.treatment ? {} : { color: '#9ca3af', fontStyle: 'italic' }}>
+                                            {product.treatment ?? 'N/A'}
+                                        </span>
+                                    </div>
+                                    <div className="kiotviet-field">
+                                        <label>Sub Stone Type 1</label>
+                                        <span style={product.sub_stone_type_1 ? {} : { color: '#9ca3af', fontStyle: 'italic' }}>
+                                            {product.sub_stone_type_1 ?? 'N/A'}
+                                        </span>
+                                    </div>
+                                    <div className="kiotviet-field">
+                                        <label>Sub Stone Type 2</label>
+                                        <span style={product.sub_stone_type_2 ? {} : { color: '#9ca3af', fontStyle: 'italic' }}>
+                                            {product.sub_stone_type_2 ?? 'N/A'}
+                                        </span>
+                                    </div>
+                                    <div className="kiotviet-field">
+                                        <label>Sub Stone Type 3</label>
+                                        <span style={product.sub_stone_type_3 ? {} : { color: '#9ca3af', fontStyle: 'italic' }}>
+                                            {product.sub_stone_type_3 ?? 'N/A'}
+                                        </span>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="kiotviet-fields-grid">
+                                    <div className="kiotviet-field">
+                                        <label>Shape and Polished</label>
+                                        <span style={product.shape_and_polished ? {} : { color: '#9ca3af', fontStyle: 'italic' }}>
+                                            {product.shape_and_polished ?? 'N/A'}
+                                        </span>
+                                    </div>
+                                    <div className="kiotviet-field">
+                                        <label>Origin</label>
+                                        <span style={product.origin ? {} : { color: '#9ca3af', fontStyle: 'italic' }}>
+                                            {product.origin ?? 'N/A'}
+                                        </span>
+                                    </div>
+                                    <div className="kiotviet-field">
+                                        <label>Item Serial</label>
+                                        <span style={product.item_serial ? {} : { color: '#9ca3af', fontStyle: 'italic' }}>
+                                            {product.item_serial ?? 'N/A'}
+                                        </span>
+                                    </div>
+                                    <div className="kiotviet-field">
+                                        <label>Country of Origin</label>
+                                        <span style={product.country_of_origin ? {} : { color: '#9ca3af', fontStyle: 'italic' }}>
+                                            {product.country_of_origin ?? 'N/A'}
+                                        </span>
+                                    </div>
+                                    <div className="kiotviet-field">
+                                        <label>Certification Number</label>
+                                        <span style={product.certification_number ? {} : { color: '#9ca3af', fontStyle: 'italic' }}>
+                                            {product.certification_number ?? 'N/A'}
+                                        </span>
+                                    </div>
+                                    <div className="kiotviet-field">
+                                        <label>Size (mm)</label>
+                                        <span style={product.size_mm != null ? {} : { color: '#9ca3af', fontStyle: 'italic' }}>
+                                            {product.size_mm != null ? product.size_mm.toFixed(2) : 'N/A'}
+                                        </span>
+                                    </div>
+                                    <div className="kiotviet-field">
+                                        <label>Color</label>
+                                        <span style={product.color ? {} : { color: '#9ca3af', fontStyle: 'italic' }}>
+                                            {product.color ?? 'N/A'}
+                                        </span>
+                                    </div>
+                                    <div className="kiotviet-field">
+                                        <label>Clarity</label>
+                                        <span style={product.clarity ? {} : { color: '#9ca3af', fontStyle: 'italic' }}>
+                                            {product.clarity ?? 'N/A'}
+                                        </span>
+                                    </div>
+                                    <div className="kiotviet-field">
+                                        <label>Weight (CT)</label>
+                                        <span style={product.weight_ct != null ? {} : { color: '#9ca3af', fontStyle: 'italic' }}>
+                                            {product.weight_ct != null ? product.weight_ct.toFixed(2) : 'N/A'}
+                                        </span>
+                                    </div>
+                                    <div className="kiotviet-field">
+                                        <label>PCS</label>
+                                        <span style={product.pcs != null ? {} : { color: '#9ca3af', fontStyle: 'italic' }}>
+                                            {product.pcs != null ? product.pcs : 'N/A'}
+                                        </span>
+                                    </div>
+                                    <div className="kiotviet-field">
+                                        <label>Cut Grade</label>
+                                        <span style={product.cut_grade ? {} : { color: '#9ca3af', fontStyle: 'italic' }}>
+                                            {product.cut_grade ?? 'N/A'}
+                                        </span>
+                                    </div>
+                                    <div className="kiotviet-field">
+                                        <label>Treatment</label>
+                                        <span style={product.treatment ? {} : { color: '#9ca3af', fontStyle: 'italic' }}>
+                                            {product.treatment ?? 'N/A'}
+                                        </span>
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
                         {/* Additional Information */}
@@ -307,7 +523,7 @@ export default function ProductDetailModal({ open, onClose, product, onEdit, pro
                             }
                         }}
                     >
-                        {productType === 'jewelry' ? 'Edit Jewelry' : 'Edit Center Stone'}
+                        {productType === 'jewelry' ? t('products.editJewelry') : t('products.editCenterStone')}
                     </button>
                 </div>
             </div>

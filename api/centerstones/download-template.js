@@ -20,13 +20,21 @@ export default async function handler(req, res) {
     // Create workbook
     const workbook = XLSX.utils.book_new();
 
-    // Define headers according to the template format
+    // Define headers according to the template format (in order specified by user)
     const headers = [
       'Product Code',
-      'Supplier Code',
-      'Product Name',
-      'Centerstone Specification',
-      'Description',
+      'Shape and Polished',
+      'Origin',
+      'Item Serial',
+      'Country of Origin',
+      'Certification Number',
+      'Size (mm)',
+      'Color',
+      'Clarity',
+      'Weight (CT)',
+      'PCS',
+      'Cut Grade',
+      'Treatment',
       'Price (VND)',
       'Stock',
       'Categories'
@@ -34,14 +42,22 @@ export default async function handler(req, res) {
 
     // Create sample data row (optional - can be empty)
     const sampleRow = [
-      'CST-00000001',           // Product Code
-      'SUP001',                 // Supplier Code
-      'Sample Centerstone Name',  // Product Name
-      'Center Stone Size: 2.4 mm\nNi tay: 6.5\nShape: Round\nDimensions: 2.9*3.3\nStone Count: 16\nCarat Weight: 4.065 ct\nGold Purity: 18K\nProduct Weight: 9.083 g\nType: L',  // Centerstone Specification (multi-line)
-      'Sample description',   // Description
-      88300000,               // Price (VND)
-      1,                      // Stock
-      'Diamonds, Gemstones'  // Categories (comma-separated)
+      'CST-00000001',           // Product Code (required, unique)
+      'Round, Excellent',        // Shape and Polished
+      'Botswana',                // Origin
+      'SER-001',                 // Item Serial
+      'Botswana',                // Country of Origin
+      'GIA-123456',              // Certification Number
+      6.5,                       // Size (mm) - decimal
+      'D',                       // Color
+      'VS1',                     // Clarity
+      1.5,                       // Weight (CT) - decimal
+      1,                         // PCS - number
+      'Excellent',               // Cut Grade
+      'None',                    // Treatment
+      88300000,                  // Price (VND) - required
+      1,                         // Stock - defaults to 0 if null
+      'Diamonds, Gemstones'     // Categories (comma-separated)
     ];
 
     // Create worksheet data
@@ -56,10 +72,18 @@ export default async function handler(req, res) {
     // Set column widths for better readability
     const columnWidths = [
       { wch: 15 },  // Product Code
-      { wch: 15 },  // Supplier Code
-      { wch: 25 },  // Product Name
-      { wch: 50 },  // Centerstone Specification (wider for multi-line text)
-      { wch: 30 },  // Description
+      { wch: 20 },  // Shape and Polished
+      { wch: 15 },  // Origin
+      { wch: 15 },  // Item Serial
+      { wch: 18 },  // Country of Origin
+      { wch: 18 },  // Certification Number
+      { wch: 12 },  // Size (mm)
+      { wch: 10 },  // Color
+      { wch: 12 },  // Clarity
+      { wch: 12 },  // Weight (CT)
+      { wch: 8 },   // PCS
+      { wch: 15 },  // Cut Grade
+      { wch: 15 },  // Treatment
       { wch: 15 },  // Price (VND)
       { wch: 10 },  // Stock
       { wch: 25 }   // Categories

@@ -80,16 +80,19 @@ async function generateUniqueSlug(baseSlug) {
  */
 function normalize(p) {
   if (!p) return null;
+  // For centerstone: if name is null, use SKU as name
+  const displayName = p.name || p.sku || '';
+  
   return {
     id: p.id,
-    name: p.name,
+    name: displayName,
     slug: p.slug,
     sku: p.sku ?? null,
     short_description: p.short_description,
     long_description: p.long_description ?? null,
     price: parseFloat(p.price),
     cost_price: p.cost_price ? parseFloat(p.cost_price) : null,
-    stock: p.stock,
+    stock: p.stock ?? 0,
     status: p.status,
     is_featured: p.is_featured ?? false,
     created_by: p.created_by ?? null,
@@ -106,6 +109,19 @@ function normalize(p) {
     serial_number: p.serial_number ?? null,
     supplier_id: p.supplier_id ?? null,
     jewelry_specifications: p.jewelry_specifications ?? null,
+    // New centerstone specification fields
+    shape_and_polished: p.shape_and_polished ?? null,
+    origin: p.origin ?? null,
+    item_serial: p.item_serial ?? null,
+    country_of_origin: p.country_of_origin ?? null,
+    certification_number: p.certification_number ?? null,
+    size_mm: p.size_mm ? parseFloat(p.size_mm) : null,
+    color: p.color ?? null,
+    clarity: p.clarity ?? null,
+    weight_ct: p.weight_ct ? parseFloat(p.weight_ct) : null,
+    pcs: p.pcs ?? null,
+    cut_grade: p.cut_grade ?? null,
+    treatment: p.treatment ?? null,
     // Legacy fields (kept for backward compatibility, but deprecated)
     center_stone_size_mm: p.center_stone_size_mm ? parseFloat(p.center_stone_size_mm) : null,
     ni_tay: p.ni_tay ? parseFloat(p.ni_tay) : null,
@@ -290,29 +306,46 @@ export async function getCenterstoneById(centerstoneId, includeImages = false) {
 export async function createCenterstone(centerstoneData, userId) {
   const supabase = getSupabase();
 
-  // Generate slug if not provided
-  const slug = centerstoneData.slug || await generateUniqueSlug(generateSlug(centerstoneData.name));
+  // Generate SKU if not provided (SKU is required and unique)
+  const sku = centerstoneData.sku && centerstoneData.sku.trim() 
+    ? centerstoneData.sku.trim() 
+    : await generateSKU();
   
-  // Generate SKU if not provided
-  const sku = centerstoneData.sku || await generateSKU();
+  // For centerstone: name = product code (SKU) if name is null/empty
+  const name = centerstoneData.name && centerstoneData.name.trim() 
+    ? centerstoneData.name.trim() 
+    : sku;
+  
+  // Generate slug if not provided
+  const slug = centerstoneData.slug || await generateUniqueSlug(generateSlug(name));
   
   // Ensure short_description is not empty (required field)
   const shortDescription = centerstoneData.short_description && centerstoneData.short_description.trim() 
     ? centerstoneData.short_description.trim() 
     : 'No description available';
+  
+  // Ensure price is provided (required)
+  if (!centerstoneData.price && centerstoneData.price !== 0) {
+    throw new Error('Price is required');
+  }
+  
+  // Stock defaults to 0 if null/undefined
+  const stock = centerstoneData.stock !== null && centerstoneData.stock !== undefined 
+    ? centerstoneData.stock 
+    : 0;
 
   const { data: centerstone, error } = await supabase
     .from('centerstones')
     .insert([{
-      name: centerstoneData.name.trim(),
+      name: name,
       slug: slug,
-      sku: centerstoneData.sku || sku,
+      sku: sku,
       short_description: shortDescription,
       long_description: centerstoneData.long_description && centerstoneData.long_description.trim() 
         ? centerstoneData.long_description.trim() 
         : null,
       price: centerstoneData.price,
-      stock: centerstoneData.stock || 0,
+      stock: stock,
       status: centerstoneData.status || 'active',
       is_featured: centerstoneData.is_featured || false,
       // Specification fields
@@ -322,6 +355,43 @@ export async function createCenterstone(centerstoneData, userId) {
         ? centerstoneData.jewelry_specifications.trim() 
         : null,
       inventory_value: centerstoneData.inventory_value || null,
+      // New centerstone specification fields
+      shape_and_polished: centerstoneData.shape_and_polished && centerstoneData.shape_and_polished.trim() 
+        ? centerstoneData.shape_and_polished.trim() 
+        : null,
+      origin: centerstoneData.origin && centerstoneData.origin.trim() 
+        ? centerstoneData.origin.trim() 
+        : null,
+      item_serial: centerstoneData.item_serial && centerstoneData.item_serial.trim() 
+        ? centerstoneData.item_serial.trim() 
+        : null,
+      country_of_origin: centerstoneData.country_of_origin && centerstoneData.country_of_origin.trim() 
+        ? centerstoneData.country_of_origin.trim() 
+        : null,
+      certification_number: centerstoneData.certification_number && centerstoneData.certification_number.trim() 
+        ? centerstoneData.certification_number.trim() 
+        : null,
+      size_mm: centerstoneData.size_mm !== null && centerstoneData.size_mm !== undefined 
+        ? parseFloat(centerstoneData.size_mm) 
+        : null,
+      color: centerstoneData.color && centerstoneData.color.trim() 
+        ? centerstoneData.color.trim() 
+        : null,
+      clarity: centerstoneData.clarity && centerstoneData.clarity.trim() 
+        ? centerstoneData.clarity.trim() 
+        : null,
+      weight_ct: centerstoneData.weight_ct !== null && centerstoneData.weight_ct !== undefined 
+        ? parseFloat(centerstoneData.weight_ct) 
+        : null,
+      pcs: centerstoneData.pcs !== null && centerstoneData.pcs !== undefined 
+        ? parseInt(centerstoneData.pcs) 
+        : null,
+      cut_grade: centerstoneData.cut_grade && centerstoneData.cut_grade.trim() 
+        ? centerstoneData.cut_grade.trim() 
+        : null,
+      treatment: centerstoneData.treatment && centerstoneData.treatment.trim() 
+        ? centerstoneData.treatment.trim() 
+        : null,
       created_by: userId,
       updated_by: userId
     }])
@@ -341,9 +411,23 @@ export async function createCenterstone(centerstoneData, userId) {
 export async function updateCenterstone(centerstoneId, centerstoneData, userId) {
   const supabase = getSupabase();
 
+  // Get current centerstone to check SKU
+  const { data: currentCenterstone } = await supabase
+    .from('centerstones')
+    .select('sku')
+    .eq('id', centerstoneId)
+    .single();
+  
+  const currentSKU = currentCenterstone?.sku || '';
+
+  // For centerstone: name = product code (SKU) if name is null/empty
+  const name = centerstoneData.name && centerstoneData.name.trim() 
+    ? centerstoneData.name.trim() 
+    : (centerstoneData.sku && centerstoneData.sku.trim() ? centerstoneData.sku.trim() : currentSKU);
+
   // Build update object with only provided fields
   const updateData = {
-    name: centerstoneData.name.trim(),
+    name: name,
     short_description: centerstoneData.short_description && centerstoneData.short_description.trim() 
       ? centerstoneData.short_description.trim() 
       : 'No description available',
@@ -351,22 +435,26 @@ export async function updateCenterstone(centerstoneId, centerstoneData, userId) 
       ? centerstoneData.long_description.trim() 
       : null,
     price: centerstoneData.price,
-    stock: centerstoneData.stock !== undefined ? centerstoneData.stock : 0,
+    stock: centerstoneData.stock !== undefined && centerstoneData.stock !== null ? centerstoneData.stock : 0,
     updated_by: userId
   };
 
   // Only update slug if provided (usually we don't change slug on edit)
   if (centerstoneData.slug) {
     updateData.slug = centerstoneData.slug;
-  } else if (centerstoneData.name) {
+  } else if (centerstoneData.name || name !== currentCenterstone?.name) {
     // Generate new slug if name changed
-    const baseSlug = generateSlug(centerstoneData.name);
+    const baseSlug = generateSlug(name);
     updateData.slug = await generateUniqueSlug(baseSlug);
   }
 
   // Only update SKU if provided
   if (centerstoneData.sku !== undefined) {
-    updateData.sku = centerstoneData.sku || null;
+    updateData.sku = centerstoneData.sku && centerstoneData.sku.trim() ? centerstoneData.sku.trim() : null;
+    // If SKU changed and name was null, update name to new SKU
+    if (!centerstoneData.name || !centerstoneData.name.trim()) {
+      updateData.name = updateData.sku || name;
+    }
   }
 
   // Only update status if provided
@@ -393,6 +481,68 @@ export async function updateCenterstone(centerstoneId, centerstoneData, userId) 
   }
   if (centerstoneData.inventory_value !== undefined) {
     updateData.inventory_value = centerstoneData.inventory_value || null;
+  }
+
+  // New centerstone specification fields
+  if (centerstoneData.shape_and_polished !== undefined) {
+    updateData.shape_and_polished = centerstoneData.shape_and_polished && centerstoneData.shape_and_polished.trim() 
+      ? centerstoneData.shape_and_polished.trim() 
+      : null;
+  }
+  if (centerstoneData.origin !== undefined) {
+    updateData.origin = centerstoneData.origin && centerstoneData.origin.trim() 
+      ? centerstoneData.origin.trim() 
+      : null;
+  }
+  if (centerstoneData.item_serial !== undefined) {
+    updateData.item_serial = centerstoneData.item_serial && centerstoneData.item_serial.trim() 
+      ? centerstoneData.item_serial.trim() 
+      : null;
+  }
+  if (centerstoneData.country_of_origin !== undefined) {
+    updateData.country_of_origin = centerstoneData.country_of_origin && centerstoneData.country_of_origin.trim() 
+      ? centerstoneData.country_of_origin.trim() 
+      : null;
+  }
+  if (centerstoneData.certification_number !== undefined) {
+    updateData.certification_number = centerstoneData.certification_number && centerstoneData.certification_number.trim() 
+      ? centerstoneData.certification_number.trim() 
+      : null;
+  }
+  if (centerstoneData.size_mm !== undefined) {
+    updateData.size_mm = centerstoneData.size_mm !== null && centerstoneData.size_mm !== undefined 
+      ? parseFloat(centerstoneData.size_mm) 
+      : null;
+  }
+  if (centerstoneData.color !== undefined) {
+    updateData.color = centerstoneData.color && centerstoneData.color.trim() 
+      ? centerstoneData.color.trim() 
+      : null;
+  }
+  if (centerstoneData.clarity !== undefined) {
+    updateData.clarity = centerstoneData.clarity && centerstoneData.clarity.trim() 
+      ? centerstoneData.clarity.trim() 
+      : null;
+  }
+  if (centerstoneData.weight_ct !== undefined) {
+    updateData.weight_ct = centerstoneData.weight_ct !== null && centerstoneData.weight_ct !== undefined 
+      ? parseFloat(centerstoneData.weight_ct) 
+      : null;
+  }
+  if (centerstoneData.pcs !== undefined) {
+    updateData.pcs = centerstoneData.pcs !== null && centerstoneData.pcs !== undefined 
+      ? parseInt(centerstoneData.pcs) 
+      : null;
+  }
+  if (centerstoneData.cut_grade !== undefined) {
+    updateData.cut_grade = centerstoneData.cut_grade && centerstoneData.cut_grade.trim() 
+      ? centerstoneData.cut_grade.trim() 
+      : null;
+  }
+  if (centerstoneData.treatment !== undefined) {
+    updateData.treatment = centerstoneData.treatment && centerstoneData.treatment.trim() 
+      ? centerstoneData.treatment.trim() 
+      : null;
   }
 
   const { data: centerstone, error } = await supabase

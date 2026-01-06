@@ -50,6 +50,31 @@ interface Product {
     supplier_id?: string | null;
     jewelry_specifications?: string | null;
     inventory_value?: number | null;
+    // Jewelry specification fields
+    material_purity?: string | null;
+    material_weight_g?: number | null;
+    total_weight_g?: number | null;
+    size_text?: string | null;
+    jewelry_size?: string | null;
+    style_bst?: string | null;
+    sub_style?: string | null;
+    main_stone_type?: string | null;
+    stone_quantity?: number | null;
+    shape_and_polished?: string | null;
+    origin?: string | null;
+    item_serial?: string | null;
+    country_of_origin?: string | null;
+    certification_number?: string | null;
+    size_mm?: number | null;
+    color?: string | null;
+    clarity?: string | null;
+    weight_ct?: number | null;
+    pcs?: number | null;
+    cut_grade?: string | null;
+    treatment?: string | null;
+    sub_stone_type_1?: string | null;
+    sub_stone_type_2?: string | null;
+    sub_stone_type_3?: string | null;
     // Legacy fields (kept for backward compatibility)
     center_stone_size_mm?: number | null;
     shape?: string | null;
@@ -274,14 +299,12 @@ export default function AdminProducts() {
 
     // Fetch products from API with request cancellation
     const fetchProducts = useCallback(async () => {
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/3da31dfe-5721-4e1a-a160-93fd6dd15ec4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminProducts.tsx:272',message:'fetchProducts called',data:{productType},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'B'})}).catch(()=>{});
-        // #endregion
+
+
         // Cancel previous request if it exists
         if (abortControllerRef.current) {
-            // #region agent log
-            fetch('http://127.0.0.1:7242/ingest/3da31dfe-5721-4e1a-a160-93fd6dd15ec4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminProducts.tsx:276',message:'Cancelling previous request',data:{productType},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'B'})}).catch(()=>{});
-            // #endregion
+
+
             abortControllerRef.current.abort();
         }
         
@@ -294,46 +317,39 @@ export default function AdminProducts() {
         setError(null);
         try {
             const endpoint = currentProductType === 'jewelry' ? '/api/products' : '/api/centerstones';
-            // #region agent log
-            fetch('http://127.0.0.1:7242/ingest/3da31dfe-5721-4e1a-a160-93fd6dd15ec4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminProducts.tsx:285',message:'Starting fetch request',data:{endpoint,currentProductType,productType},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'B'})}).catch(()=>{});
-            // #endregion
+
+
             const response = await fetch(`${endpoint}?includeImages=true`, {
                 signal: abortController.signal
             });
-            // #region agent log
-            fetch('http://127.0.0.1:7242/ingest/3da31dfe-5721-4e1a-a160-93fd6dd15ec4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminProducts.tsx:290',message:'Fetch response received',data:{ok:response.ok,currentProductType,productType},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'B'})}).catch(()=>{});
-            // #endregion
+
+
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
                 throw new Error(errorData.error || `HTTP ${response.status}: Failed to fetch ${currentProductType}`);
             }
             const data = await response.json();
-            // #region agent log
-            fetch('http://127.0.0.1:7242/ingest/3da31dfe-5721-4e1a-a160-93fd6dd15ec4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminProducts.tsx:297',message:'About to set products',data:{currentProductType,productType,dataLength:data?.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'B'})}).catch(()=>{});
-            // #endregion
+
+
             // Check if request was aborted or productType changed
             if (abortController.signal.aborted || currentProductType !== productType) {
-                // #region agent log
-                fetch('http://127.0.0.1:7242/ingest/3da31dfe-5721-4e1a-a160-93fd6dd15ec4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminProducts.tsx:301',message:'Request aborted or productType changed, ignoring result',data:{aborted:abortController.signal.aborted,currentProductType,productType},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'B'})}).catch(()=>{});
-                // #endregion
+
+
                 return; // Ignore this result
             }
             
             // Images are included in the API response and will be loaded lazily via LazyImage component
             // This improves performance by only loading images when they enter the viewport
             setProducts(data);
-            // #region agent log
-            fetch('http://127.0.0.1:7242/ingest/3da31dfe-5721-4e1a-a160-93fd6dd15ec4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminProducts.tsx:309',message:'Products set successfully',data:{currentProductType,productType},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'B'})}).catch(()=>{});
-            // #endregion
+
+
         } catch (err: any) {
-            // #region agent log
-            fetch('http://127.0.0.1:7242/ingest/3da31dfe-5721-4e1a-a160-93fd6dd15ec4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminProducts.tsx:313',message:'Fetch error',data:{currentProductType,productType,error:err instanceof Error ? err.message : String(err),aborted:err?.name === 'AbortError'},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'B'})}).catch(()=>{});
-            // #endregion
+
+
             // Ignore abort errors and only set error if productType hasn't changed
             if (err?.name === 'AbortError') {
-                // #region agent log
-                fetch('http://127.0.0.1:7242/ingest/3da31dfe-5721-4e1a-a160-93fd6dd15ec4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminProducts.tsx:317',message:'Request aborted, ignoring error',data:{currentProductType,productType},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'B'})}).catch(()=>{});
-                // #endregion
+
+
                 return;
             }
             if (currentProductType === productType) {
@@ -343,23 +359,20 @@ export default function AdminProducts() {
         } finally {
             // Only set loading to false if request wasn't aborted and productType hasn't changed
             if (!abortController.signal.aborted && currentProductType === productType) {
-                // #region agent log
-                fetch('http://127.0.0.1:7242/ingest/3da31dfe-5721-4e1a-a160-93fd6dd15ec4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminProducts.tsx:327',message:'Setting loading to false',data:{currentProductType,productType},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'B'})}).catch(()=>{});
-                // #endregion
+
+
                 setLoading(false);
             } else {
-                // #region agent log
-                fetch('http://127.0.0.1:7242/ingest/3da31dfe-5721-4e1a-a160-93fd6dd15ec4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminProducts.tsx:331',message:'Not setting loading to false',data:{aborted:abortController.signal.aborted,currentProductType,productType},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'B'})}).catch(()=>{});
-                // #endregion
+
+
             }
         }
     }, [productType]);
 
     // Reset loading state when productType changes
     useEffect(() => {
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/3da31dfe-5721-4e1a-a160-93fd6dd15ec4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminProducts.tsx:323',message:'ProductType changed, resetting state',data:{productType},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-        // #endregion
+
+
         setLoading(true);
         setError(null);
         setProducts([]);

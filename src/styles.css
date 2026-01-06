@@ -19050,6 +19050,38 @@ input:focus {
     font-weight: 500;
 }
 
+.kiotviet-field span.na-value {
+    color: #9ca3af;
+    font-style: italic;
+}
+
+.product-modal-sku {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+    margin-bottom: 12px;
+    padding: 8px 12px;
+    background: var(--bg-secondary);
+    border-radius: 6px;
+    border: 1px solid var(--border-light);
+}
+
+.product-modal-sku .sku-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.product-modal-sku .sku-value {
+    font-size: 0.938rem;
+    color: var(--text-primary);
+    font-weight: 600;
+    font-family: 'Courier New', monospace;
+}
+
 .sync-status-badge {
     display: inline-block;
     padding: 4px 10px;
@@ -22369,6 +22401,80 @@ input:focus {
     opacity: 0.5;
     cursor: not-allowed;
     background: #9CA3AF;
+}
+
+/* Centerstone Specifications Grid - Desktop */
+.user-product-detail-modal .centerstone-specs-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 16px;
+    margin-top: 12px;
+}
+
+.user-product-detail-modal .centerstone-spec-card {
+    background: linear-gradient(135deg, #ffffff 0%, #f9fafb 100%);
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 16px;
+    transition: all 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.user-product-detail-modal .centerstone-spec-card:hover {
+    border-color: #d1d5db;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    transform: translateY(-2px);
+}
+
+.user-product-detail-modal .centerstone-spec-card.highlight {
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+    border-color: #3b82f6;
+}
+
+.user-product-detail-modal .centerstone-spec-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+}
+
+.user-product-detail-modal .centerstone-spec-value {
+    font-size: 16px;
+    font-weight: 600;
+    color: #111827;
+    line-height: 1.4;
+}
+
+.user-product-detail-modal .centerstone-spec-value.empty {
+    color: #9ca3af;
+    font-style: italic;
+    font-weight: 400;
+}
+
+/* Jewelry Specifications - Desktop */
+.user-product-detail-modal .jewelry-specs-content {
+    background: #f9fafb;
+    padding: 16px;
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-family: inherit;
+    font-size: 14px;
+    line-height: 1.6;
+    color: #374151;
+    margin: 0;
+}
+
+.user-product-detail-modal .no-specs {
+    font-size: 14px;
+    color: #9ca3af;
+    font-style: italic;
+    margin: 0;
 }
 
 /* Loading and Empty States */
@@ -31774,6 +31880,73 @@ input:focus {
         color: #9ca3af !important;
         font-style: italic !important;
         margin: 0 !important;
+    }
+    
+    /* Centerstone Specifications Grid - Enhanced UI */
+    .user-product-detail-modal .centerstone-specs-grid {
+        display: grid !important;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)) !important;
+        gap: 16px !important;
+        margin-top: 12px !important;
+    }
+    
+    .user-product-detail-modal .centerstone-spec-card {
+        background: linear-gradient(135deg, #ffffff 0%, #f9fafb 100%) !important;
+        border: 1px solid #e5e7eb !important;
+        border-radius: 12px !important;
+        padding: 16px !important;
+        transition: all 0.2s ease !important;
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 8px !important;
+    }
+    
+    .user-product-detail-modal .centerstone-spec-card:hover {
+        border-color: #d1d5db !important;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05) !important;
+        transform: translateY(-1px) !important;
+    }
+    
+    .user-product-detail-modal .centerstone-spec-card.highlight {
+        background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%) !important;
+        border-color: #3b82f6 !important;
+    }
+    
+    .user-product-detail-modal .centerstone-spec-label {
+        font-size: 11px !important;
+        font-weight: 600 !important;
+        color: #6b7280 !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.5px !important;
+        margin-bottom: 4px !important;
+    }
+    
+    .user-product-detail-modal .centerstone-spec-value {
+        font-size: 16px !important;
+        font-weight: 600 !important;
+        color: #111827 !important;
+        line-height: 1.4 !important;
+    }
+    
+    .user-product-detail-modal .centerstone-spec-value.empty {
+        color: #9ca3af !important;
+        font-style: italic !important;
+        font-weight: 400 !important;
+    }
+    
+    @media (max-width: 768px) {
+        .user-product-detail-modal .centerstone-specs-grid {
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)) !important;
+            gap: 12px !important;
+        }
+        
+        .user-product-detail-modal .centerstone-spec-card {
+            padding: 12px !important;
+        }
+        
+        .user-product-detail-modal .centerstone-spec-value {
+            font-size: 14px !important;
+        }
     }
     
     /* Fix 3: Optimize product detail layout - REMOVED OLD CODE */

@@ -3,6 +3,7 @@ import { IconX, IconMaximize, IconMinimize } from './icons';
 import ImageUpload from '../../components/ImageUpload';
 import { UploadedImage } from '../../utils/imageUpload';
 import { deleteProductImage } from '../../utils/imageUpload';
+import { useTranslation } from '../../shared/contexts/TranslationContext';
 
 interface Category {
     id: number;
@@ -23,6 +24,31 @@ interface Product {
     stock: number;
     status: 'draft' | 'active' | 'inactive' | 'archived';
     categories: Category[];
+    // Jewelry specification fields
+    material_purity?: string | null;
+    material_weight_g?: number | null;
+    total_weight_g?: number | null;
+    size_text?: string | null;
+    jewelry_size?: string | null;
+    style_bst?: string | null;
+    sub_style?: string | null;
+    main_stone_type?: string | null;
+    stone_quantity?: number | null;
+    shape_and_polished?: string | null;
+    origin?: string | null;
+    item_serial?: string | null;
+    country_of_origin?: string | null;
+    certification_number?: string | null;
+    size_mm?: number | null;
+    color?: string | null;
+    clarity?: string | null;
+    weight_ct?: number | null;
+    pcs?: number | null;
+    cut_grade?: string | null;
+    treatment?: string | null;
+    sub_stone_type_1?: string | null;
+    sub_stone_type_2?: string | null;
+    sub_stone_type_3?: string | null;
 }
 
 interface AddProductModalProps {
@@ -34,6 +60,7 @@ interface AddProductModalProps {
 }
 
 export default function AddProductModal({ open, onClose, onSuccess, product, productType = 'jewelry' }: AddProductModalProps) {
+    const { t } = useTranslation();
     const isEditMode = !!product;
     const [isFullscreen, setIsFullscreen] = useState(false);
     const [isMobile, setIsMobile] = useState(false);
@@ -50,10 +77,35 @@ export default function AddProductModal({ open, onClose, onSuccess, product, pro
         price: '',
         stock: '0',
         status: 'active' as 'active' | 'inactive',
-        // Jewelry specification fields
+        // Legacy jewelry specification fields
         supplier_id: '',
         jewelry_specifications: '',
-        inventory_value: ''
+        inventory_value: '',
+        // New jewelry/centerstone specification fields
+        material_purity: '',
+        material_weight_g: '',
+        total_weight_g: '',
+        size_text: '',
+        jewelry_size: '',
+        style_bst: '',
+        sub_style: '',
+        main_stone_type: '',
+        stone_quantity: '',
+        shape_and_polished: '',
+        origin: '',
+        item_serial: '',
+        country_of_origin: '',
+        certification_number: '',
+        size_mm: '',
+        color: '',
+        clarity: '',
+        weight_ct: '',
+        pcs: '',
+        cut_grade: '',
+        treatment: '',
+        sub_stone_type_1: '',
+        sub_stone_type_2: '',
+        sub_stone_type_3: ''
     });
     
     // Product images (stored separately, uploaded immediately)
@@ -106,10 +158,35 @@ export default function AddProductModal({ open, onClose, onSuccess, product, pro
                 price: product.price?.toString() || '',
                 stock: product.stock?.toString() || '0',
                 status: formStatus,
-                // Jewelry specification fields
+                // Legacy jewelry specification fields
                 supplier_id: (product as any).supplier_id || '',
                 jewelry_specifications: (product as any).jewelry_specifications || '',
-                inventory_value: (product as any).inventory_value?.toString() || ''
+                inventory_value: (product as any).inventory_value?.toString() || '',
+                // New jewelry/centerstone specification fields
+                material_purity: (product as any).material_purity || '',
+                material_weight_g: (product as any).material_weight_g?.toString() || '',
+                total_weight_g: (product as any).total_weight_g?.toString() || '',
+                size_text: (product as any).size_text || '',
+                jewelry_size: (product as any).jewelry_size || '',
+                style_bst: (product as any).style_bst || '',
+                sub_style: (product as any).sub_style || '',
+                main_stone_type: (product as any).main_stone_type || '',
+                stone_quantity: (product as any).stone_quantity?.toString() || '',
+                shape_and_polished: (product as any).shape_and_polished || '',
+                origin: (product as any).origin || '',
+                item_serial: (product as any).item_serial || '',
+                country_of_origin: (product as any).country_of_origin || '',
+                certification_number: (product as any).certification_number || '',
+                size_mm: (product as any).size_mm?.toString() || '',
+                color: (product as any).color || '',
+                clarity: (product as any).clarity || '',
+                weight_ct: (product as any).weight_ct?.toString() || '',
+                pcs: (product as any).pcs?.toString() || '',
+                cut_grade: (product as any).cut_grade || '',
+                treatment: (product as any).treatment || '',
+                sub_stone_type_1: (product as any).sub_stone_type_1 || '',
+                sub_stone_type_2: (product as any).sub_stone_type_2 || '',
+                sub_stone_type_3: (product as any).sub_stone_type_3 || ''
             });
             
             // Set product ID for image uploads
@@ -155,7 +232,31 @@ export default function AddProductModal({ open, onClose, onSuccess, product, pro
                 status: 'active',
                 supplier_id: '',
                 jewelry_specifications: '',
-                inventory_value: ''
+                inventory_value: '',
+                material_purity: '',
+                material_weight_g: '',
+                total_weight_g: '',
+                size_text: '',
+                jewelry_size: '',
+                style_bst: '',
+                sub_style: '',
+                main_stone_type: '',
+                stone_quantity: '',
+                shape_and_polished: '',
+                origin: '',
+                item_serial: '',
+                country_of_origin: '',
+                certification_number: '',
+                size_mm: '',
+                color: '',
+                clarity: '',
+                weight_ct: '',
+                pcs: '',
+                cut_grade: '',
+                treatment: '',
+                sub_stone_type_1: '',
+                sub_stone_type_2: '',
+                sub_stone_type_3: ''
             });
             setProductImages([]);
             setTempProductId(null);
@@ -280,8 +381,11 @@ export default function AddProductModal({ open, onClose, onSuccess, product, pro
         
         if (!isEditMode) {
             // Validation for new products
-            if (!formData.name.trim()) {
-                newErrors.name = 'Product name is required';
+            // Name is optional for both jewelry and centerstone (will default to SKU if empty)
+            
+            // SKU is required for both product types
+            if (!formData.sku.trim()) {
+                newErrors.sku = 'Product Code (SKU) is required';
             }
             
             if (!formData.price.trim()) {
@@ -357,17 +461,43 @@ export default function AddProductModal({ open, onClose, onSuccess, product, pro
             if (isEditMode && product) {
                 // Update existing product - include all fields
                 const productData: any = {
-                    name: formData.name.trim(),
+                    name: formData.name.trim() || null, // Name can be null (will use SKU)
                     sku: formData.sku.trim() || null,
                     short_description: formData.short_description.trim() || '',
                     long_description: formData.long_description.trim() || null,
                     price: formData.price ? parseFloat(formData.price) : 0,
                     stock: formData.stock ? parseInt(formData.stock) : 0,
-                    // Jewelry specification fields
+                    // Legacy jewelry specification fields
                     supplier_id: formData.supplier_id.trim() || null,
                     jewelry_specifications: formData.jewelry_specifications.trim() || null,
                     inventory_value: formData.inventory_value ? parseFloat(formData.inventory_value) : null
                 };
+                
+                // Add specification fields for both jewelry and centerstone
+                productData.material_purity = formData.material_purity.trim() || null;
+                productData.material_weight_g = formData.material_weight_g ? parseFloat(formData.material_weight_g) : null;
+                productData.total_weight_g = formData.total_weight_g ? parseFloat(formData.total_weight_g) : null;
+                productData.size_text = formData.size_text.trim() || null;
+                productData.jewelry_size = formData.jewelry_size.trim() || null;
+                productData.style_bst = formData.style_bst.trim() || null;
+                productData.sub_style = formData.sub_style.trim() || null;
+                productData.main_stone_type = formData.main_stone_type.trim() || null;
+                productData.stone_quantity = formData.stone_quantity ? parseInt(formData.stone_quantity) : null;
+                productData.shape_and_polished = formData.shape_and_polished.trim() || null;
+                productData.origin = formData.origin.trim() || null;
+                productData.item_serial = formData.item_serial.trim() || null;
+                productData.country_of_origin = formData.country_of_origin.trim() || null;
+                productData.certification_number = formData.certification_number.trim() || null;
+                productData.size_mm = formData.size_mm ? parseFloat(formData.size_mm) : null;
+                productData.color = formData.color.trim() || null;
+                productData.clarity = formData.clarity.trim() || null;
+                productData.weight_ct = formData.weight_ct ? parseFloat(formData.weight_ct) : null;
+                productData.pcs = formData.pcs ? parseInt(formData.pcs) : null;
+                productData.cut_grade = formData.cut_grade.trim() || null;
+                productData.treatment = formData.treatment.trim() || null;
+                productData.sub_stone_type_1 = formData.sub_stone_type_1.trim() || null;
+                productData.sub_stone_type_2 = formData.sub_stone_type_2.trim() || null;
+                productData.sub_stone_type_3 = formData.sub_stone_type_3.trim() || null;
                 
                 const requestBody: any = {
                     id: product.id,
@@ -390,18 +520,43 @@ export default function AddProductModal({ open, onClose, onSuccess, product, pro
             } else {
                 // Create new product - include all fields
                 const productData: any = {
-                    name: formData.name.trim(),
+                    name: formData.name.trim() || null, // Name can be null (will use SKU)
                     sku: formData.sku.trim() || null,
                     short_description: formData.short_description.trim() || '',
                     long_description: formData.long_description.trim() || null,
                     price: parseFloat(formData.price),
                     stock: parseInt(formData.stock) || 0,
                     status: formData.status,
-                    // Jewelry specification fields
+                    // Legacy jewelry specification fields
                     supplier_id: formData.supplier_id.trim() || null,
                     jewelry_specifications: formData.jewelry_specifications.trim() || null,
                     inventory_value: formData.inventory_value ? parseFloat(formData.inventory_value) : null,
-                    category_ids: formData.categories.length > 0 ? formData.categories : []
+                    category_ids: formData.categories.length > 0 ? formData.categories : [],
+                    // New specification fields for both jewelry and centerstone
+                    material_purity: formData.material_purity.trim() || null,
+                    material_weight_g: formData.material_weight_g ? parseFloat(formData.material_weight_g) : null,
+                    total_weight_g: formData.total_weight_g ? parseFloat(formData.total_weight_g) : null,
+                    size_text: formData.size_text.trim() || null,
+                    jewelry_size: formData.jewelry_size.trim() || null,
+                    style_bst: formData.style_bst.trim() || null,
+                    sub_style: formData.sub_style.trim() || null,
+                    main_stone_type: formData.main_stone_type.trim() || null,
+                    stone_quantity: formData.stone_quantity ? parseInt(formData.stone_quantity) : null,
+                    shape_and_polished: formData.shape_and_polished.trim() || null,
+                    origin: formData.origin.trim() || null,
+                    item_serial: formData.item_serial.trim() || null,
+                    country_of_origin: formData.country_of_origin.trim() || null,
+                    certification_number: formData.certification_number.trim() || null,
+                    size_mm: formData.size_mm ? parseFloat(formData.size_mm) : null,
+                    color: formData.color.trim() || null,
+                    clarity: formData.clarity.trim() || null,
+                    weight_ct: formData.weight_ct ? parseFloat(formData.weight_ct) : null,
+                    pcs: formData.pcs ? parseInt(formData.pcs) : null,
+                    cut_grade: formData.cut_grade.trim() || null,
+                    treatment: formData.treatment.trim() || null,
+                    sub_stone_type_1: formData.sub_stone_type_1.trim() || null,
+                    sub_stone_type_2: formData.sub_stone_type_2.trim() || null,
+                    sub_stone_type_3: formData.sub_stone_type_3.trim() || null
                 };
                 
                 const endpoint = productType === 'jewelry' ? '/api/products' : '/api/centerstones';
@@ -468,8 +623,8 @@ export default function AddProductModal({ open, onClose, onSuccess, product, pro
             >
                 <div className="add-product-modal-header">
                     <h2>{isEditMode 
-                        ? (productType === 'jewelry' ? 'Edit Jewelry' : 'Edit Center Stone')
-                        : (productType === 'jewelry' ? 'Add New Jewelry' : 'Add New Center Stone')}</h2>
+                        ? (productType === 'jewelry' ? t('products.editJewelry') : t('products.editCenterStone'))
+                        : (productType === 'jewelry' ? t('products.addNewJewelry') : t('products.addNewCenterStone'))}</h2>
                     <div className="add-product-modal-actions">
                         {!isMobile && (
                             <button 
@@ -498,15 +653,13 @@ export default function AddProductModal({ open, onClose, onSuccess, product, pro
                             
                             {/* Product Name */}
                             <div className="form-group">
-                                <label htmlFor="product-name">
-                                    Name <span className="required">*</span>
-                                </label>
+                                <label htmlFor="product-name">Name</label>
                                 <input
                                     id="product-name"
                                     type="text"
                                     value={formData.name}
                                     onChange={(e) => handleInputChange('name', e.target.value)}
-                                    placeholder="Enter product name"
+                                    placeholder="If leave this field empty, it will auto = product code"
                                     className={errors.name ? 'error' : ''}
                                 />
                                 {errors.name && <span className="error-message">{errors.name}</span>}
@@ -514,14 +667,19 @@ export default function AddProductModal({ open, onClose, onSuccess, product, pro
 
                             {/* Product ID (SKU) */}
                             <div className="form-group">
-                                <label htmlFor="product-sku">Product ID (SKU)</label>
+                                <label htmlFor="product-sku">
+                                    Product Code (SKU) <span className="required">*</span>
+                                </label>
                                 <input
                                     id="product-sku"
                                     type="text"
                                     value={formData.sku}
                                     onChange={(e) => handleInputChange('sku', e.target.value)}
                                     placeholder="Enter SKU"
+                                    className={errors.sku ? 'error' : ''}
                                 />
+                                {errors.sku && <span className="error-message">{errors.sku}</span>}
+                                {productType === 'centerstone' && !errors.sku && <span style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: 'normal' }}> Must be unique</span>}
                             </div>
 
                             {/* Short Description */}
@@ -671,43 +829,455 @@ export default function AddProductModal({ open, onClose, onSuccess, product, pro
                         {/* Specification Section */}
                         <div className="form-section">
                             <h3 className="form-section-title">
-                                {productType === 'jewelry' ? 'Jewelry Specification' : 'Center Stone Specification'}
+                                {productType === 'jewelry' ? t('products.jewelrySpecifications') : t('products.centerStoneSpecifications')}
                             </h3>
                             
-                            <div className="form-row">
-                                <div className="form-group">
-                                    <label htmlFor="supplier-id">Supplier ID</label>
-                                    <input
-                                        id="supplier-id"
-                                        type="text"
-                                        value={formData.supplier_id}
-                                        onChange={(e) => handleInputChange('supplier_id', e.target.value)}
-                                        placeholder="Enter supplier ID"
-                                    />
+                            {/* Supplier ID - Only for jewelry */}
+                            {productType === 'jewelry' && (
+                                <div className="form-row">
+                                    <div className="form-group">
+                                        <label htmlFor="supplier-id">Supplier ID</label>
+                                        <input
+                                            id="supplier-id"
+                                            type="text"
+                                            value={formData.supplier_id}
+                                            onChange={(e) => handleInputChange('supplier_id', e.target.value)}
+                                            placeholder="Enter supplier ID"
+                                        />
+                                    </div>
                                 </div>
-                            </div>
+                            )}
 
-                            <div className="form-group">
-                                <label htmlFor="jewelry-specifications">
-                                    {productType === 'jewelry' ? 'Jewelry Specifications' : 'Center Stone Specifications'}
-                                </label>
-                                <textarea
-                                    id="jewelry-specifications"
-                                    value={formData.jewelry_specifications}
-                                    onChange={(e) => handleInputChange('jewelry_specifications', e.target.value)}
-                                    placeholder={productType === 'jewelry' 
-                                        ? "Enter jewelry specifications (multi-line format). Example:&#10;Center Stone Size: 2.4 mm&#10;Ni tay: 6.5&#10;Shape: Round&#10;Dimensions: 2.9*3.3&#10;Stone Count: 16&#10;Carat Weight: 4.065 ct&#10;Gold Purity: 18K&#10;Product Weight: 9.083 g&#10;Type: L"
-                                        : "Enter center stone specifications (multi-line format). Example:&#10;Cut: Excellent&#10;Clarity: VS1&#10;Color: D&#10;Carat Weight: 1.5 ct&#10;Shape: Round&#10;Dimensions: 7.5*7.5 mm"}
-                                    rows={10}
-                                    style={{
-                                        fontFamily: 'monospace',
-                                        whiteSpace: 'pre-wrap'
-                                    }}
-                                />
-                                <p style={{ fontSize: '0.875rem', color: '#6b7280', marginTop: '4px' }}>
-                                    Enter specifications in multiple lines. Each specification on a new line.
-                                </p>
-                            </div>
+                            {/* Specification fields for both jewelry and centerstone */}
+                            {productType === 'jewelry' && (
+                                <>
+                                    {/* Material and Weight Section */}
+                                    <div className="form-row">
+                                        <div className="form-group">
+                                            <label htmlFor="material-purity">Material / Purity</label>
+                                            <input
+                                                id="material-purity"
+                                                type="text"
+                                                value={formData.material_purity}
+                                                onChange={(e) => handleInputChange('material_purity', e.target.value)}
+                                                placeholder="e.g., 18K, 24K, 925"
+                                            />
+                                        </div>
+                                        <div className="form-group">
+                                            <label htmlFor="material-weight-g">Material Weight (g)</label>
+                                            <input
+                                                id="material-weight-g"
+                                                type="number"
+                                                step="0.001"
+                                                value={formData.material_weight_g}
+                                                onChange={(e) => handleInputChange('material_weight_g', e.target.value)}
+                                                placeholder="Enter material weight"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="form-row">
+                                        <div className="form-group">
+                                            <label htmlFor="total-weight-g">Total Weight (g)</label>
+                                            <input
+                                                id="total-weight-g"
+                                                type="number"
+                                                step="0.001"
+                                                value={formData.total_weight_g}
+                                                onChange={(e) => handleInputChange('total_weight_g', e.target.value)}
+                                                placeholder="Enter total weight"
+                                            />
+                                        </div>
+                                        <div className="form-group">
+                                            <label htmlFor="size-text">Size</label>
+                                            <input
+                                                id="size-text"
+                                                type="text"
+                                                value={formData.size_text}
+                                                onChange={(e) => handleInputChange('size_text', e.target.value)}
+                                                placeholder="e.g., S, M, L"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="form-row">
+                                        <div className="form-group">
+                                            <label htmlFor="jewelry-size">Jewelry Size</label>
+                                            <input
+                                                id="jewelry-size"
+                                                type="text"
+                                                value={formData.jewelry_size}
+                                                onChange={(e) => handleInputChange('jewelry_size', e.target.value)}
+                                                placeholder="e.g., Ring size 6.5"
+                                            />
+                                        </div>
+                                        <div className="form-group">
+                                            <label htmlFor="style-bst">Style (BST)</label>
+                                            <input
+                                                id="style-bst"
+                                                type="text"
+                                                value={formData.style_bst}
+                                                onChange={(e) => handleInputChange('style_bst', e.target.value)}
+                                                placeholder="Enter style"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="form-row">
+                                        <div className="form-group">
+                                            <label htmlFor="sub-style">Sub Style</label>
+                                            <input
+                                                id="sub-style"
+                                                type="text"
+                                                value={formData.sub_style}
+                                                onChange={(e) => handleInputChange('sub_style', e.target.value)}
+                                                placeholder="Enter sub style"
+                                            />
+                                        </div>
+                                        <div className="form-group">
+                                            <label htmlFor="main-stone-type">Main Stone Type</label>
+                                            <input
+                                                id="main-stone-type"
+                                                type="text"
+                                                value={formData.main_stone_type}
+                                                onChange={(e) => handleInputChange('main_stone_type', e.target.value)}
+                                                placeholder="e.g., Diamond, Ruby"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="form-row">
+                                        <div className="form-group">
+                                            <label htmlFor="stone-quantity">Stone Quantity</label>
+                                            <input
+                                                id="stone-quantity"
+                                                type="number"
+                                                value={formData.stone_quantity}
+                                                onChange={(e) => handleInputChange('stone_quantity', e.target.value)}
+                                                placeholder="Enter number of stones"
+                                            />
+                                        </div>
+                                        <div className="form-group">
+                                            <label htmlFor="shape-and-polished">Shape and Polished</label>
+                                            <input
+                                                id="shape-and-polished"
+                                                type="text"
+                                                value={formData.shape_and_polished}
+                                                onChange={(e) => handleInputChange('shape_and_polished', e.target.value)}
+                                                placeholder="e.g., Round, Excellent"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="form-row">
+                                        <div className="form-group">
+                                            <label htmlFor="origin">Origin</label>
+                                            <input
+                                                id="origin"
+                                                type="text"
+                                                value={formData.origin}
+                                                onChange={(e) => handleInputChange('origin', e.target.value)}
+                                                placeholder="Enter origin"
+                                            />
+                                        </div>
+                                        <div className="form-group">
+                                            <label htmlFor="item-serial">Item Serial</label>
+                                            <input
+                                                id="item-serial"
+                                                type="text"
+                                                value={formData.item_serial}
+                                                onChange={(e) => handleInputChange('item_serial', e.target.value)}
+                                                placeholder="Enter item serial"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="form-row">
+                                        <div className="form-group">
+                                            <label htmlFor="country-of-origin">Country of Origin</label>
+                                            <input
+                                                id="country-of-origin"
+                                                type="text"
+                                                value={formData.country_of_origin}
+                                                onChange={(e) => handleInputChange('country_of_origin', e.target.value)}
+                                                placeholder="Enter country of origin"
+                                            />
+                                        </div>
+                                        <div className="form-group">
+                                            <label htmlFor="certification-number">Certification Number</label>
+                                            <input
+                                                id="certification-number"
+                                                type="text"
+                                                value={formData.certification_number}
+                                                onChange={(e) => handleInputChange('certification_number', e.target.value)}
+                                                placeholder="Enter certification number"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="form-row">
+                                        <div className="form-group">
+                                            <label htmlFor="size-mm">Size (mm)</label>
+                                            <input
+                                                id="size-mm"
+                                                type="number"
+                                                step="0.01"
+                                                value={formData.size_mm}
+                                                onChange={(e) => handleInputChange('size_mm', e.target.value)}
+                                                placeholder="Enter size in mm"
+                                            />
+                                        </div>
+                                        <div className="form-group">
+                                            <label htmlFor="color">Color</label>
+                                            <input
+                                                id="color"
+                                                type="text"
+                                                value={formData.color}
+                                                onChange={(e) => handleInputChange('color', e.target.value)}
+                                                placeholder="Enter color"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="form-row">
+                                        <div className="form-group">
+                                            <label htmlFor="clarity">Clarity</label>
+                                            <input
+                                                id="clarity"
+                                                type="text"
+                                                value={formData.clarity}
+                                                onChange={(e) => handleInputChange('clarity', e.target.value)}
+                                                placeholder="Enter clarity"
+                                            />
+                                        </div>
+                                        <div className="form-group">
+                                            <label htmlFor="weight-ct">Weight (CT)</label>
+                                            <input
+                                                id="weight-ct"
+                                                type="number"
+                                                step="0.01"
+                                                value={formData.weight_ct}
+                                                onChange={(e) => handleInputChange('weight_ct', e.target.value)}
+                                                placeholder="Enter weight in CT"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="form-row">
+                                        <div className="form-group">
+                                            <label htmlFor="pcs">PCS</label>
+                                            <input
+                                                id="pcs"
+                                                type="number"
+                                                value={formData.pcs}
+                                                onChange={(e) => handleInputChange('pcs', e.target.value)}
+                                                placeholder="Enter PCS"
+                                            />
+                                        </div>
+                                        <div className="form-group">
+                                            <label htmlFor="cut-grade">Cut Grade</label>
+                                            <input
+                                                id="cut-grade"
+                                                type="text"
+                                                value={formData.cut_grade}
+                                                onChange={(e) => handleInputChange('cut_grade', e.target.value)}
+                                                placeholder="Enter cut grade"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="form-row">
+                                        <div className="form-group">
+                                            <label htmlFor="treatment">Treatment</label>
+                                            <input
+                                                id="treatment"
+                                                type="text"
+                                                value={formData.treatment}
+                                                onChange={(e) => handleInputChange('treatment', e.target.value)}
+                                                placeholder="Enter treatment"
+                                            />
+                                        </div>
+                                        <div className="form-group">
+                                            <label htmlFor="sub-stone-type-1">Sub Stone Type 1</label>
+                                            <input
+                                                id="sub-stone-type-1"
+                                                type="text"
+                                                value={formData.sub_stone_type_1}
+                                                onChange={(e) => handleInputChange('sub_stone_type_1', e.target.value)}
+                                                placeholder="Enter sub stone type 1"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="form-row">
+                                        <div className="form-group">
+                                            <label htmlFor="sub-stone-type-2">Sub Stone Type 2</label>
+                                            <input
+                                                id="sub-stone-type-2"
+                                                type="text"
+                                                value={formData.sub_stone_type_2}
+                                                onChange={(e) => handleInputChange('sub_stone_type_2', e.target.value)}
+                                                placeholder="Enter sub stone type 2"
+                                            />
+                                        </div>
+                                        <div className="form-group">
+                                            <label htmlFor="sub-stone-type-3">Sub Stone Type 3</label>
+                                            <input
+                                                id="sub-stone-type-3"
+                                                type="text"
+                                                value={formData.sub_stone_type_3}
+                                                onChange={(e) => handleInputChange('sub_stone_type_3', e.target.value)}
+                                                placeholder="Enter sub stone type 3"
+                                            />
+                                        </div>
+                                    </div>
+                                </>
+                            )}
+                            
+                            {productType === 'centerstone' && (
+                                <>
+                                    {/* Centerstone specific fields */}
+                                    <div className="form-row">
+                                        <div className="form-group">
+                                            <label htmlFor="shape-and-polished">Shape and Polished</label>
+                                            <input
+                                                id="shape-and-polished"
+                                                type="text"
+                                                value={formData.shape_and_polished}
+                                                onChange={(e) => handleInputChange('shape_and_polished', e.target.value)}
+                                                placeholder="Enter shape and polished"
+                                            />
+                                        </div>
+                                        <div className="form-group">
+                                            <label htmlFor="origin">Origin</label>
+                                            <input
+                                                id="origin"
+                                                type="text"
+                                                value={formData.origin}
+                                                onChange={(e) => handleInputChange('origin', e.target.value)}
+                                                placeholder="Enter origin"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="form-row">
+                                        <div className="form-group">
+                                            <label htmlFor="item-serial">Item Serial</label>
+                                            <input
+                                                id="item-serial"
+                                                type="text"
+                                                value={formData.item_serial}
+                                                onChange={(e) => handleInputChange('item_serial', e.target.value)}
+                                                placeholder="Enter item serial"
+                                            />
+                                        </div>
+                                        <div className="form-group">
+                                            <label htmlFor="country-of-origin">Country of Origin</label>
+                                            <input
+                                                id="country-of-origin"
+                                                type="text"
+                                                value={formData.country_of_origin}
+                                                onChange={(e) => handleInputChange('country_of_origin', e.target.value)}
+                                                placeholder="Enter country of origin"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="form-row">
+                                        <div className="form-group">
+                                            <label htmlFor="certification-number">Certification Number</label>
+                                            <input
+                                                id="certification-number"
+                                                type="text"
+                                                value={formData.certification_number}
+                                                onChange={(e) => handleInputChange('certification_number', e.target.value)}
+                                                placeholder="Enter certification number"
+                                            />
+                                        </div>
+                                        <div className="form-group">
+                                            <label htmlFor="size-mm">Size (mm)</label>
+                                            <input
+                                                id="size-mm"
+                                                type="number"
+                                                step="0.01"
+                                                value={formData.size_mm}
+                                                onChange={(e) => handleInputChange('size_mm', e.target.value)}
+                                                placeholder="Enter size in mm"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="form-row">
+                                        <div className="form-group">
+                                            <label htmlFor="color">Color</label>
+                                            <input
+                                                id="color"
+                                                type="text"
+                                                value={formData.color}
+                                                onChange={(e) => handleInputChange('color', e.target.value)}
+                                                placeholder="Enter color"
+                                            />
+                                        </div>
+                                        <div className="form-group">
+                                            <label htmlFor="clarity">Clarity</label>
+                                            <input
+                                                id="clarity"
+                                                type="text"
+                                                value={formData.clarity}
+                                                onChange={(e) => handleInputChange('clarity', e.target.value)}
+                                                placeholder="Enter clarity"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="form-row">
+                                        <div className="form-group">
+                                            <label htmlFor="weight-ct">Weight (CT)</label>
+                                            <input
+                                                id="weight-ct"
+                                                type="number"
+                                                step="0.01"
+                                                value={formData.weight_ct}
+                                                onChange={(e) => handleInputChange('weight_ct', e.target.value)}
+                                                placeholder="Enter weight in CT"
+                                            />
+                                        </div>
+                                        <div className="form-group">
+                                            <label htmlFor="pcs">PCS</label>
+                                            <input
+                                                id="pcs"
+                                                type="number"
+                                                value={formData.pcs}
+                                                onChange={(e) => handleInputChange('pcs', e.target.value)}
+                                                placeholder="Enter PCS"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="form-row">
+                                        <div className="form-group">
+                                            <label htmlFor="cut-grade">Cut Grade</label>
+                                            <input
+                                                id="cut-grade"
+                                                type="text"
+                                                value={formData.cut_grade}
+                                                onChange={(e) => handleInputChange('cut_grade', e.target.value)}
+                                                placeholder="Enter cut grade"
+                                            />
+                                        </div>
+                                        <div className="form-group">
+                                            <label htmlFor="treatment">Treatment</label>
+                                            <input
+                                                id="treatment"
+                                                type="text"
+                                                value={formData.treatment}
+                                                onChange={(e) => handleInputChange('treatment', e.target.value)}
+                                                placeholder="Enter treatment"
+                                            />
+                                        </div>
+                                    </div>
+                                </>
+                            )}
 
                             <div className="form-row">
                                 <div className="form-group">
@@ -742,18 +1312,21 @@ export default function AddProductModal({ open, onClose, onSuccess, product, pro
                                 </div>
                             </div>
 
-                            <div className="form-group">
-                                <label htmlFor="inventory-value">Inventory Value (VND)</label>
-                                <input
-                                    id="inventory-value"
-                                    type="number"
-                                    step="1"
-                                    min="0"
-                                    value={formData.inventory_value}
-                                    onChange={(e) => handleInputChange('inventory_value', e.target.value)}
-                                    placeholder="0"
-                                />
-                            </div>
+                            {/* Inventory Value - Only for jewelry */}
+                            {productType === 'jewelry' && (
+                                <div className="form-group">
+                                    <label htmlFor="inventory-value">Inventory Value (VND)</label>
+                                    <input
+                                        id="inventory-value"
+                                        type="number"
+                                        step="1"
+                                        min="0"
+                                        value={formData.inventory_value}
+                                        onChange={(e) => handleInputChange('inventory_value', e.target.value)}
+                                        placeholder="0"
+                                    />
+                                </div>
+                            )}
 
                             <div className="form-group">
                                 <label htmlFor="description">Description</label>
@@ -804,10 +1377,10 @@ export default function AddProductModal({ open, onClose, onSuccess, product, pro
                             disabled={submitting}
                         >
                             {submitting 
-                                ? (isEditMode ? 'Saving...' : 'Creating...') 
+                                ? (isEditMode ? t('common.saving') : t('common.adding')) 
                                 : (isEditMode 
-                                    ? (productType === 'jewelry' ? 'Save Jewelry' : 'Save Center Stone')
-                                    : (productType === 'jewelry' ? 'Create Jewelry' : 'Create Center Stone'))}
+                                    ? (productType === 'jewelry' ? t('products.saveJewelry') : t('products.saveCenterStone'))
+                                    : (productType === 'jewelry' ? t('products.createJewelry') : t('products.createCenterStone')))}
                         </button>
                     </div>
                 </form>

@@ -120,10 +120,11 @@ export default function ExcelImportModal({ open, onClose, onImport, onDownloadTe
                         errors.push('No data rows found in the file.');
                     }
                     
-                    // Check required columns (at minimum: Product Code, Product Name, Price)
+                    // Check required columns
                     if (jsonData.length > 0) {
                         const headerRow = jsonData[0] as any[];
-                        const requiredColumns = ['Product Code', 'Product Name', 'Price'];
+                        // For both jewelry and centerstone: Product Name is optional (will use Product Code if empty)
+                        const requiredColumns = ['Product Code'];
                         const missingColumns = requiredColumns.filter(col => 
                             !headerRow.some((h: any) => 
                                 h && String(h).toLowerCase().includes(col.toLowerCase())

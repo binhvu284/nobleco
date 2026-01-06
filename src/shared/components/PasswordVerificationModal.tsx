@@ -23,27 +23,23 @@ export default function PasswordVerificationModal({
     const [error, setError] = useState('');
     const [isVerifying, setIsVerifying] = useState(false);
 
-    // #region agent log
+
     useEffect(() => {
-        fetch('http://127.0.0.1:7242/ingest/3da31dfe-5721-4e1a-a160-93fd6dd15ec4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'PasswordVerificationModal.tsx:26',message:'PasswordVerificationModal render',data:{open,title,description},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
         if (open) {
             setTimeout(() => {
                 const overlay = document.querySelector('.modal-overlay[style*="zIndex: 1000000"]');
                 const content = document.querySelector('.modal-content[style*="zIndex: 1000001"]');
                 if (overlay) {
                     const styles = window.getComputedStyle(overlay);
-                    fetch('http://127.0.0.1:7242/ingest/3da31dfe-5721-4e1a-a160-93fd6dd15ec4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'PasswordVerificationModal.tsx:30',message:'Modal overlay computed styles',data:{display:styles.display,visibility:styles.visibility,opacity:styles.opacity,zIndex:styles.zIndex,position:styles.position,top:styles.top,left:styles.left,width:styles.width,height:styles.height},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
                 }
                 if (content) {
                     const styles = window.getComputedStyle(content);
-                    fetch('http://127.0.0.1:7242/ingest/3da31dfe-5721-4e1a-a160-93fd6dd15ec4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'PasswordVerificationModal.tsx:35',message:'Modal content computed styles',data:{display:styles.display,visibility:styles.visibility,opacity:styles.opacity,zIndex:styles.zIndex,position:styles.position},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
                 } else {
-                    fetch('http://127.0.0.1:7242/ingest/3da31dfe-5721-4e1a-a160-93fd6dd15ec4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'PasswordVerificationModal.tsx:38',message:'Modal content element not found in DOM',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
                 }
             }, 100);
         }
     }, [open, title, description]);
-    // #endregion
+
 
     if (!open) return null;
 

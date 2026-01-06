@@ -70,8 +70,17 @@ export default async function handler(req, res) {
 
       // Get category by ID
       if (id) {
-        const category = await centerstoneCategoriesRepo.getCenterstoneCategoryById(parseInt(id));
-        return res.status(200).json(category);
+        try {
+          const category = await centerstoneCategoriesRepo.getCenterstoneCategoryById(parseInt(id));
+          return res.status(200).json(category);
+        } catch (error) {
+          // Handle network errors gracefully
+          if (error instanceof TypeError && error.message.includes('fetch failed')) {
+            console.error('Network error fetching centerstone category:', error.message);
+            return res.status(503).json({ error: 'Database connection failed. Please try again later.' });
+          }
+          throw error;
+        }
       }
 
       const categories = await centerstoneCategoriesRepo.listCenterstoneCategories();

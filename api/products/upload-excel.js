@@ -169,22 +169,47 @@ function parseExcelFile(buffer) {
   // Get headers (first row)
   const headers = jsonData[0].map((h) => h ? String(h).trim() : '');
   
-  // Map column indices
+  // Map column indices for new jewelry specification fields
   const columnMap = {
     productCode: headers.findIndex(h => h && h.toLowerCase().includes('product code')),
+    categories: headers.findIndex(h => h && h.toLowerCase().includes('categor')),
+    materialPurity: headers.findIndex(h => h && h.toLowerCase().includes('material') && h.toLowerCase().includes('purity')),
+    materialWeightG: headers.findIndex(h => h && h.toLowerCase().includes('material weight')),
+    totalWeightG: headers.findIndex(h => h && h.toLowerCase().includes('total weight')),
+    sizeText: headers.findIndex(h => h && h.toLowerCase() === 'size'),
+    jewelrySize: headers.findIndex(h => h && h.toLowerCase().includes('jewelry size')),
+    styleBst: headers.findIndex(h => h && h.toLowerCase().includes('style') && h.toLowerCase().includes('bst')),
+    subStyle: headers.findIndex(h => h && h.toLowerCase().includes('sub style')),
+    mainStoneType: headers.findIndex(h => h && h.toLowerCase().includes('main stone type')),
+    stoneQuantity: headers.findIndex(h => h && h.toLowerCase().includes('stone quantity')),
+    shapeAndPolished: headers.findIndex(h => h && h.toLowerCase().includes('shape') && h.toLowerCase().includes('polished')),
+    origin: headers.findIndex(h => h && h.toLowerCase() === 'origin'),
+    itemSerial: headers.findIndex(h => h && h.toLowerCase().includes('item serial')),
+    countryOfOrigin: headers.findIndex(h => h && h.toLowerCase().includes('country') && h.toLowerCase().includes('origin')),
+    certificationNumber: headers.findIndex(h => h && h.toLowerCase().includes('certification')),
+    sizeMm: headers.findIndex(h => h && h.toLowerCase().includes('size') && h.toLowerCase().includes('mm')),
+    color: headers.findIndex(h => h && h.toLowerCase() === 'color'),
+    clarity: headers.findIndex(h => h && h.toLowerCase() === 'clarity'),
+    weightCt: headers.findIndex(h => h && h.toLowerCase().includes('weight') && h.toLowerCase().includes('ct')),
+    pcs: headers.findIndex(h => h && h.toLowerCase() === 'pcs'),
+    cutGrade: headers.findIndex(h => h && h.toLowerCase().includes('cut grade')),
+    treatment: headers.findIndex(h => h && h.toLowerCase() === 'treatment'),
+    price: headers.findIndex(h => h && h.toLowerCase().includes('price')),
+    stock: headers.findIndex(h => h && h.toLowerCase().includes('stock')),
+    subStoneType1: headers.findIndex(h => h && h.toLowerCase().includes('sub stone type 1')),
+    subStoneType2: headers.findIndex(h => h && h.toLowerCase().includes('sub stone type 2')),
+    subStoneType3: headers.findIndex(h => h && h.toLowerCase().includes('sub stone type 3')),
+    description: headers.findIndex(h => h && h.toLowerCase().includes('description')),
+    // Legacy columns for backward compatibility
     supplierCode: headers.findIndex(h => h && h.toLowerCase().includes('supplier code')),
     productName: headers.findIndex(h => h && h.toLowerCase().includes('product name')),
     jewelrySpecifications: headers.findIndex(h => h && h.toLowerCase().includes('jewelry specification')),
-    centerstoneSpecifications: headers.findIndex(h => h && h.toLowerCase().includes('centerstone specification')),
-    description: headers.findIndex(h => h && h.toLowerCase().includes('description')),
-    price: headers.findIndex(h => h && h.toLowerCase().includes('price')),
-    stock: headers.findIndex(h => h && h.toLowerCase().includes('stock')),
-    categoryNames: headers.findIndex(h => h && h.toLowerCase().includes('categor'))
+    centerstoneSpecifications: headers.findIndex(h => h && h.toLowerCase().includes('centerstone specification'))
   };
   
-  // Validate required columns
-  if (columnMap.productCode === -1 || columnMap.productName === -1) {
-    throw new Error('Missing required columns: Product Code and Product Name are required');
+  // Validate required columns - only Product Code is required
+  if (columnMap.productCode === -1) {
+    throw new Error('Missing required column: Product Code is required');
   }
   
   // Validate specification column matches product type
@@ -206,40 +231,29 @@ function parseExcelFile(buffer) {
     
     try {
       const productCode = row[columnMap.productCode] ? String(row[columnMap.productCode]).trim() : null;
-      const productName = row[columnMap.productName] ? String(row[columnMap.productName]).trim() : null;
       
-      // Validate required fields
-      if (!productCode || !productName) {
+      // Validate required fields - only Product Code is required
+      if (!productCode) {
         errors.push({
           row: i + 1,
-          productCode: productCode || 'N/A',
-          error: 'Missing required fields (Product Code or Product Name)'
+          productCode: 'N/A',
+          error: 'Missing required field: Product Code'
         });
         continue;
       }
       
-      // Parse Jewelry Specifications (multi-line text)
-      const jewelrySpecifications = row[columnMap.jewelrySpecifications] 
-        ? String(row[columnMap.jewelrySpecifications]).trim() 
-        : null;
-      
-      // Parse Description
-      const description = row[columnMap.description] 
-        ? String(row[columnMap.description]).trim() 
-        : 'No description available';
-      
       // Parse Price
-      const price = row[columnMap.price] 
+      const price = columnMap.price !== -1 && row[columnMap.price] 
         ? parseFloat(String(row[columnMap.price]).replace(/[^\d.-]/g, '')) 
-        : null;
+        : 0;
       
       // Parse Stock
-      const stock = row[columnMap.stock] 
+      const stock = columnMap.stock !== -1 && row[columnMap.stock] 
         ? parseInt(String(row[columnMap.stock])) || 0 
         : 0;
       
       // Validate price if provided
-      if (price !== null && (isNaN(price) || price < 0)) {
+      if (isNaN(price) || price < 0) {
         errors.push({
           row: i + 1,
           productCode: productCode || 'N/A',
@@ -248,17 +262,84 @@ function parseExcelFile(buffer) {
         continue;
       }
       
+      // Parse numeric fields
+      const materialWeightG = columnMap.materialWeightG !== -1 && row[columnMap.materialWeightG]
+        ? parseFloat(String(row[columnMap.materialWeightG]).replace(/[^\d.-]/g, '')) || null
+        : null;
+      
+      const totalWeightG = columnMap.totalWeightG !== -1 && row[columnMap.totalWeightG]
+        ? parseFloat(String(row[columnMap.totalWeightG]).replace(/[^\d.-]/g, '')) || null
+        : null;
+      
+      const stoneQuantity = columnMap.stoneQuantity !== -1 && row[columnMap.stoneQuantity]
+        ? parseInt(String(row[columnMap.stoneQuantity])) || null
+        : null;
+      
+      const sizeMm = columnMap.sizeMm !== -1 && row[columnMap.sizeMm]
+        ? parseFloat(String(row[columnMap.sizeMm]).replace(/[^\d.-]/g, '')) || null
+        : null;
+      
+      const weightCt = columnMap.weightCt !== -1 && row[columnMap.weightCt]
+        ? parseFloat(String(row[columnMap.weightCt]).replace(/[^\d.-]/g, '')) || null
+        : null;
+      
+      const pcs = columnMap.pcs !== -1 && row[columnMap.pcs]
+        ? parseInt(String(row[columnMap.pcs])) || null
+        : null;
+      
+      // Parse text fields
+      const getTextValue = (colIndex) => {
+        if (colIndex === -1 || row[colIndex] === null || row[colIndex] === undefined) return null;
+        const val = String(row[colIndex]).trim();
+        return val || null;
+      };
+      
+      // Get product name (legacy) or default to null (will use SKU)
+      const productName = getTextValue(columnMap.productName);
+      
+      // Get description
+      const description = getTextValue(columnMap.description) || 'No description available';
+      
+      // Get legacy jewelry specifications if present
+      const legacyJewelrySpecifications = getTextValue(columnMap.jewelrySpecifications);
+      
       const product = {
         sku: productCode,
-        supplier_id: row[columnMap.supplierCode] ? String(row[columnMap.supplierCode]).trim() : null,
-        name: productName,
+        name: productName, // Will default to SKU in the API if null
         short_description: description,
         long_description: null,
-        jewelry_specifications: jewelrySpecifications,
-        price: price !== null ? price : 0,
+        price: price,
         stock: stock,
-        category_names: row[columnMap.categoryNames] ? String(row[columnMap.categoryNames]).trim() : null,
-        status: 'active'
+        category_names: getTextValue(columnMap.categories),
+        status: 'active',
+        // Legacy fields
+        supplier_id: getTextValue(columnMap.supplierCode),
+        jewelry_specifications: legacyJewelrySpecifications,
+        // New jewelry specification fields
+        material_purity: getTextValue(columnMap.materialPurity),
+        material_weight_g: materialWeightG,
+        total_weight_g: totalWeightG,
+        size_text: getTextValue(columnMap.sizeText),
+        jewelry_size: getTextValue(columnMap.jewelrySize),
+        style_bst: getTextValue(columnMap.styleBst),
+        sub_style: getTextValue(columnMap.subStyle),
+        main_stone_type: getTextValue(columnMap.mainStoneType),
+        stone_quantity: stoneQuantity,
+        shape_and_polished: getTextValue(columnMap.shapeAndPolished),
+        origin: getTextValue(columnMap.origin),
+        item_serial: getTextValue(columnMap.itemSerial),
+        country_of_origin: getTextValue(columnMap.countryOfOrigin),
+        certification_number: getTextValue(columnMap.certificationNumber),
+        size_mm: sizeMm,
+        color: getTextValue(columnMap.color),
+        clarity: getTextValue(columnMap.clarity),
+        weight_ct: weightCt,
+        pcs: pcs,
+        cut_grade: getTextValue(columnMap.cutGrade),
+        treatment: getTextValue(columnMap.treatment),
+        sub_stone_type_1: getTextValue(columnMap.subStoneType1),
+        sub_stone_type_2: getTextValue(columnMap.subStoneType2),
+        sub_stone_type_3: getTextValue(columnMap.subStoneType3)
       };
       
       products.push(product);
@@ -421,4 +502,3 @@ export default async function handler(req, res) {
     });
   }
 }
-

@@ -58,7 +58,7 @@ export default async function handler(req, res) {
       } else {
         // New format: flat fields from AddProductModal
         centerstoneData = {
-          name: req.body.name,
+          name: req.body.name || null, // Optional for centerstone - will use SKU if empty
           sku: req.body.sku || null,
           short_description: req.body.short_description || 'No description available',
           long_description: req.body.long_description || null,
@@ -69,16 +69,31 @@ export default async function handler(req, res) {
           serial_number: req.body.serial_number || null,
           supplier_id: req.body.supplier_id || null,
           jewelry_specifications: req.body.jewelry_specifications || null,
-          inventory_value: req.body.inventory_value || null
+          inventory_value: req.body.inventory_value || null,
+          // New centerstone specification fields
+          shape_and_polished: req.body.shape_and_polished || null,
+          origin: req.body.origin || null,
+          item_serial: req.body.item_serial || null,
+          country_of_origin: req.body.country_of_origin || null,
+          certification_number: req.body.certification_number || null,
+          size_mm: req.body.size_mm || null,
+          color: req.body.color || null,
+          clarity: req.body.clarity || null,
+          weight_ct: req.body.weight_ct || null,
+          pcs: req.body.pcs || null,
+          cut_grade: req.body.cut_grade || null,
+          treatment: req.body.treatment || null
         };
         categoryIds = req.body.category_ids || req.body.categoryIds || [];
         primaryCategoryId = categoryIds.length > 0 ? categoryIds[0] : null;
         userId = req.body.userId || null; // Can be null if not authenticated
       }
 
-      if (!centerstoneData || !centerstoneData.name || centerstoneData.price === undefined) {
+      // For centerstone: name is optional (will use SKU if empty), but price is required
+      // SKU is also required (will be generated if not provided)
+      if (!centerstoneData || centerstoneData.price === undefined) {
         return res.status(400).json({ 
-          error: 'Missing required fields: name and price' 
+          error: 'Missing required fields: price is required' 
         });
       }
 

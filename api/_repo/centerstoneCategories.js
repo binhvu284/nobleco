@@ -24,42 +24,67 @@ function normalize(c) {
  * List all centerstone categories
  */
 export async function listCenterstoneCategories() {
-  const supabase = getSupabase();
+  try {
+    const supabase = getSupabase();
 
-  const { data, error } = await supabase
-    .from('centerstone_categories')
-    .select('*')
-    .order('created_at', { ascending: false });
+    const { data, error } = await supabase
+      .from('centerstone_categories')
+      .select('*')
+      .order('created_at', { ascending: false });
 
-  if (error) {
-    // Check if table doesn't exist
-    if (error.code === '42P01') {
-      console.warn('Centerstone_categories table does not exist yet');
+    if (error) {
+      // Check if table doesn't exist
+      if (error.code === '42P01') {
+        console.warn('Centerstone_categories table does not exist yet');
+        return [];
+      }
+      throw new Error(`Error fetching centerstone categories: ${error.message || error}`);
+    }
+
+    return (data || []).map(normalize);
+  } catch (error) {
+    // Handle network errors or other unexpected errors
+    if (error instanceof TypeError && error.message.includes('fetch failed')) {
+      console.error('Network error connecting to Supabase:', error.message);
+      // Return empty array instead of throwing to prevent API crashes
       return [];
     }
-    throw new Error(`Error fetching centerstone categories: ${error.message}`);
+    // Re-throw other errors
+    throw error;
   }
-
-  return (data || []).map(normalize);
 }
 
 /**
  * Get centerstone category by ID
  */
 export async function getCenterstoneCategoryById(id) {
-  const supabase = getSupabase();
+  try {
+    const supabase = getSupabase();
 
-  const { data: category, error } = await supabase
-    .from('centerstone_categories')
-    .select('*')
-    .eq('id', id)
-    .single();
+    const { data: category, error } = await supabase
+      .from('centerstone_categories')
+      .select('*')
+      .eq('id', id)
+      .single();
 
-  if (error) {
-    throw new Error(`Error fetching centerstone category: ${error.message}`);
+    if (error) {
+      // Check if table doesn't exist
+      if (error.code === '42P01') {
+        console.warn('Centerstone_categories table does not exist yet');
+        throw new Error('Centerstone category not found');
+      }
+      throw new Error(`Error fetching centerstone category: ${error.message || error}`);
+    }
+
+    return normalize(category);
+  } catch (error) {
+    // Handle network errors
+    if (error instanceof TypeError && error.message.includes('fetch failed')) {
+      console.error('Network error connecting to Supabase:', error.message);
+      throw new Error('Unable to connect to database. Please check your connection.');
+    }
+    throw error;
   }
-
-  return normalize(category);
 }
 
 /**

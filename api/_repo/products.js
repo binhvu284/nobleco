@@ -106,6 +106,31 @@ function normalize(p) {
     serial_number: p.serial_number ?? null,
     supplier_id: p.supplier_id ?? null,
     jewelry_specifications: p.jewelry_specifications ?? null,
+    // New jewelry specification fields
+    material_purity: p.material_purity ?? null,
+    material_weight_g: p.material_weight_g ? parseFloat(p.material_weight_g) : null,
+    total_weight_g: p.total_weight_g ? parseFloat(p.total_weight_g) : null,
+    size_text: p.size_text ?? null,
+    jewelry_size: p.jewelry_size ?? null,
+    style_bst: p.style_bst ?? null,
+    sub_style: p.sub_style ?? null,
+    main_stone_type: p.main_stone_type ?? null,
+    stone_quantity: p.stone_quantity ?? null,
+    shape_and_polished: p.shape_and_polished ?? null,
+    origin: p.origin ?? null,
+    item_serial: p.item_serial ?? null,
+    country_of_origin: p.country_of_origin ?? null,
+    certification_number: p.certification_number ?? null,
+    size_mm: p.size_mm ? parseFloat(p.size_mm) : null,
+    color: p.color ?? null,
+    clarity: p.clarity ?? null,
+    weight_ct: p.weight_ct ? parseFloat(p.weight_ct) : null,
+    pcs: p.pcs ?? null,
+    cut_grade: p.cut_grade ?? null,
+    treatment: p.treatment ?? null,
+    sub_stone_type_1: p.sub_stone_type_1 ?? null,
+    sub_stone_type_2: p.sub_stone_type_2 ?? null,
+    sub_stone_type_3: p.sub_stone_type_3 ?? null,
     // Legacy fields (kept for backward compatibility, but deprecated)
     center_stone_size_mm: p.center_stone_size_mm ? parseFloat(p.center_stone_size_mm) : null,
     ni_tay: p.ni_tay ? parseFloat(p.ni_tay) : null,
@@ -290,38 +315,69 @@ export async function getProductById(productId, includeImages = false) {
 export async function createProduct(productData, userId) {
   const supabase = getSupabase();
 
-  // Generate slug if not provided
-  const slug = productData.slug || await generateUniqueSlug(generateSlug(productData.name));
-  
   // Generate SKU if not provided
-  const sku = productData.sku || await generateSKU();
+  const sku = productData.sku && productData.sku.trim() ? productData.sku.trim() : await generateSKU();
+  
+  // Name defaults to SKU if not provided
+  const name = productData.name && productData.name.trim() ? productData.name.trim() : sku;
+
+  // Generate slug
+  const slug = productData.slug || await generateUniqueSlug(generateSlug(name));
   
   // Ensure short_description is not empty (required field)
   const shortDescription = productData.short_description && productData.short_description.trim() 
     ? productData.short_description.trim() 
     : 'No description available';
+  
+  // Stock defaults to 0 if not provided
+  const stock = productData.stock !== null && productData.stock !== undefined ? productData.stock : 0;
 
   const { data: product, error } = await supabase
     .from('products')
     .insert([{
-      name: productData.name.trim(),
+      name: name,
       slug: slug,
-      sku: productData.sku || sku,
+      sku: sku,
       short_description: shortDescription,
       long_description: productData.long_description && productData.long_description.trim() 
         ? productData.long_description.trim() 
         : null,
       price: productData.price,
-      stock: productData.stock || 0,
+      stock: stock,
       status: productData.status || 'active',
       is_featured: productData.is_featured || false,
-      // Jewelry specification fields
+      // Legacy jewelry specification fields
       serial_number: productData.serial_number || null,
       supplier_id: productData.supplier_id || null,
       jewelry_specifications: productData.jewelry_specifications && productData.jewelry_specifications.trim() 
         ? productData.jewelry_specifications.trim() 
         : null,
       inventory_value: productData.inventory_value || null,
+      // New jewelry specification fields
+      material_purity: productData.material_purity || null,
+      material_weight_g: productData.material_weight_g || null,
+      total_weight_g: productData.total_weight_g || null,
+      size_text: productData.size_text || null,
+      jewelry_size: productData.jewelry_size || null,
+      style_bst: productData.style_bst || null,
+      sub_style: productData.sub_style || null,
+      main_stone_type: productData.main_stone_type || null,
+      stone_quantity: productData.stone_quantity || null,
+      shape_and_polished: productData.shape_and_polished || null,
+      origin: productData.origin || null,
+      item_serial: productData.item_serial || null,
+      country_of_origin: productData.country_of_origin || null,
+      certification_number: productData.certification_number || null,
+      size_mm: productData.size_mm || null,
+      color: productData.color || null,
+      clarity: productData.clarity || null,
+      weight_ct: productData.weight_ct || null,
+      pcs: productData.pcs || null,
+      cut_grade: productData.cut_grade || null,
+      treatment: productData.treatment || null,
+      sub_stone_type_1: productData.sub_stone_type_1 || null,
+      sub_stone_type_2: productData.sub_stone_type_2 || null,
+      sub_stone_type_3: productData.sub_stone_type_3 || null,
       created_by: userId,
       updated_by: userId
     }])
@@ -341,9 +397,12 @@ export async function createProduct(productData, userId) {
 export async function updateProduct(productId, productData, userId) {
   const supabase = getSupabase();
 
+  // Name defaults to SKU if empty
+  const name = productData.name && productData.name.trim() ? productData.name.trim() : null;
+
   // Build update object with only provided fields
   const updateData = {
-    name: productData.name.trim(),
+    name: name,
     short_description: productData.short_description && productData.short_description.trim() 
       ? productData.short_description.trim() 
       : 'No description available',
@@ -358,9 +417,9 @@ export async function updateProduct(productId, productData, userId) {
   // Only update slug if provided (usually we don't change slug on edit)
   if (productData.slug) {
     updateData.slug = productData.slug;
-  } else if (productData.name) {
+  } else if (name) {
     // Generate new slug if name changed
-    const baseSlug = generateSlug(productData.name);
+    const baseSlug = generateSlug(name);
     updateData.slug = await generateUniqueSlug(baseSlug);
   }
 
@@ -379,7 +438,7 @@ export async function updateProduct(productId, productData, userId) {
     updateData.is_featured = productData.is_featured;
   }
 
-  // Jewelry specification fields
+  // Legacy jewelry specification fields
   if (productData.serial_number !== undefined) {
     updateData.serial_number = productData.serial_number || null;
   }
@@ -393,6 +452,80 @@ export async function updateProduct(productId, productData, userId) {
   }
   if (productData.inventory_value !== undefined) {
     updateData.inventory_value = productData.inventory_value || null;
+  }
+
+  // New jewelry specification fields
+  if (productData.material_purity !== undefined) {
+    updateData.material_purity = productData.material_purity || null;
+  }
+  if (productData.material_weight_g !== undefined) {
+    updateData.material_weight_g = productData.material_weight_g || null;
+  }
+  if (productData.total_weight_g !== undefined) {
+    updateData.total_weight_g = productData.total_weight_g || null;
+  }
+  if (productData.size_text !== undefined) {
+    updateData.size_text = productData.size_text || null;
+  }
+  if (productData.jewelry_size !== undefined) {
+    updateData.jewelry_size = productData.jewelry_size || null;
+  }
+  if (productData.style_bst !== undefined) {
+    updateData.style_bst = productData.style_bst || null;
+  }
+  if (productData.sub_style !== undefined) {
+    updateData.sub_style = productData.sub_style || null;
+  }
+  if (productData.main_stone_type !== undefined) {
+    updateData.main_stone_type = productData.main_stone_type || null;
+  }
+  if (productData.stone_quantity !== undefined) {
+    updateData.stone_quantity = productData.stone_quantity || null;
+  }
+  if (productData.shape_and_polished !== undefined) {
+    updateData.shape_and_polished = productData.shape_and_polished || null;
+  }
+  if (productData.origin !== undefined) {
+    updateData.origin = productData.origin || null;
+  }
+  if (productData.item_serial !== undefined) {
+    updateData.item_serial = productData.item_serial || null;
+  }
+  if (productData.country_of_origin !== undefined) {
+    updateData.country_of_origin = productData.country_of_origin || null;
+  }
+  if (productData.certification_number !== undefined) {
+    updateData.certification_number = productData.certification_number || null;
+  }
+  if (productData.size_mm !== undefined) {
+    updateData.size_mm = productData.size_mm || null;
+  }
+  if (productData.color !== undefined) {
+    updateData.color = productData.color || null;
+  }
+  if (productData.clarity !== undefined) {
+    updateData.clarity = productData.clarity || null;
+  }
+  if (productData.weight_ct !== undefined) {
+    updateData.weight_ct = productData.weight_ct || null;
+  }
+  if (productData.pcs !== undefined) {
+    updateData.pcs = productData.pcs || null;
+  }
+  if (productData.cut_grade !== undefined) {
+    updateData.cut_grade = productData.cut_grade || null;
+  }
+  if (productData.treatment !== undefined) {
+    updateData.treatment = productData.treatment || null;
+  }
+  if (productData.sub_stone_type_1 !== undefined) {
+    updateData.sub_stone_type_1 = productData.sub_stone_type_1 || null;
+  }
+  if (productData.sub_stone_type_2 !== undefined) {
+    updateData.sub_stone_type_2 = productData.sub_stone_type_2 || null;
+  }
+  if (productData.sub_stone_type_3 !== undefined) {
+    updateData.sub_stone_type_3 = productData.sub_stone_type_3 || null;
   }
 
   const { data: product, error } = await supabase

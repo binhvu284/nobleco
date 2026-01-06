@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import UserLayout from '../components/UserLayout';
 import ImageGallery from '../../components/ImageGallery';
 import LazyImage from '../../components/LazyImage';
+import { useTranslation } from '../../shared/contexts/TranslationContext';
 import {
     IconSearch,
     IconShoppingBag,
@@ -51,6 +52,31 @@ interface Product {
     kiotviet_id?: string | null;
     supplier_id?: string | null;
     jewelry_specifications?: string | null;
+    // Jewelry/Centerstone specification fields
+    material_purity?: string | null;
+    material_weight_g?: number | null;
+    total_weight_g?: number | null;
+    size_text?: string | null;
+    jewelry_size?: string | null;
+    style_bst?: string | null;
+    sub_style?: string | null;
+    main_stone_type?: string | null;
+    stone_quantity?: number | null;
+    shape_and_polished?: string | null;
+    origin?: string | null;
+    item_serial?: string | null;
+    country_of_origin?: string | null;
+    certification_number?: string | null;
+    size_mm?: number | null;
+    color?: string | null;
+    clarity?: string | null;
+    weight_ct?: number | null;
+    pcs?: number | null;
+    cut_grade?: string | null;
+    treatment?: string | null;
+    sub_stone_type_1?: string | null;
+    sub_stone_type_2?: string | null;
+    sub_stone_type_3?: string | null;
     // Legacy fields (kept for backward compatibility)
     center_stone_size_mm?: number | null;
     ni_tay?: number | null;
@@ -84,6 +110,7 @@ const formatVND = (amount: number): string => {
 };
 
 export default function UserProduct() {
+    const { t } = useTranslation();
     const navigate = useNavigate();
     const [productType, setProductType] = useState<'jewelry' | 'centerstone'>('jewelry');
     const [products, setProducts] = useState<Product[]>([]);
@@ -293,7 +320,7 @@ export default function UserProduct() {
                             setSelectedCategory(null);
                         }}
                     >
-                        Center Stone
+                        {t('products.centerStone')}
                     </button>
                 </div>
 
@@ -303,9 +330,8 @@ export default function UserProduct() {
                         <button
                             className="mobile-category-btn"
                             onClick={() => {
-                                // #region agent log
-                                fetch('http://127.0.0.1:7242/ingest/3da31dfe-5721-4e1a-a160-93fd6dd15ec4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'UserProduct.tsx:288',message:'Dropdown button clicked',data:{currentState:showCategoryDropdown,willToggleTo:!showCategoryDropdown,isMobile:isMobile,categoriesCount:categories.length,productsCount:products.length},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H3'})}).catch(()=>{});
-                                // #endregion
+                                
+                                
                                 setShowCategoryDropdown(!showCategoryDropdown);
                             }}
                         >
@@ -322,15 +348,14 @@ export default function UserProduct() {
                         </button>
                         {showCategoryDropdown && (
                             <>
-                                {/* #region agent log */}
-                                {(() => { fetch('http://127.0.0.1:7242/ingest/3da31dfe-5721-4e1a-a160-93fd6dd15ec4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'UserProduct.tsx:301',message:'Dropdown rendering',data:{showCategoryDropdown:showCategoryDropdown,categoriesData:categories.map(c=>({id:c.id,name:c.name,product_count:c.product_count})),productsLength:products.length,selectedCategory:selectedCategory},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H3'})}).catch(()=>{}); return null; })() }
-                                {/* #endregion */}
+                                {}
+                                {(() => {  return null; })() }
+                                {}
                                 <div 
                                     className="category-dropdown-overlay" 
                                     onClick={() => {
-                                        // #region agent log
-                                        fetch('http://127.0.0.1:7242/ingest/3da31dfe-5721-4e1a-a160-93fd6dd15ec4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'UserProduct.tsx:305',message:'Overlay clicked',data:{action:'closing dropdown'},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H5'})}).catch(()=>{});
-                                        // #endregion
+                                        
+                                        
                                         setShowCategoryDropdown(false);
                                     }}
                                 />
@@ -338,20 +363,18 @@ export default function UserProduct() {
                                     className="category-dropdown-menu"
                                     ref={(el) => {
                                         if (el) {
-                                            // #region agent log
+                                            
                                             const rect = el.getBoundingClientRect();
                                             const styles = window.getComputedStyle(el);
-                                            fetch('http://127.0.0.1:7242/ingest/3da31dfe-5721-4e1a-a160-93fd6dd15ec4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'UserProduct.tsx:307',message:'Dropdown menu element rendered',data:{viewport:{innerWidth:window.innerWidth,innerHeight:window.innerHeight,docClientWidth:document.documentElement.clientWidth,docClientHeight:document.documentElement.clientHeight},boundingRect:{top:rect.top,left:rect.left,width:rect.width,height:rect.height,bottom:rect.bottom,right:rect.right},edgeGaps:{leftGap:rect.left,rightGap:(window.innerWidth-rect.right),centerOffsetPx:((rect.left+(rect.width/2))-(window.innerWidth/2))},computedStyles:{position:styles.position,display:styles.display,visibility:styles.visibility,zIndex:styles.zIndex,transform:styles.transform,opacity:styles.opacity,width:styles.width,maxWidth:styles.maxWidth,boxSizing:styles.boxSizing,padding:styles.padding,overflowX:styles.overflowX,left:styles.left,right:styles.right,marginLeft:styles.marginLeft,marginRight:styles.marginRight},childrenCount:el.children.length},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H1,H2,H4,H5'})}).catch(()=>{});
-                                            // #endregion
+                                            
                                         }
                                     }}
                                 >
                                     <button
                                         className={`category-dropdown-item ${selectedCategory === null ? 'active' : ''}`}
                                         onClick={() => {
-                                            // #region agent log
-                                            fetch('http://127.0.0.1:7242/ingest/3da31dfe-5721-4e1a-a160-93fd6dd15ec4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'UserProduct.tsx:310',message:'All Products clicked',data:{productsLength:products.length},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H3'})}).catch(()=>{});
-                                            // #endregion
+                                            
+                                            
                                             setSelectedCategory(null);
                                             setShowCategoryDropdown(false);
                                         }}
@@ -366,24 +389,22 @@ export default function UserProduct() {
                                             key={category.id}
                                             className={`category-dropdown-item ${selectedCategory === category.id ? 'active' : ''}`}
                                             onClick={() => {
-                                                // #region agent log
-                                                fetch('http://127.0.0.1:7242/ingest/3da31dfe-5721-4e1a-a160-93fd6dd15ec4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'UserProduct.tsx:324',message:'Category item clicked',data:{categoryId:category.id,categoryName:category.name,productCount:category.product_count},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H3'})}).catch(()=>{});
-                                                // #endregion
+                                                
+                                                
                                                 setSelectedCategory(category.id);
                                                 setShowCategoryDropdown(false);
                                             }}
                                             ref={(el) => {
                                                 if (el && category.id === categories[0]?.id) {
-                                                    // #region agent log
+                                                    
                                                     const colorEl = el.querySelector('.category-color');
                                                     const countEl = el.querySelector('.category-count');
                                                     if (colorEl && countEl) {
                                                         const colorStyles = window.getComputedStyle(colorEl);
                                                         const countStyles = window.getComputedStyle(countEl);
                                                         const itemStyles = window.getComputedStyle(el);
-                                                        fetch('http://127.0.0.1:7242/ingest/3da31dfe-5721-4e1a-a160-93fd6dd15ec4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'UserProduct.tsx:350',message:'Category item CSS inspection',data:{colorCircle:{width:colorStyles.width,height:colorStyles.height,minWidth:colorStyles.minWidth,minHeight:colorStyles.minHeight,borderRadius:colorStyles.borderRadius,display:colorStyles.display},countBadge:{padding:countStyles.padding,fontSize:countStyles.fontSize,minWidth:countStyles.minWidth,textAlign:countStyles.textAlign},itemLayout:{gap:itemStyles.gap,padding:itemStyles.padding,justifyContent:itemStyles.justifyContent}},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'CSS_APPLIED'})}).catch(()=>{});
                                                     }
-                                                    // #endregion
+                                                    
                                                 }
                                             }}
                                         >
@@ -765,6 +786,14 @@ export default function UserProduct() {
                                     {/* Title */}
                                     <h1 className="product-modal-title">{selectedProduct.name}</h1>
 
+                                    {/* SKU - Only for centerstone */}
+                                    {productType === 'centerstone' && selectedProduct.sku && (
+                                        <div className="product-modal-sku">
+                                            <span className="sku-label">SKU:</span>
+                                            <span className="sku-value">{selectedProduct.sku}</span>
+                                        </div>
+                                    )}
+
                                     {/* Short Description */}
                                     {selectedProduct.short_description && (
                                         <p className="product-modal-short-desc">{selectedProduct.short_description}</p>
@@ -808,30 +837,252 @@ export default function UserProduct() {
                                         </div>
                                     )}
 
-                                    {/* Product Specifications */}
-                                    <div className="product-modal-section">
-                                        <h3 className="section-title">Product Specifications</h3>
-                                        <div className="specs-list">
-                                            <div className="spec-item">
-                                                <span className="spec-label">Supplier ID</span>
-                                                <span className="spec-value">{selectedProduct.supplier_id ?? 'N/A'}</span>
-                                            </div>
-                                            {selectedProduct.sku && (
+                                    {/* Product Specifications - Only for jewelry */}
+                                    {productType === 'jewelry' && (
+                                        <div className="product-modal-section">
+                                            <h3 className="section-title">Product Specifications</h3>
+                                            <div className="specs-list">
                                                 <div className="spec-item">
-                                                    <span className="spec-label">SKU</span>
-                                                    <span className="spec-value">{selectedProduct.sku}</span>
+                                                    <span className="spec-label">Supplier ID</span>
+                                                    <span className="spec-value">{selectedProduct.supplier_id ?? 'N/A'}</span>
                                                 </div>
-                                            )}
+                                                {selectedProduct.sku && (
+                                                    <div className="spec-item">
+                                                        <span className="spec-label">SKU</span>
+                                                        <span className="spec-value">{selectedProduct.sku}</span>
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
-                                    </div>
+                                    )}
 
-                                    {/* Jewelry Specifications */}
+                                    {/* Specifications */}
                                     <div className="product-modal-section">
-                                        <h3 className="section-title">Jewelry Specifications</h3>
-                                        {selectedProduct.jewelry_specifications ? (
-                                            <pre className="jewelry-specs-content">{selectedProduct.jewelry_specifications}</pre>
+                                        <h3 className="section-title">
+                                            {productType === 'jewelry' ? t('products.jewelrySpecifications') : t('products.centerStoneSpecifications')}
+                                        </h3>
+                                        {productType === 'jewelry' ? (
+                                            <div className="centerstone-specs-grid">
+                                                <div className="centerstone-spec-card">
+                                                    <div className="centerstone-spec-label">Material / Purity</div>
+                                                    <div className={`centerstone-spec-value ${!selectedProduct.material_purity ? 'empty' : ''}`}>
+                                                        {selectedProduct.material_purity ?? 'N/A'}
+                                                    </div>
+                                                </div>
+                                                <div className="centerstone-spec-card">
+                                                    <div className="centerstone-spec-label">Material Weight (g)</div>
+                                                    <div className={`centerstone-spec-value ${selectedProduct.material_weight_g == null ? 'empty' : ''}`}>
+                                                        {selectedProduct.material_weight_g != null ? selectedProduct.material_weight_g.toFixed(3) : 'N/A'}
+                                                    </div>
+                                                </div>
+                                                <div className="centerstone-spec-card">
+                                                    <div className="centerstone-spec-label">Total Weight (g)</div>
+                                                    <div className={`centerstone-spec-value ${selectedProduct.total_weight_g == null ? 'empty' : ''}`}>
+                                                        {selectedProduct.total_weight_g != null ? selectedProduct.total_weight_g.toFixed(3) : 'N/A'}
+                                                    </div>
+                                                </div>
+                                                <div className="centerstone-spec-card">
+                                                    <div className="centerstone-spec-label">Size</div>
+                                                    <div className={`centerstone-spec-value ${!selectedProduct.size_text ? 'empty' : ''}`}>
+                                                        {selectedProduct.size_text ?? 'N/A'}
+                                                    </div>
+                                                </div>
+                                                <div className="centerstone-spec-card">
+                                                    <div className="centerstone-spec-label">Jewelry Size</div>
+                                                    <div className={`centerstone-spec-value ${!selectedProduct.jewelry_size ? 'empty' : ''}`}>
+                                                        {selectedProduct.jewelry_size ?? 'N/A'}
+                                                    </div>
+                                                </div>
+                                                <div className="centerstone-spec-card">
+                                                    <div className="centerstone-spec-label">Style (BST)</div>
+                                                    <div className={`centerstone-spec-value ${!selectedProduct.style_bst ? 'empty' : ''}`}>
+                                                        {selectedProduct.style_bst ?? 'N/A'}
+                                                    </div>
+                                                </div>
+                                                <div className="centerstone-spec-card">
+                                                    <div className="centerstone-spec-label">Sub Style</div>
+                                                    <div className={`centerstone-spec-value ${!selectedProduct.sub_style ? 'empty' : ''}`}>
+                                                        {selectedProduct.sub_style ?? 'N/A'}
+                                                    </div>
+                                                </div>
+                                                <div className="centerstone-spec-card">
+                                                    <div className="centerstone-spec-label">Main Stone Type</div>
+                                                    <div className={`centerstone-spec-value ${!selectedProduct.main_stone_type ? 'empty' : ''}`}>
+                                                        {selectedProduct.main_stone_type ?? 'N/A'}
+                                                    </div>
+                                                </div>
+                                                <div className="centerstone-spec-card">
+                                                    <div className="centerstone-spec-label">Stone Quantity</div>
+                                                    <div className={`centerstone-spec-value ${selectedProduct.stone_quantity == null ? 'empty' : ''}`}>
+                                                        {selectedProduct.stone_quantity != null ? selectedProduct.stone_quantity : 'N/A'}
+                                                    </div>
+                                                </div>
+                                                <div className="centerstone-spec-card">
+                                                    <div className="centerstone-spec-label">Shape and Polished</div>
+                                                    <div className={`centerstone-spec-value ${!selectedProduct.shape_and_polished ? 'empty' : ''}`}>
+                                                        {selectedProduct.shape_and_polished ?? 'N/A'}
+                                                    </div>
+                                                </div>
+                                                <div className="centerstone-spec-card">
+                                                    <div className="centerstone-spec-label">Origin</div>
+                                                    <div className={`centerstone-spec-value ${!selectedProduct.origin ? 'empty' : ''}`}>
+                                                        {selectedProduct.origin ?? 'N/A'}
+                                                    </div>
+                                                </div>
+                                                <div className="centerstone-spec-card">
+                                                    <div className="centerstone-spec-label">Item Serial</div>
+                                                    <div className={`centerstone-spec-value ${!selectedProduct.item_serial ? 'empty' : ''}`}>
+                                                        {selectedProduct.item_serial ?? 'N/A'}
+                                                    </div>
+                                                </div>
+                                                <div className="centerstone-spec-card">
+                                                    <div className="centerstone-spec-label">Country of Origin</div>
+                                                    <div className={`centerstone-spec-value ${!selectedProduct.country_of_origin ? 'empty' : ''}`}>
+                                                        {selectedProduct.country_of_origin ?? 'N/A'}
+                                                    </div>
+                                                </div>
+                                                <div className="centerstone-spec-card">
+                                                    <div className="centerstone-spec-label">Certification Number</div>
+                                                    <div className={`centerstone-spec-value ${!selectedProduct.certification_number ? 'empty' : ''}`}>
+                                                        {selectedProduct.certification_number ?? 'N/A'}
+                                                    </div>
+                                                </div>
+                                                <div className="centerstone-spec-card">
+                                                    <div className="centerstone-spec-label">Size (mm)</div>
+                                                    <div className={`centerstone-spec-value ${selectedProduct.size_mm == null ? 'empty' : ''}`}>
+                                                        {selectedProduct.size_mm != null ? selectedProduct.size_mm.toFixed(2) : 'N/A'}
+                                                    </div>
+                                                </div>
+                                                <div className="centerstone-spec-card">
+                                                    <div className="centerstone-spec-label">Color</div>
+                                                    <div className={`centerstone-spec-value ${!selectedProduct.color ? 'empty' : ''}`}>
+                                                        {selectedProduct.color ?? 'N/A'}
+                                                    </div>
+                                                </div>
+                                                <div className="centerstone-spec-card">
+                                                    <div className="centerstone-spec-label">Clarity</div>
+                                                    <div className={`centerstone-spec-value ${!selectedProduct.clarity ? 'empty' : ''}`}>
+                                                        {selectedProduct.clarity ?? 'N/A'}
+                                                    </div>
+                                                </div>
+                                                <div className="centerstone-spec-card">
+                                                    <div className="centerstone-spec-label">Weight (CT)</div>
+                                                    <div className={`centerstone-spec-value ${selectedProduct.weight_ct == null ? 'empty' : ''}`}>
+                                                        {selectedProduct.weight_ct != null ? selectedProduct.weight_ct.toFixed(2) : 'N/A'}
+                                                    </div>
+                                                </div>
+                                                <div className="centerstone-spec-card">
+                                                    <div className="centerstone-spec-label">PCS</div>
+                                                    <div className={`centerstone-spec-value ${selectedProduct.pcs == null ? 'empty' : ''}`}>
+                                                        {selectedProduct.pcs != null ? selectedProduct.pcs : 'N/A'}
+                                                    </div>
+                                                </div>
+                                                <div className="centerstone-spec-card">
+                                                    <div className="centerstone-spec-label">Cut Grade</div>
+                                                    <div className={`centerstone-spec-value ${!selectedProduct.cut_grade ? 'empty' : ''}`}>
+                                                        {selectedProduct.cut_grade ?? 'N/A'}
+                                                    </div>
+                                                </div>
+                                                <div className="centerstone-spec-card">
+                                                    <div className="centerstone-spec-label">Treatment</div>
+                                                    <div className={`centerstone-spec-value ${!selectedProduct.treatment ? 'empty' : ''}`}>
+                                                        {selectedProduct.treatment ?? 'N/A'}
+                                                    </div>
+                                                </div>
+                                                <div className="centerstone-spec-card">
+                                                    <div className="centerstone-spec-label">Sub Stone Type 1</div>
+                                                    <div className={`centerstone-spec-value ${!selectedProduct.sub_stone_type_1 ? 'empty' : ''}`}>
+                                                        {selectedProduct.sub_stone_type_1 ?? 'N/A'}
+                                                    </div>
+                                                </div>
+                                                <div className="centerstone-spec-card">
+                                                    <div className="centerstone-spec-label">Sub Stone Type 2</div>
+                                                    <div className={`centerstone-spec-value ${!selectedProduct.sub_stone_type_2 ? 'empty' : ''}`}>
+                                                        {selectedProduct.sub_stone_type_2 ?? 'N/A'}
+                                                    </div>
+                                                </div>
+                                                <div className="centerstone-spec-card">
+                                                    <div className="centerstone-spec-label">Sub Stone Type 3</div>
+                                                    <div className={`centerstone-spec-value ${!selectedProduct.sub_stone_type_3 ? 'empty' : ''}`}>
+                                                        {selectedProduct.sub_stone_type_3 ?? 'N/A'}
+                                                    </div>
+                                                </div>
+                                            </div>
                                         ) : (
-                                            <p className="no-specs">No specifications available</p>
+                                            <div className="centerstone-specs-grid">
+                                                <div className="centerstone-spec-card">
+                                                    <div className="centerstone-spec-label">Shape and Polished</div>
+                                                    <div className={`centerstone-spec-value ${!selectedProduct.shape_and_polished ? 'empty' : ''}`}>
+                                                        {selectedProduct.shape_and_polished ?? 'N/A'}
+                                                    </div>
+                                                </div>
+                                                <div className="centerstone-spec-card">
+                                                    <div className="centerstone-spec-label">Origin</div>
+                                                    <div className={`centerstone-spec-value ${!selectedProduct.origin ? 'empty' : ''}`}>
+                                                        {selectedProduct.origin ?? 'N/A'}
+                                                    </div>
+                                                </div>
+                                                <div className="centerstone-spec-card">
+                                                    <div className="centerstone-spec-label">Item Serial</div>
+                                                    <div className={`centerstone-spec-value ${!selectedProduct.item_serial ? 'empty' : ''}`}>
+                                                        {selectedProduct.item_serial ?? 'N/A'}
+                                                    </div>
+                                                </div>
+                                                <div className="centerstone-spec-card">
+                                                    <div className="centerstone-spec-label">Country of Origin</div>
+                                                    <div className={`centerstone-spec-value ${!selectedProduct.country_of_origin ? 'empty' : ''}`}>
+                                                        {selectedProduct.country_of_origin ?? 'N/A'}
+                                                    </div>
+                                                </div>
+                                                <div className="centerstone-spec-card">
+                                                    <div className="centerstone-spec-label">Certification Number</div>
+                                                    <div className={`centerstone-spec-value ${!selectedProduct.certification_number ? 'empty' : ''}`}>
+                                                        {selectedProduct.certification_number ?? 'N/A'}
+                                                    </div>
+                                                </div>
+                                                <div className="centerstone-spec-card">
+                                                    <div className="centerstone-spec-label">Size (mm)</div>
+                                                    <div className={`centerstone-spec-value ${selectedProduct.size_mm == null ? 'empty' : ''}`}>
+                                                        {selectedProduct.size_mm != null ? selectedProduct.size_mm.toFixed(2) : 'N/A'}
+                                                    </div>
+                                                </div>
+                                                <div className="centerstone-spec-card">
+                                                    <div className="centerstone-spec-label">Color</div>
+                                                    <div className={`centerstone-spec-value ${!selectedProduct.color ? 'empty' : ''}`}>
+                                                        {selectedProduct.color ?? 'N/A'}
+                                                    </div>
+                                                </div>
+                                                <div className="centerstone-spec-card">
+                                                    <div className="centerstone-spec-label">Clarity</div>
+                                                    <div className={`centerstone-spec-value ${!selectedProduct.clarity ? 'empty' : ''}`}>
+                                                        {selectedProduct.clarity ?? 'N/A'}
+                                                    </div>
+                                                </div>
+                                                <div className="centerstone-spec-card">
+                                                    <div className="centerstone-spec-label">Weight (CT)</div>
+                                                    <div className={`centerstone-spec-value ${selectedProduct.weight_ct == null ? 'empty' : ''}`}>
+                                                        {selectedProduct.weight_ct != null ? selectedProduct.weight_ct.toFixed(2) : 'N/A'}
+                                                    </div>
+                                                </div>
+                                                <div className="centerstone-spec-card">
+                                                    <div className="centerstone-spec-label">PCS</div>
+                                                    <div className={`centerstone-spec-value ${selectedProduct.pcs == null ? 'empty' : ''}`}>
+                                                        {selectedProduct.pcs != null ? selectedProduct.pcs : 'N/A'}
+                                                    </div>
+                                                </div>
+                                                <div className="centerstone-spec-card">
+                                                    <div className="centerstone-spec-label">Cut Grade</div>
+                                                    <div className={`centerstone-spec-value ${!selectedProduct.cut_grade ? 'empty' : ''}`}>
+                                                        {selectedProduct.cut_grade ?? 'N/A'}
+                                                    </div>
+                                                </div>
+                                                <div className="centerstone-spec-card">
+                                                    <div className="centerstone-spec-label">Treatment</div>
+                                                    <div className={`centerstone-spec-value ${!selectedProduct.treatment ? 'empty' : ''}`}>
+                                                        {selectedProduct.treatment ?? 'N/A'}
+                                                    </div>
+                                                </div>
+                                            </div>
                                         )}
                                     </div>
                                 </div>

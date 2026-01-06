@@ -298,7 +298,7 @@ export default function UserClient() {
                     className="client-toolbar clients-toolbar"
                     ref={(el) => {
                         if (el && window.innerWidth <= 768) {
-                            // #region agent log
+
                             const rect = el.getBoundingClientRect();
                             const left = el.querySelector('.toolbar-left');
                             const right = el.querySelector('.toolbar-right');
@@ -310,8 +310,7 @@ export default function UserClient() {
                             const searchStyles = search ? window.getComputedStyle(search) : null;
                             const filterStyles = filter ? window.getComputedStyle(filter) : null;
                             const createStyles = create ? window.getComputedStyle(create) : null;
-                            fetch('http://127.0.0.1:7242/ingest/3da31dfe-5721-4e1a-a160-93fd6dd15ec4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'UserClient.tsx:297',message:'Toolbar layout inspection',data:{toolbar:{width:rect.width,padding:styles.padding,gap:styles.gap,flexDirection:styles.flexDirection},toolbarLeft:{width:left?.getBoundingClientRect().width,flex:leftStyles?.flex,gap:leftStyles?.gap},search:{width:search?.getBoundingClientRect().width,flex:searchStyles?.flex,maxWidth:searchStyles?.maxWidth},filter:{width:filter?.getBoundingClientRect().width},create:{width:create?.getBoundingClientRect().width},totalWidth:rect.width,componentsWidth:(search?.getBoundingClientRect().width||0)+(filter?.getBoundingClientRect().width||0)+(create?.getBoundingClientRect().width||0)},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'OVERLAP_DEBUG'})}).catch(()=>{});
-                            // #endregion
+
                         }
                     }}
                 >

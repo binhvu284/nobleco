@@ -20,28 +20,70 @@ export default async function handler(req, res) {
     // Create workbook
     const workbook = XLSX.utils.book_new();
 
-    // Define headers according to the template format
+    // Define headers according to the new jewelry specifications format
     const headers = [
       'Product Code',
-      'Supplier Code',
-      'Product Name',
-      'Jewelry Specifications',
-      'Description',
+      'Categories',
+      'Material / Purity',
+      'Material Weight (g)',
+      'Total Weight (g)',
+      'Size',
+      'Jewelry Size',
+      'Style (BST)',
+      'Sub Style',
+      'Main Stone Type',
+      'Stone Quantity',
+      'Shape and Polished',
+      'Origin',
+      'Item Serial',
+      'Country of Origin',
+      'Certification Number',
+      'Size (mm)',
+      'Color',
+      'Clarity',
+      'Weight (CT)',
+      'PCS',
+      'Cut Grade',
+      'Treatment',
       'Price (VND)',
       'Stock',
-      'Categories'
+      'Sub Stone Type 1',
+      'Sub Stone Type 2',
+      'Sub Stone Type 3',
+      'Description'
     ];
 
-    // Create sample data row (optional - can be empty)
+    // Create sample data row
     const sampleRow = [
-      '01R0924001',           // Product Code
-      'RDM24213',             // Supplier Code
-      'Sample Product Name',  // Product Name
-      'Center Stone Size: 2.4 mm\nNi tay: 6.5\nShape: Round\nDimensions: 2.9*3.3\nStone Count: 16\nCarat Weight: 4.065 ct\nGold Purity: 18K\nProduct Weight: 9.083 g\nType: L',  // Jewelry Specifications (multi-line)
-      'Sample description',   // Description
-      88300000,               // Price (VND)
-      1,                      // Stock
-      'Rings, Gold Jewelry'  // Categories (comma-separated)
+      'PRD-00000001',          // Product Code
+      'Rings, Gold Jewelry',   // Categories (comma-separated)
+      '18K',                   // Material / Purity
+      5.5,                     // Material Weight (g)
+      9.083,                   // Total Weight (g)
+      'M',                     // Size
+      '6.5',                   // Jewelry Size
+      'Classic',               // Style (BST)
+      'Solitaire',             // Sub Style
+      'Diamond',               // Main Stone Type
+      16,                      // Stone Quantity
+      'Round, Excellent',      // Shape and Polished
+      'South Africa',          // Origin
+      'SER-001',               // Item Serial
+      'South Africa',          // Country of Origin
+      'GIA-123456',            // Certification Number
+      2.4,                     // Size (mm)
+      'D',                     // Color
+      'VS1',                   // Clarity
+      1.5,                     // Weight (CT)
+      1,                       // PCS
+      'Excellent',             // Cut Grade
+      'None',                  // Treatment
+      88300000,                // Price (VND)
+      1,                       // Stock
+      'Ruby',                  // Sub Stone Type 1
+      '',                      // Sub Stone Type 2
+      '',                      // Sub Stone Type 3
+      'Sample jewelry description' // Description
     ];
 
     // Create worksheet data
@@ -55,14 +97,35 @@ export default async function handler(req, res) {
 
     // Set column widths for better readability
     const columnWidths = [
-      { wch: 15 },  // Product Code
-      { wch: 15 },  // Supplier Code
-      { wch: 25 },  // Product Name
-      { wch: 50 },  // Jewelry Specifications (wider for multi-line text)
-      { wch: 30 },  // Description
+      { wch: 18 },  // Product Code
+      { wch: 25 },  // Categories
+      { wch: 15 },  // Material / Purity
+      { wch: 18 },  // Material Weight (g)
+      { wch: 16 },  // Total Weight (g)
+      { wch: 10 },  // Size
+      { wch: 12 },  // Jewelry Size
+      { wch: 12 },  // Style (BST)
+      { wch: 12 },  // Sub Style
+      { wch: 15 },  // Main Stone Type
+      { wch: 15 },  // Stone Quantity
+      { wch: 18 },  // Shape and Polished
+      { wch: 15 },  // Origin
+      { wch: 12 },  // Item Serial
+      { wch: 18 },  // Country of Origin
+      { wch: 20 },  // Certification Number
+      { wch: 12 },  // Size (mm)
+      { wch: 10 },  // Color
+      { wch: 10 },  // Clarity
+      { wch: 12 },  // Weight (CT)
+      { wch: 8 },   // PCS
+      { wch: 12 },  // Cut Grade
+      { wch: 12 },  // Treatment
       { wch: 15 },  // Price (VND)
       { wch: 10 },  // Stock
-      { wch: 25 }   // Categories
+      { wch: 15 },  // Sub Stone Type 1
+      { wch: 15 },  // Sub Stone Type 2
+      { wch: 15 },  // Sub Stone Type 3
+      { wch: 30 }   // Description
     ];
     worksheet['!cols'] = columnWidths;
 
@@ -102,4 +165,3 @@ export default async function handler(req, res) {
     });
   }
 }
-
