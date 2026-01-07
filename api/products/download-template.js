@@ -23,6 +23,7 @@ export default async function handler(req, res) {
     // Define headers according to the new jewelry specifications format
     const headers = [
       'Product Code',
+      'Product Name',
       'Categories',
       'Material / Purity',
       'Material Weight (g)',
@@ -56,6 +57,7 @@ export default async function handler(req, res) {
     // Create sample data row
     const sampleRow = [
       'PRD-00000001',          // Product Code
+      'Diamond Ring 18K',      // Product Name (optional - defaults to Product Code if empty)
       'Rings, Gold Jewelry',   // Categories (comma-separated)
       '18K',                   // Material / Purity
       5.5,                     // Material Weight (g)
@@ -98,6 +100,7 @@ export default async function handler(req, res) {
     // Set column widths for better readability
     const columnWidths = [
       { wch: 18 },  // Product Code
+      { wch: 25 },  // Product Name
       { wch: 25 },  // Categories
       { wch: 15 },  // Material / Purity
       { wch: 18 },  // Material Weight (g)
