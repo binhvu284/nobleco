@@ -76,12 +76,6 @@ This project uses Supabase (Postgres) from serverless API routes on Vercel.
 
 Locally (create `.env.local`):
 
-```
-SUPABASE_URL=https://<your-project-ref>.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=<service-role-key>
-# Optional: if service role not used locally
-# SUPABASE_ANON_KEY=<anon-key>
-```
 
 On Vercel (Project Settings → Environment Variables):
 
@@ -97,25 +91,6 @@ On Vercel (Project Settings → Environment Variables):
 
 See [VERCEL_DEPLOYMENT.md](./VERCEL_DEPLOYMENT.md) for detailed deployment instructions.
 
-### Database schema
-
-Run this SQL in Supabase SQL Editor:
-
-```
-create table if not exists public.users (
-	id uuid primary key default gen_random_uuid(),
-	email text unique not null,
-	username text unique not null,
-	password text,
-	role text not null default 'user' check (role in ('admin','user'))
-);
-
--- Optional indexes
-create index if not exists users_email_idx on public.users (email);
-create index if not exists users_username_idx on public.users (username);
-```
-
-Note: If you don’t have pgcrypto enabled for gen_random_uuid, use: `uuid default uuid_generate_v4()` and enable `uuid-ossp` extension.
 
 ### API endpoints
 
