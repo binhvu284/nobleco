@@ -311,14 +311,15 @@ export default function MetricChart({
                                     border: '1px solid var(--border)',
                                     borderRadius: '8px'
                                 }}
-                                formatter={(value: any, name: string) => {
-                                    if (name === dataKey && formatValue) {
-                                        return [formatValue(value), name];
+                                formatter={(value, name) => {
+                                    const nameStr = name || '';
+                                    if (nameStr === dataKey && formatValue) {
+                                        return [formatValue(value), nameStr];
                                     }
-                                    if (name === secondaryDataKey && formatSecondaryValue) {
-                                        return [formatSecondaryValue(value), name];
+                                    if (nameStr === secondaryDataKey && formatSecondaryValue) {
+                                        return [formatSecondaryValue(value), nameStr];
                                     }
-                                    return [value.toLocaleString(), name];
+                                    return [value?.toLocaleString() || '', nameStr];
                                 }}
                             />
                             <Legend />

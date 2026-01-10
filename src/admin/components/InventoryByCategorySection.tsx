@@ -517,9 +517,10 @@ export default function InventoryByCategorySection({
                                     border: '1px solid var(--border)',
                                     borderRadius: '8px'
                                 }}
-                                formatter={(value: number, name: string) => {
-                                    if (name === 'Stock') return [formatNumber(value), name];
-                                    return [formatCurrency(value), name];
+                                formatter={(value, name) => {
+                                    if (value === undefined) return ['', name || ''];
+                                    if (name === 'Stock') return [formatNumber(value as number), name];
+                                    return [formatCurrency(value as number), name || ''];
                                 }}
                             />
                             {showStock && (
@@ -762,9 +763,10 @@ export default function InventoryByCategorySection({
                                     border: '1px solid var(--border)',
                                     borderRadius: '8px'
                                 }}
-                                formatter={(value: number, name: string) => {
-                                    if (name === 'Stock') return [formatNumber(value), name];
-                                    return [formatCurrency(value), name];
+                                formatter={(value, name) => {
+                                    if (value === undefined) return ['', name || ''];
+                                    if (name === 'Stock') return [formatNumber(value as number), name];
+                                    return [formatCurrency(value as number), name || ''];
                                 }}
                             />
                             {showStock && (
