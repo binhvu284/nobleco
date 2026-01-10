@@ -18,6 +18,7 @@ import Inbox from './user/pages/Inbox';
 import Library from './user/pages/Library';
 import TrainingMaterials from './user/pages/TrainingMaterials';
 import AdminDashboard from './admin/pages/AdminDashboard';
+import AdminBusinessAnalytics from './admin/pages/AdminBusinessAnalytics';
 import AdminUsers from './admin/pages/AdminUsers';
 import AdminAdminUsers from './admin/pages/AdminAdminUsers';
 import AdminClients from './admin/pages/AdminClients';
@@ -60,6 +61,7 @@ export default function App() {
             <Route element={<ProtectedRoute requiredRole="admin" />}>
                 <Route path="/admin-access-denied" element={<AccessDenied />} />
                 <Route path="/admin-dashboard" element={<CoworkerProtectedRoute><AdminDashboard /></CoworkerProtectedRoute>} />
+                <Route path="/admin-analytics" element={<AdminBusinessAnalytics />} />
                 <Route path="/admin-users" element={<CoworkerProtectedRoute><AdminUsers /></CoworkerProtectedRoute>} />
                 <Route path="/admin-admin-users" element={<CoworkerProtectedRoute><AdminAdminUsers /></CoworkerProtectedRoute>} />
                 <Route path="/admin-clients" element={<CoworkerProtectedRoute><AdminClients /></CoworkerProtectedRoute>} />

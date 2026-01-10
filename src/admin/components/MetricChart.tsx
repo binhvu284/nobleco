@@ -1,7 +1,7 @@
 import React from 'react';
-import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ComposedChart } from 'recharts';
 
-type ChartType = 'line' | 'bar' | 'pie';
+type ChartType = 'line' | 'bar' | 'pie' | 'combo' | 'horizontalBar';
 
 interface ChartDataPoint {
     [key: string]: string | number;
@@ -12,11 +12,15 @@ interface MetricChartProps {
     data: ChartDataPoint[];
     type: ChartType;
     dataKey: string;
+    secondaryDataKey?: string; // For combo chart - the line data
     nameKey?: string;
-    width?: 1 | 2;
+    width?: 1 | 2 | 3 | 4;
     height?: 1 | 2 | 3;
     className?: string;
     colors?: string[];
+    formatValue?: (value: number) => string;
+    formatSecondaryValue?: (value: number) => string;
+    bare?: boolean; // If true, renders just the chart without wrapper
 }
 
 const DEFAULT_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
@@ -26,12 +30,29 @@ export default function MetricChart({
     data,
     type,
     dataKey,
+    secondaryDataKey,
     nameKey = 'name',
     width = 2,
     height = 2,
     className = '',
-    colors = DEFAULT_COLORS
+    colors = DEFAULT_COLORS,
+    formatValue,
+    formatSecondaryValue,
+    bare = false
 }: MetricChartProps) {
+    // Format currency (VND)
+    const formatCurrency = (amount: number): string => {
+        if (amount >= 1000000000) {
+            return `${(amount / 1000000000).toFixed(1)}B ₫`;
+        }
+        if (amount >= 1000000) {
+            return `${(amount / 1000000).toFixed(1)}M ₫`;
+        }
+        if (amount >= 1000) {
+            return `${(amount / 1000).toFixed(1)}K ₫`;
+        }
+        return `${amount.toLocaleString('vi-VN')} ₫`;
+    };
     const renderChart = () => {
         switch (type) {
             case 'line':
@@ -215,7 +236,7 @@ export default function MetricChart({
                                     const numValue = typeof value === 'number' ? value : 0;
                                     const percentValue = percent ? (percent * 100).toFixed(1) : 0;
                                     if (midAngle === undefined || innerRadius === undefined || outerRadius === undefined) {
-                                        return `${name}\n${numValue} orders (${percentValue}%)`;
+                                        return `${name}\n${numValue} (${percentValue}%)`;
                                     }
                                     const RADIAN = Math.PI / 180;
                                     const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
@@ -232,7 +253,7 @@ export default function MetricChart({
                                             style={{ fontSize: '12px', fontWeight: 500 }}
                                         >
                                             <tspan x={x} dy="-6">{name}</tspan>
-                                            <tspan x={x} dy="12">{numValue} orders ({percentValue}%)</tspan>
+                                            <tspan x={x} dy="12">{formatValue ? formatValue(numValue) : numValue} ({percentValue}%)</tspan>
                                         </text>
                                     );
                                 }}
@@ -253,10 +274,135 @@ export default function MetricChart({
                                 formatter={(value: any) => {
                                     const total = pieData.reduce((sum, d) => sum + (typeof d[dataKey] === 'number' ? d[dataKey] : 0), 0);
                                     const percent = total > 0 ? ((typeof value === 'number' ? value : 0) / total * 100).toFixed(1) : 0;
-                                    return `${value} orders (${percent}%)`;
+                                    const formattedValue = formatValue ? formatValue(value) : value;
+                                    return `${formattedValue} (${percent}%)`;
                                 }}
                             />
                         </PieChart>
+                    </ResponsiveContainer>
+                );
+
+            case 'horizontalBar':
+                // Horizontal bar chart - good for comparing categories with long names
+                return (
+                    <ResponsiveContainer width="100%" height="100%">
+                        <BarChart 
+                            data={data} 
+                            layout="vertical"
+                            margin={{ top: 5, right: 30, left: 80, bottom: 5 }}
+                        >
+                            <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                            <XAxis 
+                                type="number"
+                                stroke="var(--muted)"
+                                style={{ fontSize: '12px' }}
+                                tickFormatter={(value) => formatValue ? formatValue(value) : value.toLocaleString()}
+                            />
+                            <YAxis 
+                                type="category"
+                                dataKey={nameKey}
+                                stroke="var(--muted)"
+                                style={{ fontSize: '12px' }}
+                                width={75}
+                            />
+                            <Tooltip 
+                                contentStyle={{ 
+                                    backgroundColor: 'var(--panel)', 
+                                    border: '1px solid var(--border)',
+                                    borderRadius: '8px'
+                                }}
+                                formatter={(value: any, name: string) => {
+                                    if (name === dataKey && formatValue) {
+                                        return [formatValue(value), name];
+                                    }
+                                    if (name === secondaryDataKey && formatSecondaryValue) {
+                                        return [formatSecondaryValue(value), name];
+                                    }
+                                    return [value.toLocaleString(), name];
+                                }}
+                            />
+                            <Legend />
+                            <Bar 
+                                dataKey={dataKey} 
+                                fill={colors[0]} 
+                                radius={[0, 4, 4, 0]}
+                                name={dataKey}
+                            />
+                            {secondaryDataKey && (
+                                <Bar 
+                                    dataKey={secondaryDataKey} 
+                                    fill={colors[1]} 
+                                    radius={[0, 4, 4, 0]}
+                                    name={secondaryDataKey}
+                                />
+                            )}
+                        </BarChart>
+                    </ResponsiveContainer>
+                );
+
+            case 'combo':
+                // Combo chart - Column (bar) + Line with dual Y-axis
+                return (
+                    <ResponsiveContainer width="100%" height="100%">
+                        <ComposedChart 
+                            data={data}
+                            margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                        >
+                            <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                            <XAxis 
+                                dataKey={nameKey}
+                                stroke="var(--muted)"
+                                style={{ fontSize: '12px' }}
+                            />
+                            <YAxis 
+                                yAxisId="left"
+                                stroke={colors[0]}
+                                style={{ fontSize: '12px' }}
+                                tickFormatter={(value) => formatValue ? formatValue(value) : value.toLocaleString()}
+                            />
+                            <YAxis 
+                                yAxisId="right"
+                                orientation="right"
+                                stroke={colors[1]}
+                                style={{ fontSize: '12px' }}
+                                tickFormatter={(value) => formatSecondaryValue ? formatSecondaryValue(value) : formatCurrency(value)}
+                            />
+                            <Tooltip 
+                                contentStyle={{ 
+                                    backgroundColor: 'var(--panel)', 
+                                    border: '1px solid var(--border)',
+                                    borderRadius: '8px'
+                                }}
+                                formatter={(value: any, name: string) => {
+                                    if (name === dataKey && formatValue) {
+                                        return [formatValue(value), name];
+                                    }
+                                    if (name === secondaryDataKey && formatSecondaryValue) {
+                                        return [formatSecondaryValue(value), name];
+                                    }
+                                    return [formatCurrency(value), name];
+                                }}
+                            />
+                            <Legend />
+                            <Bar 
+                                yAxisId="left"
+                                dataKey={dataKey} 
+                                fill={colors[0]} 
+                                radius={[4, 4, 0, 0]}
+                                name={dataKey}
+                            />
+                            {secondaryDataKey && (
+                                <Line 
+                                    yAxisId="right"
+                                    type="monotone"
+                                    dataKey={secondaryDataKey}
+                                    stroke={colors[1]}
+                                    strokeWidth={3}
+                                    dot={{ fill: colors[1], r: 5 }}
+                                    name={secondaryDataKey}
+                                />
+                            )}
+                        </ComposedChart>
                     </ResponsiveContainer>
                 );
             
@@ -265,15 +411,22 @@ export default function MetricChart({
         }
     };
 
+    // Bare mode - just render the chart without wrapper
+    if (bare) {
+        return renderChart();
+    }
+
     return (
         <div 
             className={`metric-card metric-chart ${className}`}
             data-width={width}
             data-height={height}
         >
-            <div className="widget-header">
-                <h3>{title}</h3>
-            </div>
+            {title && (
+                <div className="widget-header">
+                    <h3>{title}</h3>
+                </div>
+            )}
             <div className="chart-container" style={{ height: height === 1 ? '200px' : height === 2 ? '300px' : '400px' }}>
                 {renderChart()}
             </div>

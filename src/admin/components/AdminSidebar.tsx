@@ -16,7 +16,8 @@ import {
     IconTag, 
     IconCreditCard,
     IconMoreVertical,
-    IconTicket
+    IconTicket,
+    IconBarChart
 } from './icons';
 import { getCurrentUser } from '../../auth';
 import { useTranslation } from '../../shared/contexts/TranslationContext';
@@ -128,6 +129,14 @@ export default function AdminSidebar({ collapsed, onToggle, onNavigate, onMobile
                     <NavLink to="/admin-dashboard" onClick={onNavigate} className={({ isActive }) => isActive ? 'active' : ''}>
                         <IconDashboard />
                         {!collapsed && <span>{t('sidebar.dashboard')}</span>}
+                    </NavLink>
+                )}
+
+                {/* Business Analytics - Admin only (not for coworkers) */}
+                {!isCoworker && (
+                    <NavLink to="/admin-analytics" onClick={onNavigate} className={({ isActive }) => isActive ? 'active' : ''}>
+                        <IconBarChart />
+                        {!collapsed && <span>{t('sidebar.businessAnalytics')}</span>}
                     </NavLink>
                 )}
 
