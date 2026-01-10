@@ -313,13 +313,14 @@ export default function MetricChart({
                                 }}
                                 formatter={(value, name) => {
                                     const nameStr = name || '';
+                                    const numValue = typeof value === 'number' ? value : 0;
                                     if (nameStr === dataKey && formatValue) {
-                                        return [formatValue(value), nameStr];
+                                        return [formatValue(numValue), nameStr];
                                     }
                                     if (nameStr === secondaryDataKey && formatSecondaryValue) {
-                                        return [formatSecondaryValue(value), nameStr];
+                                        return [formatSecondaryValue(numValue), nameStr];
                                     }
-                                    return [value?.toLocaleString() || '', nameStr];
+                                    return [numValue.toLocaleString(), nameStr];
                                 }}
                             />
                             <Legend />
@@ -374,14 +375,16 @@ export default function MetricChart({
                                     border: '1px solid var(--border)',
                                     borderRadius: '8px'
                                 }}
-                                formatter={(value: any, name: string) => {
-                                    if (name === dataKey && formatValue) {
-                                        return [formatValue(value), name];
+                                formatter={(value, name) => {
+                                    const nameStr = name || '';
+                                    const numValue = typeof value === 'number' ? value : 0;
+                                    if (nameStr === dataKey && formatValue) {
+                                        return [formatValue(numValue), nameStr];
                                     }
-                                    if (name === secondaryDataKey && formatSecondaryValue) {
-                                        return [formatSecondaryValue(value), name];
+                                    if (nameStr === secondaryDataKey && formatSecondaryValue) {
+                                        return [formatSecondaryValue(numValue), nameStr];
                                     }
-                                    return [formatCurrency(value), name];
+                                    return [formatCurrency(numValue), nameStr];
                                 }}
                             />
                             <Legend />
